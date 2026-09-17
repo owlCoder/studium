@@ -1,0 +1,23 @@
+name: Predlog / pitanje tima
+description: Predlog, pitanje o specifikaciji ili prijava problema u projektu
+title: "[ERS] "
+labels: ["triage"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Kontekst
+      description: Opišite celinu, zadatak i šta pokušavate da postignete.
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Pitanje ili predlog
+    validations:
+      required: true
+  - type: textarea
+    id: integration
+    attributes:
+      label: Uticaj na druge celine
+      description: Navedite ugovor, podatke ili timove na koje promena utiče.

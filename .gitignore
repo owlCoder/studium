@@ -1,0 +1,19 @@
+# .NET
+bin/
+obj/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+secrets.json
+
+# Test artifacts
+TestResults/
+coverage/
