@@ -1,22 +1,24 @@
-## Sažetak
+## Opis promene
 
-<!-- Šta se menja i kojoj projektnoj celini pripada? -->
+<!-- Šta je urađeno, a šta nije? -->
 
-## Tapiz zadatak
+## Zahtev i prihvatanje
 
-<!-- Link ili oznaka zadatka. -->
+- ST oznaka: `ST-___`
+- Korisnička priča / zadatak:
+- Kriterijumi prihvatanja:
 
-## Integracija
+## Arhitektonski uticaj
 
-- Vlasništvo nad podacima / modul:
-- Pogođeni ugovor ili granica između celina:
-- Pogođeni timovi:
-- Tenant kontekst, ako je relevantno:
+- Izmenjeni slojevi / moduli:
+- Promenjeni portovi i javni ugovori:
+- Izvođenje predmeta / članstvo / ovlašćenja (ako je relevantno):
+- Pogođeni timovi i eventualni ADR:
 
 ## Provere
 
-- [ ] Build prolazi lokalno
-- [ ] Relevantni testovi prolaze
-- [ ] Nema commitovanih tajni ili stvarnih kredencijala
-- [ ] Dokumentacija i ADR su ažurirani kada je potrebno
-- [ ] Promena ugovora ima review pogođenih timova
+- [ ] `dotnet build Studium.sln --configuration Release`
+- [ ] `dotnet test Studium.sln --configuration Release`
+- [ ] Dodati testovi poslovnih pravila i neuspešnih ishoda
+- [ ] Ne postoje tajne, stvarni studentski podaci niti nepovezane izmene
+- [ ] Ažurirana dokumentacija za izmenjene ugovore

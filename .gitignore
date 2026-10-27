@@ -1,19 +1,22 @@
-# .NET
-bin/
-obj/
+# .NET build results
+**/bin/
+**/obj/
+**/TestResults/
+**/coverage/
+*.coverage
+*.coveragexml
 
-# IDE
+# IDE and operating system
 .vs/
 .vscode/
+.idea/
 *.user
 *.suo
+.DS_Store
 
-# Local configuration and secrets
+# Local-only configuration and secrets
 .env
 .env.*
 !.env.example
 secrets.json
-
-# Test artifacts
-TestResults/
-coverage/
+appsettings.Development.local.json

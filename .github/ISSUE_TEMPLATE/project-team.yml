@@ -1,23 +1,28 @@
-name: Predlog / pitanje tima
-description: Predlog, pitanje o specifikaciji ili prijava problema u projektu
-title: "[ERS] "
-labels: ["triage"]
+name: Pitanje ili predlog (STUDIUM)
+description: Pitanje o zahtevu, dizajnu ili integraciji
+title: "[STUDIUM] "
 body:
+  - type: input
+    id: requirement
+    attributes:
+      label: Oznaka zahteva
+      description: Na primer ST-011 ili povezani skup zahteva
+      placeholder: ST-___
   - type: textarea
     id: context
     attributes:
       label: Kontekst
-      description: Opišite celinu, zadatak i šta pokušavate da postignete.
+      description: Koje ponašanje ili poslovno pravilo treba razjasniti?
     validations:
       required: true
   - type: textarea
-    id: question
+    id: suggestion
     attributes:
       label: Pitanje ili predlog
     validations:
       required: true
   - type: textarea
-    id: integration
+    id: impact
     attributes:
-      label: Uticaj na druge celine
-      description: Navedite ugovor, podatke ili timove na koje promena utiče.
+      label: Uticaj na druge module
+      description: Navedite modele, portove i timove na koje promena utiče.
