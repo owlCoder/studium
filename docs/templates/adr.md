@@ -16,3 +16,14 @@ Koji poslovni ili tehnički problem zahteva odluku?
 ## Posledice
 
 Koje su koristi, kompromisi, rizici, potrebni testovi i uticaj na ugovore?
+
+## Povezanost sa specifikacijom
+
+- **Pogođeni zahtevi:** ST-___
+- **Promena javnih ugovora i zavisnosti:**
+- **Uticaj na čuvanje i migraciju podataka:**
+- **Testovi koji proveravaju odluku:**
+
+## Razmotrene alternative
+
+Koja su druga rešenja razmatrana i zašto nisu izabrana?

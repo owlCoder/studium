@@ -54,7 +54,12 @@ Poslednje dve komande pokreću alternativne ulaze; nisu potrebne istovremeno. AP
 
 - [Uputstvo za doprinos](CONTRIBUTING.md)
 - [Arhitektonske granice](docs/architecture.md)
-- [Praćenje zahteva ST-001–ST-100](docs/requirements/README.md)
+- [ST-001–ST-100: indeks svih zahteva](docs/requirements/ST-INDEX.md)
+- [Praćenje zahteva i kriterijumi prihvatanja](docs/requirements/README.md)
+- [Vodič za prvi doprinos](docs/first-contribution.md)
+- [Smernice za model podataka](docs/data-model-guidelines.md)
+- [Predlog razvojnog toka prema oblastima ERS](docs/learning-path.md)
+- [Pravila za AI agente](AGENTS.md)
 - [ADR šablon](docs/templates/adr.md)
 
 Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslovnih zahteva; primeri u repozitorijumu služe isključivo za početnu organizaciju koda.

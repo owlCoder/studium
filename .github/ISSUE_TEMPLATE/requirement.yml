@@ -1,0 +1,38 @@
+name: STUDIUM funkcionalnost
+description: Predlog za implementaciju zahteva iz specifikacije
+title: "[ST-___] "
+labels: ["enhancement"]
+body:
+  - type: input
+    id: requirement
+    attributes:
+      label: Oznaka zahteva
+      description: Navesti oznaku iz projektne specifikacije.
+      placeholder: ST-011
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Korisnička vrednost
+      description: Jedna rečenica koja opisuje ulogu, radnju i cilj.
+      placeholder: "Kao [uloga], želim [radnju], kako bih [cilj]."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Kriterijumi prihvatanja
+      description: Dati pozitivne, negativne i granične scenarije.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Zavisnosti i integracija
+      description: Povezani ST zahtevi, modeli, portovi i pogođeni timovi.
+  - type: textarea
+    id: tests
+    attributes:
+      label: Plan provera
+      description: Šta treba automatizovano testirati i demonstrirati?
