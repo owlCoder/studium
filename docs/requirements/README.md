@@ -1,6 +1,6 @@
 # Praćenje zahteva STUDIUM-a
 
-**Izvor istine** je projektna specifikacija predmeta sa zahtevima `ST-001` do `ST-100`. Ovaj repozitorijum ne zamenjuje tekst zahteva. Svaka izmena u kodu treba da navede relevantnu oznaku ST-xxx, kriterijume prihvatanja, testove i pogođene komponente.
+**Izvor istine** je projektna specifikacija predmeta sa zahtevima `ST-001` do `ST-100`. Za brzu navigaciju koristi [indeks naziva svih 100 zahteva](ST-INDEX.md). Ovaj repozitorijum ne zamenjuje tekst zahteva. Svaka izmena u kodu treba da navede relevantnu oznaku ST-xxx, kriterijume prihvatanja, testove i pogođene komponente.
 
 ## Predlog evidencije
 

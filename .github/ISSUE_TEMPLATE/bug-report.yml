@@ -1,0 +1,34 @@
+name: Prijava greške
+description: Ponašanje koje je suprotno specifikaciji ili očekivanom testu
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: input
+    id: requirement
+    attributes:
+      label: Povezani ST zahtev
+      placeholder: ST-___
+  - type: textarea
+    id: steps
+    attributes:
+      label: Koraci za reprodukciju
+      description: Koristiti sintetičke testne podatke; ne unositi tajne ili stvarne studentske podatke.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Očekivano ponašanje
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Stvarno ponašanje
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Test, log ili dodatni kontekst
+      description: Ukloniti osetljive podatke iz svih priloga.
