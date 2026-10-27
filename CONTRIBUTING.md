@@ -1,36 +1,32 @@
-# Doprinos projektu PYXIS
+# Doprinos projektu STUDIUM
 
-## Tok rada
+## Razvojni tok
 
-1. Preuzmite zadatak dodeljen vašem timu u Tapiz Boards-u.
-2. Ažurirajte lokalni `main` i napravite granu formata
-   `feature/<celina>-<kratak-opis>` (na primer `feature/R1-01-facilities`).
-3. Radite u manjim, smislenim commit-ovima.
-4. Pokrenite relevantne build i test komande lokalno.
-5. Otvorite Pull Request prema `main`, popunite PR šablon i povežite zadatak.
-6. Odgovorite na review komentare; merge radi ovlašćeni član nakon odobrenja i
-   uspešnog CI-ja.
+1. Izabrati zadatak koji potiče iz specifikacije (`ST-xxx`) i napisati kriterijume prihvatanja.
+2. Sinhronizovati lokalni `main` i kreirati granu, npr. `feature/st-011-zadaci`.
+3. Praviti male, tematski povezane commit-ove. Ne menjati nepovezane celine usput.
+4. Dodati/izmeniti relevantne testove i izvršiti `dotnet build` i `dotnet test`.
+5. Otvoriti Pull Request prema `main`, povezati ST oznaku i radni zadatak.
+6. Priložiti opis poslovnih pravila, izmenjenih ugovora i izvršenih provera.
+7. Po rešavanju komentara sa pregleda, ovlašćeni član integriše promenu.
 
-## Pravila integracije
+## Arhitektura i integracija
 
-- Nemojte direktno pushovati na `main`.
-- PR treba da bude fokusiran na jednu celinu ili jasno odvojenu epiku.
-- Svaka celina ima jasno vlasništvo nad poslovnim podacima i ugovorima.
-- Promena javnog ugovora, zajedničkog modela ili cross-team integracije zahteva
-  review timova koje promena pogađa.
-- Multi-tenant podaci i poslovna pravila moraju čuvati tenant kontekst u svim
-  relevantnim operacijama.
-- CI mora proći pre merge-a.
+- `Domain` ne zavisi od API-ja, baze ili prezentacije.
+- `Application` zavisi od `Domain` i koristi sopstvene portove za spoljne usluge.
+- `Infrastructure` implementira portove; `Api` i `ConsoleUi` povezuju zavisnosti.
+- Svaki zahtev koristi kontekst **konkretnog izvođenja predmeta i akademske godine** kada se to zahteva specifikacijom. Katalog predmeta nije isto što i izvodjenje predmeta.
+- Proveriti identitet, članstvo i ovlašćenje nad **konkretnim zapisom**; skrivanje dugmeta u UI nije bezbednosna kontrola.
+- Ne dodavati duplirane evidencije tamo gde se prikaz može izvesti iz izvornog stanja.
+- Promene zajedničkih ugovora i modela unapred usaglasiti sa pogođenim timovima.
 
-## Arhitektonske odluke
+## Kvalitet
 
-Za značajnu odluku dodajte kratak ADR u `docs/adr/` koristeći
-[šablon](docs/templates/adr.md). Dokumentujte kontekst, odluku, posledice i
-uticaj na druge celine.
+- Testirati i neuspešne ishode: nevažeći ulaz, duplikat, nedozvoljen pristup, neuspelu promenu i konkurentan zahtev tamo gde je važno.
+- Ne smatrati 100% pokrivenost koda dokazom ispravnosti.
+- U PR-u navesti šta nije obuhvaćeno, a ne predstavljati delimičan demo kao realizovan zahtev.
+- Značajne odluke dokumentovati kroz `docs/adr/` korišćenjem [šablona](docs/templates/adr.md).
 
-## Tajne i testni podaci
+## Poverljivi podaci
 
-Nikada ne commitujte stvarne lozinke, API tokene, privatne ključeve ili
-produkcione sertifikate. Koristite `.env.example`, testne vrednosti i simulatore.
-Ako je tajna slučajno commitovana, odmah obavestite nastavni tim; nemojte je
-samo obrisati u sledećem commit-u.
+Nikada ne unositi lozinke, pristupne tokene, privatne ključeve, stvarne studentske podatke i produkcione sertifikate u repozitorijum. Koristiti anonimne ili sintetičke testne podatke. Ako tajna dospe u Git istoriju, odmah je opozvati i prijaviti nastavnom timu; samo brisanje sledećim commit-om nije dovoljno.
