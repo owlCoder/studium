@@ -10,12 +10,12 @@ Početni šablon, napravljen po uzoru na nastavni primer Logger–Blogger, sadr�
 
 | Projekat | Odgovornost |
 | --- | --- |
-| `Studium.Domain` | Domenski entiteti i invarijante; ne zavisi od drugih projektnih slojeva |
-| `Studium.Application` | Slučajevi upotrebe, portovi (interfejsi) i izlazni modeli |
-| `Studium.Infrastructure` | Tehničke implementacije portova; na početku memorijski adapter |
-| `Studium.Api` | Minimalni HTTP ulaz i composition root |
-| `Studium.ConsoleUi` | Jednostavan konzolni ulaz za demonstraciju istog slučaja upotrebe |
-| `Studium.Tests` | NUnit/Moq testovi domena, aplikacionog sloja i adaptera |
+| `Domain` | Domenski entiteti i invarijante; ne zavisi od drugih projektnih slojeva |
+| `Application` | Slučajevi upotrebe, portovi (interfejsi) i izlazni modeli |
+| `Infrastructure` | Tehničke implementacije portova; na početku memorijski adapter |
+| `Api` | Minimalni HTTP ulaz i composition root |
+| `ConsoleUi` | Jednostavan konzolni ulaz za demonstraciju istog slučaja upotrebe |
+| `Tests` | NUnit/Moq testovi domena, aplikacionog sloja i adaptera |
 
 Priloženi **demo katalog predmeta** prikazuje tok `API/ConsoleUi → Application → Domain` i korišćenje interfejsa umesto zavisnosti od konkretne infrastrukture. Endpoint `/demo/courses` i demo podaci **nisu implementacija ST-003**: nema čuvanja u bazi, uređivanja predmeta, prijavljivanja korisnika niti provere ovlašćenja.
 
@@ -30,11 +30,11 @@ Priloženi **demo katalog predmeta** prikazuje tok `API/ConsoleUi → Applicatio
 ```bash
 git clone https://github.com/owlCoder/studium.git
 cd studium
-dotnet restore Studium.sln
-dotnet build Studium.sln --configuration Release
-dotnet test Studium.sln --configuration Release
-dotnet run --project src/Studium.ConsoleUi
-dotnet run --project src/Studium.Api
+dotnet restore Solution.sln
+dotnet build Solution.sln --configuration Release
+dotnet test Solution.sln --configuration Release
+dotnet run --project src/ConsoleUi
+dotnet run --project src/Api
 ```
 
 Poslednje dve komande pokreću alternativne ulaze; nisu potrebne istovremeno. API ispisuje adresu u terminalu. Proveriti `GET /health` i demonstracioni `GET /demo/courses`.

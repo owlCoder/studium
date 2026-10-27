@@ -1,5 +1,5 @@
-using Studium.Application.Courses;
-using Studium.Infrastructure.Demo;
+using Application.Courses;
+using Infrastructure.Demo;
 
 var builder = WebApplication.CreateBuilder(args);
 

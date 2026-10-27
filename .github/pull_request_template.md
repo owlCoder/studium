@@ -17,8 +17,8 @@
 
 ## Provere
 
-- [ ] `dotnet build Studium.sln --configuration Release`
-- [ ] `dotnet test Studium.sln --configuration Release`
+- [ ] `dotnet build Solution.sln --configuration Release`
+- [ ] `dotnet test Solution.sln --configuration Release`
 - [ ] Dodati testovi poslovnih pravila i neuspešnih ishoda
 - [ ] Ne postoje tajne, stvarni studentski podaci niti nepovezane izmene
 - [ ] Ažurirana dokumentacija za izmenjene ugovore

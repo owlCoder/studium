@@ -1,7 +1,7 @@
-using Studium.Application.Courses;
-using Studium.Domain.Courses;
+using Application.Courses;
+using Domain.Courses;
 
-namespace Studium.Infrastructure.Courses;
+namespace Infrastructure.Courses;
 
 /// <summary>
 /// Memorijski adapter samo za početni primer; nema trajnog čuvanja podataka.

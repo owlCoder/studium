@@ -1,8 +1,8 @@
-using Studium.Application.Courses;
-using Studium.Domain.Courses;
-using Studium.Infrastructure.Courses;
+using Application.Courses;
+using Domain.Courses;
+using Infrastructure.Courses;
 
-namespace Studium.Infrastructure.Demo;
+namespace Infrastructure.Demo;
 
 public static class DemoData
 {

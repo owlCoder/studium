@@ -1,9 +1,9 @@
 using Moq;
 using NUnit.Framework;
-using Studium.Application.Courses;
-using Studium.Domain.Courses;
+using Application.Courses;
+using Domain.Courses;
 
-namespace Studium.Tests.Application;
+namespace Tests.Application;
 
 [TestFixture]
 public sealed class ListCoursesHandlerTests

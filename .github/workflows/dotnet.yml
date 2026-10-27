@@ -21,8 +21,8 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: Restore
-        run: dotnet restore Studium.sln
+        run: dotnet restore Solution.sln
       - name: Build
-        run: dotnet build Studium.sln --configuration Release --no-restore
+        run: dotnet build Solution.sln --configuration Release --no-restore
       - name: Test
-        run: dotnet test Studium.sln --configuration Release --no-build --verbosity normal
+        run: dotnet test Solution.sln --configuration Release --no-build --verbosity normal

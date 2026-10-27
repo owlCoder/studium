@@ -1,6 +1,6 @@
-using Studium.Domain.Courses;
+using Domain.Courses;
 
-namespace Studium.Application.Courses;
+namespace Application.Courses;
 
 /// <summary>
 /// Čita samo demonstracione podatke. Kasnije ugovore oblikovati prema zahtevima.

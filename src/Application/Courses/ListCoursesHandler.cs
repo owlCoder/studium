@@ -1,4 +1,4 @@
-namespace Studium.Application.Courses;
+namespace Application.Courses;
 
 /// <summary>
 /// Demonstracija slučaja upotrebe i zavisnosti od porta, bez poslovne logike za ST-003.

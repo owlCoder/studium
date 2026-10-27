@@ -7,13 +7,13 @@ Ovaj vodič prikazuje razvojni tok kroz **jedan mali zahtev**. Ne podrazumeva da
 Potrebni su .NET 8 SDK i Git. Nakon preuzimanja:
 
 ```bash
-dotnet restore Studium.sln
-dotnet build Studium.sln --configuration Release
-dotnet test Studium.sln --configuration Release
-dotnet run --project src/Studium.ConsoleUi
+dotnet restore Solution.sln
+dotnet build Solution.sln --configuration Release
+dotnet test Solution.sln --configuration Release
+dotnet run --project src/ConsoleUi
 ```
 
-Za HTTP demonstraciju pokrenuti `dotnet run --project src/Studium.Api` i proveriti `GET /health` i `GET /demo/courses`. Ovi endpointi služe za upoznavanje sa infrastrukturom i **ne predstavljaju završene STUDIUM funkcionalnosti**.
+Za HTTP demonstraciju pokrenuti `dotnet run --project src/Api` i proveriti `GET /health` i `GET /demo/courses`. Ovi endpointi služe za upoznavanje sa infrastrukturom i **ne predstavljaju završene STUDIUM funkcionalnosti**.
 
 ## 2. Pročitaj zahtev
 
@@ -23,11 +23,11 @@ Pre kodiranja napisati proverljive kriterijume: uspešan tok, odbijeni tok i gra
 
 ## 3. Granice slojeva
 
-- Domenske invarijante i modeli: `Studium.Domain`.
-- Slučajevi upotrebe i portovi: `Studium.Application`.
-- Baza/datoteke/spoljni adapteri: `Studium.Infrastructure`.
-- HTTP i konzolni ulaz, sastavljanje zavisnosti: `Studium.Api` i `Studium.ConsoleUi`.
-- NUnit testovi: `Studium.Tests`.
+- Domenske invarijante i modeli: `Domain`.
+- Slučajevi upotrebe i portovi: `Application`.
+- Baza/datoteke/spoljni adapteri: `Infrastructure`.
+- HTTP i konzolni ulaz, sastavljanje zavisnosti: `Api` i `ConsoleUi`.
+- NUnit testovi: `Tests`.
 
 Ne dodavati novu klasu samo radi broja slojeva; svaki ugovor treba da ima jasnu potrebu.
 
@@ -38,8 +38,8 @@ git switch main
 git pull --ff-only
 git switch -c feature/st-xxx-kratak-opis
 # ... promena koda i testova ...
-dotnet build Studium.sln --configuration Release
-dotnet test Studium.sln --configuration Release
+dotnet build Solution.sln --configuration Release
+dotnet test Solution.sln --configuration Release
 git status
 git diff
 git add .

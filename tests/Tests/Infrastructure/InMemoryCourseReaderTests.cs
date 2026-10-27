@@ -1,8 +1,8 @@
 using NUnit.Framework;
-using Studium.Domain.Courses;
-using Studium.Infrastructure.Courses;
+using Domain.Courses;
+using Infrastructure.Courses;
 
-namespace Studium.Tests.Infrastructure;
+namespace Tests.Infrastructure;
 
 [TestFixture]
 public sealed class InMemoryCourseReaderTests

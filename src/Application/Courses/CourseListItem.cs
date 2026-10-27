@@ -1,4 +1,4 @@
-namespace Studium.Application.Courses;
+namespace Application.Courses;
 
 public sealed class CourseListItem
 {

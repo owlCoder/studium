@@ -2,17 +2,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Studium.Domain", "src\Studium.Domain\Studium.Domain.csproj", "{A121F321-8FE1-4B7E-8CA9-410A5F1EE001}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "src\Domain\Domain.csproj", "{A121F321-8FE1-4B7E-8CA9-410A5F1EE001}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Studium.Application", "src\Studium.Application\Studium.Application.csproj", "{A121F321-8FE1-4B7E-8CA9-410A5F1EE002}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "src\Application\Application.csproj", "{A121F321-8FE1-4B7E-8CA9-410A5F1EE002}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Studium.Infrastructure", "src\Studium.Infrastructure\Studium.Infrastructure.csproj", "{A121F321-8FE1-4B7E-8CA9-410A5F1EE003}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure", "src\Infrastructure\Infrastructure.csproj", "{A121F321-8FE1-4B7E-8CA9-410A5F1EE003}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Studium.Api", "src\Studium.Api\Studium.Api.csproj", "{A121F321-8FE1-4B7E-8CA9-410A5F1EE004}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Api", "src\Api\Api.csproj", "{A121F321-8FE1-4B7E-8CA9-410A5F1EE004}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Studium.ConsoleUi", "src\Studium.ConsoleUi\Studium.ConsoleUi.csproj", "{A121F321-8FE1-4B7E-8CA9-410A5F1EE005}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleUi", "src\ConsoleUi\ConsoleUi.csproj", "{A121F321-8FE1-4B7E-8CA9-410A5F1EE005}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Studium.Tests", "tests\Studium.Tests\Studium.Tests.csproj", "{A121F321-8FE1-4B7E-8CA9-410A5F1EE006}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "tests\Tests\Tests.csproj", "{A121F321-8FE1-4B7E-8CA9-410A5F1EE006}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

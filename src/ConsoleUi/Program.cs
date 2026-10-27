@@ -1,6 +1,6 @@
 using System.Text;
-using Studium.Application.Courses;
-using Studium.Infrastructure.Demo;
+using Application.Courses;
+using Infrastructure.Demo;
 
 Console.OutputEncoding = Encoding.UTF8;
 Console.WriteLine("STUDIUM | Demonstracija čitanja kataloga (nije ST-003)");

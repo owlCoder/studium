@@ -3,11 +3,11 @@
 Ovo je **nastavni kostur**, a ne konačni model sistema. Struktura namerno sadrži jedan demonstracioni tok. Student razvija modele i ugovore prema dodeljenim zahtevima, uz očuvanje smerova zavisnosti.
 
 ```text
-Studium.Api ───────────┐
-                       ├──> Studium.Application ───> Studium.Domain
-Studium.ConsoleUi ─────┘              ^
+Api ───────────┐
+                       ├──> Application ───> Domain
+ConsoleUi ─────┘              ^
                                       │ implementira portove definisane ovde
-                           Studium.Infrastructure
+                           Infrastructure
 ```
 
 Tehnički `Infrastructure` referencira `Application`, a `Application` definiše interfejs `ICourseReader`. Tok izvršavanja je `Api/ConsoleUi → ListCoursesHandler → ICourseReader → InMemoryCourseReader`. Domenski tip `Course` ne zavisi od tehnologije skladištenja.
@@ -28,16 +28,16 @@ Autentifikacija, autorizacija, baza podataka, migracije, frontend, učitavanje p
 ## Primer širenja strukture
 
 ```text
-src/Studium.Domain/
+src/Domain/
   Courses/
   Offerings/               # model izvođenja predmeta — studenti dodaju
   Submissions/             # model predaja — studenti dodaju
 
-src/Studium.Application/
+src/Application/
   Courses/
   Offerings/               # slučajevi upotrebe i portovi — studenti dodaju
 
-src/Studium.Infrastructure/
+src/Infrastructure/
   Courses/                 # demonstracioni memorijski adapter
   Persistence/             # trajno skladištenje tek nakon odluke o dizajnu
 ```

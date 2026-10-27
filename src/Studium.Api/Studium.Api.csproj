@@ -1,6 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
-  <ItemGroup>
-    <ProjectReference Include="../Studium.Application/Studium.Application.csproj" />
-    <ProjectReference Include="../Studium.Infrastructure/Studium.Infrastructure.csproj" />
-  </ItemGroup>
-</Project>

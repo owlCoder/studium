@@ -1,7 +1,7 @@
 using NUnit.Framework;
-using Studium.Domain.Courses;
+using Domain.Courses;
 
-namespace Studium.Tests.Domain;
+namespace Tests.Domain;
 
 [TestFixture]
 public sealed class CourseTests

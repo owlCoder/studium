@@ -1,4 +1,4 @@
-namespace Studium.Domain.Courses;
+namespace Domain.Courses;
 
 /// <summary>
 /// Ilustrativni model kataloškog predmeta; nije kompletna funkcionalnost ST-003.
