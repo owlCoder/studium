@@ -1,33 +1,42 @@
-namespace Studium.Domain.Models
+public enum ReviewOutcome
 {
-    public enum StanjePregleda
+    Prihvacen,
+    PotrebnaDorada
+}
+
+public enum ReviewState
+{
+    Nacrt,
+    Objavljen
+}
+
+public class PregledRada
+{
+    public Guid Id { get; private set; }
+    public Guid RadId { get; private set; }
+    public string Komentar { get; private set; }
+    public ReviewOutcome? Outcome { get; private set; }
+    public ReviewState State { get; private set; }
+    public DateTime? NoviRok { get; private set; }
+
+    public PregledRada(Guid radId, string komentar)
     {
-        Nacrt,
-        Objavljen
+        Id = Guid.NewGuid();
+        RadId = radId;
+        Komentar = komentar;
+        State = ReviewState.Nacrt;
     }
 
-    public enum IshodPregleda
+    // Poslovno pravilo: Objavljivanje pregleda uz proveru novog roka
+    public void Objavi(ReviewOutcome outcome, DateTime? noviRok = null)
     {
-        Prihvacen,
-        PotrebnaDorada
-    }
+        if (outcome == ReviewOutcome.PotrebnaDorada && (!noviRok.HasValue || noviRok.Value <= DateTime.UtcNow))
+        {
+            throw new InvalidOperationException("Ishod 'Potrebna dorada' zahteva definisan novi rok u budućnosti.");
+        }
 
-    public enum StatusPregledaFilter
-    {
-        BezPredaje,
-        Nepregledano,
-        Pregledano
-    }
-
-    public class PregledRada
-    {
-        public int Id { get; set; }
-        public int PredajaId { get; set; } // Veza sa važećom predajom studenta
-        public string Komentar { get; set; }
-        public IshodPregleda? Ishod { get; set; }
-        public StanjePregleda Stanje { get; set; } = StanjePregleda.Nacrt; // Podrazumevano je nacrt (student ne vidi)
-        public string AutorPregledaId { get; set; } // Nastavno osoblje koje je kreiralo pregled
-        public DateTime? NoviRok { get; set; } // Navodi se ukoliko je potrebna dorada
-        public DateTime DatumIzmene { get; set; } = DateTime.UtcNow;
+        Outcome = outcome;
+        NoviRok = noviRok;
+        State = ReviewState.Objavljen;
     }
 }
