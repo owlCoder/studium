@@ -11,7 +11,7 @@ public sealed class Course
     public string Description { get; set; }
     public bool IsActive { get; set; }
 
-    public Course(Guid id, string code, string name)
+    public Course(Guid id, string code, string name, string description)
     {
         if (id == Guid.Empty)
             throw new ArgumentException("Identifikator mora biti zadat.", nameof(id));
@@ -19,12 +19,13 @@ public sealed class Course
             throw new ArgumentException("Oznaka predmeta je obavezna.", nameof(code));
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Naziv predmeta je obavezan.", nameof(name));
+        if (string.IsNullOrWhiteSpace(description))
+            throw new ArgumentException("Opis predmeta je obavezan.", nameof(description));
 
         Id = id;
         Code = code.Trim().ToUpperInvariant();
         Name = name.Trim();
-
-        Description = "";
+        Description = description.Trim();
         IsActive = true;
     }
 }

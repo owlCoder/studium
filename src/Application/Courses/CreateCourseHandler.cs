@@ -24,7 +24,8 @@ public sealed class CreateCourseHandler
         var course = new Course(
             Guid.NewGuid(),
             command.Code,
-            command.Name);
+            command.Name,
+            command.Description);
 
         var codeExists = await _repository.ExistsByCodeAsync(
             course.Code,
