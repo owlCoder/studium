@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Domain.Courses;
+using System;
 
 namespace Tests.Domain;
 
@@ -7,9 +8,9 @@ namespace Tests.Domain;
 public sealed class CourseTests
 {
     [Test]
-    public void Constructor_NormalizesCodeAndName()
+    public void Constructor_NormalizesCodeAndNameAndDescription()
     {
-        var course = new Course(Guid.NewGuid(), " ers ", " Elementi razvoja softvera ", "Opis predmeta");
+        var course = new Course(Guid.NewGuid(), " ers ", " Elementi razvoja softvera ", "  Opis predmeta  ");
 
         Assert.Multiple(() =>
         {
