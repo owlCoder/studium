@@ -10,7 +10,7 @@ public sealed class InMemoryCourseReaderTests
     [Test]
     public async Task ListAsync_ReturnsSeededCourses()
     {
-        var expected = new Course(Guid.NewGuid(), "ERS", "Elementi razvoja softvera");
+        var expected = new Course(Guid.NewGuid(), "ERS", "Elementi razvoja softvera", "Opis predmeta");
         var reader = new InMemoryCourseReader(new[] { expected });
 
         var result = await reader.ListAsync();
