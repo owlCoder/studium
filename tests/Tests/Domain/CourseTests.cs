@@ -9,12 +9,13 @@ public sealed class CourseTests
     [Test]
     public void Constructor_NormalizesCodeAndName()
     {
-        var course = new Course(Guid.NewGuid(), " ers ", " Elementi razvoja softvera ");
+        var course = new Course(Guid.NewGuid(), " ers ", " Elementi razvoja softvera ", "Opis predmeta");
 
         Assert.Multiple(() =>
         {
             Assert.That(course.Code, Is.EqualTo("ERS"));
             Assert.That(course.Name, Is.EqualTo("Elementi razvoja softvera"));
+            Assert.That(course.Description, Is.EqualTo("Opis predmeta"));
         });
     }
 
@@ -22,7 +23,7 @@ public sealed class CourseTests
     public void Constructor_RejectsBlankCode()
     {
         Assert.That(
-            () => new Course(Guid.NewGuid(), " ", "Predmet"),
+            () => new Course(Guid.NewGuid(), " ", "Predmet", "Opis predmeta"),
             Throws.TypeOf<ArgumentException>());
     }
 
@@ -30,7 +31,7 @@ public sealed class CourseTests
     public void Constructor_RejectsEmptyId()
     {
         Assert.That(
-            () => new Course(Guid.Empty, "ERS", "Predmet"),
+            () => new Course(Guid.Empty, "ERS", "Predmet", "Opis predmeta"),
             Throws.TypeOf<ArgumentException>());
     }
 }
