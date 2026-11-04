@@ -13,8 +13,8 @@ public sealed class ListCoursesHandlerTests
     {
         IReadOnlyList<Course> courses = new[]
         {
-            new Course(Guid.NewGuid(), "OIB", "Bezbednost"),
-            new Course(Guid.NewGuid(), "ERS", "Razvoj softvera")
+            new Course(Guid.NewGuid(), "OIB", "Bezbednost", "Opis predmeta"),
+            new Course(Guid.NewGuid(), "ERS", "Razvoj softvera", "Opis predmeta")
         };
 
         var reader = new Mock<ICourseReader>();

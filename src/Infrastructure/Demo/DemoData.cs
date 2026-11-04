@@ -11,9 +11,9 @@ public static class DemoData
         return new InMemoryCourseReader(new[]
         {
             new Course(Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                "ERS", "Elementi razvoja softvera"),
+                "ERS", "Elementi razvoja softvera", "Opis predmeta"),
             new Course(Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                "OIB", "Osnove informacione bezbednosti")
+                "OIB", "Osnove informacione bezbednosti", "Opis predmeta")
         });
     }
 }
