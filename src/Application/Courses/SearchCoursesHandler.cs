@@ -19,7 +19,7 @@ public sealed class SearchCoursesHandler
                            || courses.Code.Contains(term, StringComparison.OrdinalIgnoreCase)
                            || courses.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
                            .OrderBy(courses => courses.Code, StringComparer.OrdinalIgnoreCase)
-                           .Select(courses => new CourseSearchResult(courses.Id, courses.Code, courses.Name))
+                           .Select(courses => new CourseSearchResult(courses.Id, courses.Code, courses.Name, courses.Description))
                            .ToArray();
     }
 }

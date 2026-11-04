@@ -8,8 +8,8 @@ namespace Tests.Application;
 [TestFixture]
 public sealed class SearchCoursesHandlerTests
 {
-    private static Course CourseOf(string code, string name) =>
-        new(Guid.NewGuid(), code, name);
+    private static Course CourseOf(string code, string name, string description) =>
+        new(Guid.NewGuid(), code, name, description);
 
     private static (SearchCoursesHandler Handler, Mock<ICourseReader> Reader) Create(
         params Course[] courses)
@@ -27,8 +27,8 @@ public sealed class SearchCoursesHandlerTests
     public async Task HandleAsync_FindsCourseByCode_IgnoringCase()
     {
         var (handler, reader) = Create(
-            CourseOf("ERS", "Razvoj softvera"),
-            CourseOf("OIB", "Bezbednost"));
+            CourseOf("ERS", "Razvoj softvera", "Opis predmeta"),
+            CourseOf("OIB", "Bezbednost", "Opis predmeta"));
 
         var result = await handler.HandleAsync("ers");
 
@@ -40,8 +40,8 @@ public sealed class SearchCoursesHandlerTests
     public async Task HandleAsync_FindsCourseByPartOfName_IgnoringCase()
     {
         var (handler, _) = Create(
-            CourseOf("ERS", "Elementi razvoja softvera"),
-            CourseOf("OIB", "Osnove informacione bezbednosti"));
+            CourseOf("ERS", "Elementi razvoja softvera", "Opis predmeta"),
+            CourseOf("OIB", "Osnove informacione bezbednosti", "Opis predmeta"));
 
         var result = await handler.HandleAsync("BEZB");
 
@@ -54,8 +54,8 @@ public sealed class SearchCoursesHandlerTests
     public async Task HandleAsync_ReturnsAllCourses_WhenQueryIsBlank(string? query)
     {
         var (handler, _) = Create(
-            CourseOf("OIB", "Bezbednost"),
-            CourseOf("ERS", "Razvoj softvera"));
+            CourseOf("OIB", "Bezbednost", "Opis predmeta"),
+            CourseOf("ERS", "Razvoj softvera", "Opis predmeta"));
 
         var result = await handler.HandleAsync(query);
 
@@ -65,7 +65,7 @@ public sealed class SearchCoursesHandlerTests
     [Test]
     public async Task HandleAsync_ReturnsEmptyCollection_WhenNothingMatches()
     {
-        var (handler, _) = Create(CourseOf("ERS", "Razvoj softvera"));
+        var (handler, _) = Create(CourseOf("ERS", "Razvoj softvera", "Opis predmeta"));
 
         var result = await handler.HandleAsync("nepostojeci");
 
@@ -76,8 +76,8 @@ public sealed class SearchCoursesHandlerTests
     public async Task HandleAsync_SortsResultsByCourseCode()
     {
         var (handler, _) = Create(
-            CourseOf("OIB", "Bezbednost"),
-            CourseOf("ERS", "Razvoj softvera"));
+            CourseOf("OIB", "Bezbednost", "Opis predmeta"),
+            CourseOf("ERS", "Razvoj softvera", "Opis predmeta"));
 
         var result = await handler.HandleAsync(null);
 
@@ -88,7 +88,7 @@ public sealed class SearchCoursesHandlerTests
     public async Task HandleAsync_ReturnsIdCodeAndName()
     {
         var id = Guid.NewGuid();
-        var (handler, _) = Create(new Course(id, "ERS", "Razvoj softvera"));
+        var (handler, _) = Create(new Course(id, "ERS", "Razvoj softvera", "Opis predmeta"));
 
         var result = await handler.HandleAsync("ers");
 
@@ -97,6 +97,7 @@ public sealed class SearchCoursesHandlerTests
             Assert.That(result[0].Id, Is.EqualTo(id));
             Assert.That(result[0].Code, Is.EqualTo("ERS"));
             Assert.That(result[0].Name, Is.EqualTo("Razvoj softvera"));
+            Assert.That(result[0].Description, Is.EqualTo("Opis predmeta"));
         });
     }
 
