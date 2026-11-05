@@ -37,8 +37,6 @@ app.MapGet("/courses", async (
     return Results.Ok(courses);
 });
 
-app.Run();
-
 app.MapPost("/groups/{groupId}/students", async (
     Guid groupId,
     AddStudentRequest request,
@@ -64,6 +62,7 @@ app.MapDelete("/groups/{groupId}/students/{studentId}", async (
 
 app.Run();
 
-
 public record AddStudentRequest(Guid StudentId, DateTime StartDate);
 public record RemoveStudentRequest(DateTime EndDate);
+
+public partial class Program { }

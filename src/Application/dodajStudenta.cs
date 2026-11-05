@@ -1,3 +1,7 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Application.Groups;
 
 public record AddStudentToGroupCommand(Guid GroupId, Guid StudentId, DateTime StartDate);
@@ -20,11 +24,29 @@ public class AddStudentToGroupHandler
 
     public async Task Handle(AddStudentToGroupCommand request, CancellationToken cancellationToken)
     {
-        // Provera da li je student već aktivan u grupi
+        if(request==null)
+        {
+            throw new ArgumentNullException(nameof(request));
+        }
+
+        if(request.GroupId==Guid.Empty)
+        {
+            throw new ArgumentException("ID grupe ne moze biti prazan!",nameof(request.GroupId));
+        }
+
+        if (request.StudentId == Guid.Empty)
+        {
+            throw new ArgumentException("ID studenta ne moze biti prazan!", nameof(request.StudentId));
+        }
+        if (request.StartDate == default)
+        {
+            throw new ArgumentException("Datum pocetka clanstva mora biti validan!", nameof(request.StartDate));
+        }
+
         var existing = await _repository.GetActiveAsync(request.GroupId, request.StudentId, cancellationToken);
         if (existing != null)
         {
-            throw new InvalidOperationException("Student je već u ovoj grupi.");
+            throw new InvalidOperationException("Student je vec u ovoj grupi.");
         }
 
         var membership = new Domain.Entities.GroupMembership
