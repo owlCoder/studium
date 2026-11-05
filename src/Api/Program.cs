@@ -2,6 +2,7 @@ using Application.Courses;
 using Application.Groups;
 using Infrastructure;
 using Infrastructure.Demo;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,13 +52,13 @@ app.MapPost("/groups/{groupId}/students", async (
 app.MapDelete("/groups/{groupId}/students/{studentId}", async (
     Guid groupId,
     Guid studentId,
-    RemoveStudentRequest request,
+    [FromBody]RemoveStudentRequest request,
     RemoveStudentFromGroupHandler handler,
     CancellationToken cancellationToken) =>
 {
     var command = new RemoveStudentFromGroupCommand(groupId, studentId, request.EndDate);
     await handler.Handle(command, cancellationToken);
-    return Results.Ok(new { message = "Članstvo studenta u grupi je uspešno završeno." });
+    return Results.Ok(new { message = "Clanstvo studenta u grupi je uspešno zavrseno." });
 });
 
 app.Run();

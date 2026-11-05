@@ -80,7 +80,7 @@ public class TestoviGrupa
         }
 
         Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.Message, Does.Contain("Vec aktivan!"));
+        Assert.That(ex!.Message, Does.Contain("Student je vec u ovoj grupi"));
     }
 
     [Test]
@@ -99,7 +99,7 @@ public class TestoviGrupa
         }
 
         Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.Message, Does.Contain("Nije pronadjeno aktivno clanstvo!"));
+        Assert.That(ex!.Message, Does.Contain("Aktivno clanstvo studenta u ovoj grupi nije pronadjeno"));
     }
 
     [Test]
@@ -124,7 +124,7 @@ public class TestoviGrupa
         }
 
         Assert.That(ex, Is.Not.Null);
-        Assert.That(ex!.Message, Does.Contain("Ne moze biti pre datuma pocetka!"));
+        Assert.That(ex!.Message, Does.Contain("Datum zavrsetka clanstva ne moze biti pre datuma pocetka"));
     }
 
     [Test]
