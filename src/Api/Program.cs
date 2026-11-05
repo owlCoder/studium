@@ -22,4 +22,13 @@ app.MapGet("/demo/courses", async (
     return Results.Ok(courses);
 });
 
+app.MapGet("/courses", async (
+    string? query,
+    SearchCoursesHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var courses = await handler.HandleAsync(query, cancellationToken);
+    return Results.Ok(courses);
+});
+
 app.Run();

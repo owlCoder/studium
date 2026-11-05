@@ -9,9 +9,10 @@ public sealed class Course
     public Guid Id { get; }
     public string Code { get; private set; }
     public string Name { get; private set; }
-    public string Description { get; private set; }
+    public string Description { get; set; }
+    public bool IsActive { get; set; }
 
-    public Course(Guid id, string code, string name, string description = "")
+    public Course(Guid id, string code, string name)
     {
         if (id == Guid.Empty)
             throw new ArgumentException("Identifikator mora biti zadat.", nameof(id));
@@ -23,7 +24,8 @@ public sealed class Course
         Id = id;
         Code = code.Trim().ToUpperInvariant();
         Name = name.Trim();
-        Description = description?.Trim() ?? string.Empty;
+        Description = string.Empty;
+        IsActive = true;
     }
 
     public void Update(string code, string name, string description, ICourseOfferingLookup offeringLookup)
@@ -44,4 +46,11 @@ public sealed class Course
         Name = name.Trim();
         Description = description?.Trim() ?? string.Empty;
     }
+
+    public Course(Guid id, string code, string name, string description)
+        : this(id, code, name)
+    {
+        Description = description?.Trim() ?? string.Empty;
+    }
+
 }
