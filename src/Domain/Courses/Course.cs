@@ -8,6 +8,8 @@ public sealed class Course
     public Guid Id { get; }
     public string Code { get; }
     public string Name { get; }
+    public string Description { get; set; }
+    public bool IsActive { get; set; }
 
     public Course(Guid id, string code, string name)
     {
@@ -21,5 +23,14 @@ public sealed class Course
         Id = id;
         Code = code.Trim().ToUpperInvariant();
         Name = name.Trim();
+        Description = string.Empty;
+        IsActive = true;
     }
+
+    public Course(Guid id, string code, string name, string description)
+        : this(id, code, name)
+    {
+        Description = description?.Trim() ?? string.Empty;
+    }
+
 }
