@@ -1,4 +1,6 @@
 using Application.Courses;
+using Application.Groups;
+using Infrastructure;
 using Infrastructure.Demo;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +9,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
+
+builder.Services.AddSingleton<IGroupMembershipRepository, InMemoryGroupMembershipRepository>();
+builder.Services.AddScoped<AddStudentToGroupHandler>();
+builder.Services.AddScoped<RemoveStudentFromGroupHandler>();
 
 var app = builder.Build();
 
@@ -32,3 +38,32 @@ app.MapGet("/courses", async (
 });
 
 app.Run();
+
+app.MapPost("/groups/{groupId}/students", async (
+    Guid groupId,
+    AddStudentRequest request,
+    AddStudentToGroupHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var command = new AddStudentToGroupCommand(groupId, request.StudentId, request.StartDate);
+    await handler.Handle(command, cancellationToken);
+    return Results.Ok(new { message = "Student je uspešno dodat u grupu." });
+});
+
+app.MapDelete("/groups/{groupId}/students/{studentId}", async (
+    Guid groupId,
+    Guid studentId,
+    RemoveStudentRequest request,
+    RemoveStudentFromGroupHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var command = new RemoveStudentFromGroupCommand(groupId, studentId, request.EndDate);
+    await handler.Handle(command, cancellationToken);
+    return Results.Ok(new { message = "Članstvo studenta u grupi je uspešno završeno." });
+});
+
+app.Run();
+
+
+public record AddStudentRequest(Guid StudentId, DateTime StartDate);
+public record RemoveStudentRequest(DateTime EndDate);
