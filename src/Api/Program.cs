@@ -1,5 +1,9 @@
 using Application.Courses;
+using Application.Time;
+using Application.Users;
 using Infrastructure.Demo;
+using Infrastructure.Security;
+using Infrastructure.Time;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
+
+// ST-002 osnova: heširanje lozinki i jedinstven izvor vremena
+builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
+builder.Services.AddSingleton<IClock, SystemClock>();
 
 var app = builder.Build();
 
