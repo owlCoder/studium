@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using NUnit.Framework;
-using NSubstitute;
 using Domain.Courses;
+using NSubstitute;
+using NUnit.Framework;
 
 namespace Tests.Domain;
 
+[TestFixture]
 internal class CourseUpdateTests
 {
     [Test]
@@ -24,7 +25,7 @@ internal class CourseUpdateTests
         {
             Assert.That(course.Code, Is.EqualTo("ERS-2"));
             Assert.That(course.Name, Is.EqualTo("Novi naziv"));
-            Assert.That(course.Description, Is.EqualTo("Novi opis")); // Proveravamo da li je i opis trimovan i ažuriran
+            Assert.That(course.Description, Is.EqualTo("Novi opis"));
         });
     }
 
@@ -68,6 +69,32 @@ internal class CourseUpdateTests
         {
             Assert.That(course.Name, Is.EqualTo("Ažurirani naziv"));
             Assert.That(course.Description, Is.EqualTo("Ažurirani opis"));
+        });
+    }
+
+    [Test]
+    public void Update_WhenOfferingLookupIsNull_ThrowsArgumentNullException()
+    {
+        var course = new Course(Guid.NewGuid(), "ERS", "Elementi razvoja softvera", "Opis");
+
+        Assert.That(
+            () => course.Update("ERS101", "Elementi razvoja softvera", "Opis", null!),
+            Throws.ArgumentNullException);
+    }
+
+    [Test]
+    public void Update_WhenNoActiveOfferingsExist_AllowsCodeChange()
+    {
+        var course = new Course(Guid.NewGuid(), "ERS", "Elementi razvoja softvera", "Opis");
+        var offeringLookupMock = Substitute.For<ICourseOfferingLookup>();
+        offeringLookupMock.HasOfferings(course.Id).Returns(false);
+
+        course.Update("ERS-NEW", "Novi naziv", "Novi opis", offeringLookupMock);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(course.Code, Is.EqualTo("ERS-NEW"));
+            Assert.That(course.Name, Is.EqualTo("Novi naziv"));
         });
     }
 }

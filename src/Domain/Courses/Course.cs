@@ -30,6 +30,8 @@ public sealed class Course
 
     public void Update(string code, string name, string description, ICourseOfferingLookup offeringLookup)
     {
+        ArgumentNullException.ThrowIfNull(offeringLookup);
+
         if (string.IsNullOrWhiteSpace(code))
             throw new ArgumentException("Oznaka predmeta je obavezna.", nameof(code));
         if (string.IsNullOrWhiteSpace(name))
