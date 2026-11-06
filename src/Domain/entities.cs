@@ -17,7 +17,7 @@ public class GroupMembership
 
         if(endDate < StartDate)
         {
-            throw new ArgumentException("Datum zavrsetka clanstva ne moze biti pre datuma pocetka!");
+            throw new ArgumentException("Ne moze biti pre datuma pocetka!");
         }
         EndDate = endDate;
     }

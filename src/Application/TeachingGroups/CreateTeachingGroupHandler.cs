@@ -15,12 +15,17 @@ public class CreateTeachingGroupHandler
         CreateTeachingGroupRequest request, 
         CancellationToken cancellationToken = default)
     {
+        if (!Enum.TryParse<GroupType>(request.Type, true, out var groupType))
+        {
+            throw new ArgumentException($"Nepoznat tip grupe: {request.Type}");
+        }
+
         var group = new TeachingGroup(
             Guid.NewGuid(),
             request.CourseExecutionId,
             request.Code,
             request.Name,
-            request.Type
+            groupType
         );
 
         return await _repository.CreateAsync(group, cancellationToken);

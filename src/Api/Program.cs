@@ -1,13 +1,13 @@
 using Application.Courses;
 using Application.Groups;
+using Application.TeachingGroups;
 using Infrastructure;
 using Infrastructure.Demo;
-using Application.TeachingGroups;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Composition root: spoljašnji sloj bira implementaciju ugovora.
+// Composition root
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
@@ -23,8 +23,6 @@ var app = builder.Build();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
-// Javno dostupan demonstracioni endpoint, bez autentifikacije:
-// ne predstavlja funkcionalnost ST-003 i ne koristiti ga za stvarne podatke.
 app.MapGet("/demo/courses", async (
     ListCoursesHandler handler,
     CancellationToken cancellationToken) =>
@@ -46,11 +44,28 @@ app.MapPost("/groups/{groupId}/students", async (
     Guid groupId,
     AddStudentRequest request,
     AddStudentToGroupHandler handler,
+    HttpContext httpContext,
     CancellationToken cancellationToken) =>
 {
-    var command = new AddStudentToGroupCommand(groupId, request.StudentId, request.StartDate);
-    await handler.Handle(command, cancellationToken);
-    return Results.Ok(new { message = "Student je uspešno dodat u grupu." });
+    if (!httpContext.Request.Headers.ContainsKey("Authorization") && !httpContext.User.Identity?.IsAuthenticated == true)
+    {
+        return Results.Unauthorized();
+    }
+
+    try
+    {
+        var command = new AddStudentToGroupCommand(groupId, request.StudentId, request.StartDate);
+        await handler.Handle(command, cancellationToken);
+        return Results.Ok(new { message = "Student je uspešno dodat u grupu." });
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
 });
 
 app.MapPost("/teaching-groups", async (
@@ -74,11 +89,28 @@ app.MapDelete("/groups/{groupId}/students/{studentId}", async (
     Guid studentId,
     [FromQuery] DateTime? endDate,
     RemoveStudentFromGroupHandler handler,
+    HttpContext httpContext,
     CancellationToken cancellationToken) =>
 {
-    var command = new RemoveStudentFromGroupCommand(groupId, studentId, endDate ?? DateTime.UtcNow);
-    await handler.Handle(command, cancellationToken);
-    return Results.Ok(new { message = "Članstvo studenta u grupi je uspešno završeno." });
+    if (!httpContext.Request.Headers.ContainsKey("Authorization") && !httpContext.User.Identity?.IsAuthenticated == true)
+    {
+        return Results.Unauthorized();
+    }
+
+    try
+    {
+        var command = new RemoveStudentFromGroupCommand(groupId, studentId, endDate ?? DateTime.UtcNow);
+        await handler.Handle(command, cancellationToken);
+        return Results.Ok(new { message = "Članstvo studenta u grupi je uspešno završeno." });
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
 });
 
 app.Run();
