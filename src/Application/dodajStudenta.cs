@@ -13,13 +13,27 @@ public interface IGroupMembershipRepository
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }
 
+public interface IGroupLookup
+{
+    Task<bool> ExistsAsync(Guid groupId, CancellationToken cancellationToken);
+}
+
+public interface IStudentLookup
+{
+    Task<bool> IsActiveAsync(Guid studentId, CancellationToken cancellationToken);
+}
+
 public class AddStudentToGroupHandler
 {
     private readonly IGroupMembershipRepository _repository;
+    private readonly IGroupLookup _groupLookup;
+    private readonly IStudentLookup _studentLookup;
 
-    public AddStudentToGroupHandler(IGroupMembershipRepository repository)
+    public AddStudentToGroupHandler(IGroupMembershipRepository repository, IGroupLookup? groupLookup=null, IStudentLookup? studentLookup=null)
     {
         _repository = repository;
+        _groupLookup = groupLookup;
+        _studentLookup = studentLookup;
     }
 
     public async Task Handle(AddStudentToGroupCommand request, CancellationToken cancellationToken)
@@ -41,6 +55,24 @@ public class AddStudentToGroupHandler
         if (request.StartDate == default)
         {
             throw new ArgumentException("Datum pocetka clanstva mora biti validan!", nameof(request.StartDate));
+        }
+
+        if(_groupLookup!=null)
+        {
+            var groupExists = await _groupLookup.ExistsAsync(request.GroupId, cancellationToken);
+            if (!groupExists)
+            {
+                throw new KeyNotFoundException($"Grupa sa ID-jem {request.GroupId} ne postoji ili nije vazeca.");
+            }
+        }
+
+        if (_studentLookup != null)
+        {
+            var studentActive = await _studentLookup.IsActiveAsync(request.StudentId, cancellationToken);
+            if (!studentActive)
+            {
+                throw new InvalidOperationException($"Student sa ID-jem {request.StudentId} ne postoji ili nije aktivan.");
+            }
         }
 
         var existing = await _repository.GetActiveAsync(request.GroupId, request.StudentId, cancellationToken);

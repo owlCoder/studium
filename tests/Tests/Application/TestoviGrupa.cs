@@ -133,4 +133,32 @@ public class TestoviGrupa
         var response = await _client.GetAsync("/health");
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
     }
+
+    [Test]
+    public async Task ApiEndpoint_PostStudentToGroup_WithoutAuth_ReturnsUnauthorized()
+    {
+        var groupId = Guid.NewGuid();
+        var request = new { StudentId = Guid.NewGuid(), StartDate = DateTime.UtcNow };
+
+        var response = await _client.PostAsJsonAsync($"/groups/{groupId}/students", request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task ApiEndpoint_DeleteStudentFromGroup_WithoutAuth_ReturnsUnauthorized()
+    {
+        var groupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        var request = new { EndDate = DateTime.UtcNow };
+
+        var httpRequest = new HttpRequestMessage(HttpMethod.Delete, $"/groups/{groupId}/students/{studentId}")
+        {
+            Content = JsonContent.Create(request)
+        };
+
+        var response = await _client.SendAsync(httpRequest);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
 }

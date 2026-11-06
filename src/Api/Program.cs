@@ -2,6 +2,7 @@ using Application.Courses;
 using Application.Groups;
 using Infrastructure;
 using Infrastructure.Demo;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,7 +16,26 @@ builder.Services.AddSingleton<IGroupMembershipRepository, InMemoryGroupMembershi
 builder.Services.AddScoped<AddStudentToGroupHandler>();
 builder.Services.AddScoped<RemoveStudentFromGroupHandler>();
 
+builder.Services.AddAuthentication("TestScheme")
+    .AddCookie("TestScheme", options =>
+    {
+        options.Events.OnRedirectToLogin = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
+    });
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
@@ -46,8 +66,8 @@ app.MapPost("/groups/{groupId}/students", async (
 {
     var command = new AddStudentToGroupCommand(groupId, request.StudentId, request.StartDate);
     await handler.Handle(command, cancellationToken);
-    return Results.Ok(new { message = "Student je uspešno dodat u grupu." });
-});
+    return Results.Ok(new { message = "Student je uspesno dodat u grupu." });
+}).RequireAuthorization();;
 
 app.MapDelete("/groups/{groupId}/students/{studentId}", async (
     Guid groupId,
@@ -59,9 +79,10 @@ app.MapDelete("/groups/{groupId}/students/{studentId}", async (
     var command = new RemoveStudentFromGroupCommand(groupId, studentId, request.EndDate);
     await handler.Handle(command, cancellationToken);
     return Results.Ok(new { message = "Clanstvo studenta u grupi je uspešno zavrseno." });
-});
+}).RequireAuthorization();
 
 app.Run();
+
 
 public record AddStudentRequest(Guid StudentId, DateTime StartDate);
 public record RemoveStudentRequest(DateTime EndDate);
