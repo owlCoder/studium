@@ -20,6 +20,7 @@ namespace Studium.Domain.Models
         public Guid Id { get; private set; }
         public Guid RadId { get; private set; }
         public string Komentar { get; private set; }
+        public string AutorId { get; private set; } 
         public ReviewOutcome? Outcome { get; private set; }
         public ReviewState State { get; private set; }
         public DateTime? NoviRok { get; private set; }
@@ -27,12 +28,27 @@ namespace Studium.Domain.Models
         private readonly List<KomentarPregleda> _stavkeKomentara = new();
         public IReadOnlyCollection<KomentarPregleda> StavkeKomentara => _stavkeKomentara.AsReadOnly();
 
-        public PregledRada(Guid radId, string komentar)
+        
+        public PregledRada(Guid radId, string komentar, string autorId, ReviewOutcome? outcome = null)
         {
             Id = Guid.NewGuid();
             RadId = radId;
             Komentar = komentar;
+            AutorId = autorId;
+            Outcome = outcome;
             State = ReviewState.Nacrt;
+        }
+
+        public void AzurirajNacrt(string komentar, string autorId, ReviewOutcome? outcome)
+        {
+            if (State != ReviewState.Nacrt)
+            {
+                throw new InvalidOperationException("Moguće je ažurirati samo nacrt.");
+            }
+            
+            Komentar = komentar;
+            AutorId = autorId;
+            Outcome = outcome;
         }
 
         public void DodajStavkuKomentara(string tekst, int redniBroj)
