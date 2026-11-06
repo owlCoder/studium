@@ -2,12 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Groups;
 using Domain.Entities;
 using Infrastructure;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace Testovi;
@@ -135,8 +138,7 @@ public class TestoviGrupa
     {
         var groupId = Guid.NewGuid();
         var studentId = Guid.NewGuid();
-        
-        _groupLookup.ExistsResult = false; 
+        _groupLookup.ExistsResult = false;
 
         var command = new AddStudentToGroupCommand(groupId, studentId, DateTime.UtcNow);
 
@@ -159,9 +161,8 @@ public class TestoviGrupa
     {
         var groupId = Guid.NewGuid();
         var studentId = Guid.NewGuid();
-        
         _groupLookup.ExistsResult = true;
-        _studentLookup.IsActiveResult = false; 
+        _studentLookup.IsActiveResult = false;
 
         var command = new AddStudentToGroupCommand(groupId, studentId, DateTime.UtcNow);
 
@@ -255,6 +256,26 @@ public class TestoviGrupa
 
         var response = await _client.SendAsync(httpRequest);
 
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task ApiEndpoint_PostStudentToGroup_WithAdminRole_ReturnsSuccess()
+    {
+        using var authClient = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+            });
+        }).CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var groupId = Guid.NewGuid();
+        var request = new { StudentId = Guid.NewGuid(), StartDate = DateTime.UtcNow };
+
+        var response = await _client.PostAsJsonAsync($"/groups/{groupId}/students", request);
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 }
