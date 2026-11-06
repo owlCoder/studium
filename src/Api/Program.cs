@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
+builder.Services.AddScoped<Application.Courses.GetSubmissionHandler>();
 
 var app = builder.Build();
 
@@ -29,6 +30,23 @@ app.MapGet("/courses", async (
 {
     var courses = await handler.HandleAsync(query, cancellationToken);
     return Results.Ok(courses);
+});
+
+// ST-020: Endpoint za dohvat predaje uz očuvanje pristupa autoru rada
+app.MapGet("/submissions/{submissionId}", async (
+    string submissionId,
+    string studentId,
+    Application.Courses.GetSubmissionHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var submission = await handler.HandleAsync(studentId, submissionId, cancellationToken);
+
+    if (submission is null)
+    {
+        return Results.Forbid();
+    }
+
+    return Results.Ok(submission);
 });
 
 app.Run();
