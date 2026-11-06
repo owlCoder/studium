@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Json;
 using System.Threading;
@@ -11,10 +12,24 @@ using NUnit.Framework;
 
 namespace Testovi;
 
+public class TestGroupLookup : IGroupLookup
+{
+    public bool ExistsResult { get; set; } = true;
+    public Task<bool> ExistsAsync(Guid groupId, CancellationToken cancellationToken) => Task.FromResult(ExistsResult);
+}
+
+public class TestStudentLookup : IStudentLookup
+{
+    public bool IsActiveResult { get; set; } = true;
+    public Task<bool> IsActiveAsync(Guid studentId, CancellationToken cancellationToken) => Task.FromResult(IsActiveResult);
+}
+
 [TestFixture]
 public class TestoviGrupa
 {
     private InMemoryGroupMembershipRepository _repository = null!;
+    private TestGroupLookup _groupLookup = null!;
+    private TestStudentLookup _studentLookup = null!;
     private AddStudentToGroupHandler _addHandler = null!;
     private RemoveStudentFromGroupHandler _removeHandler = null!;
     private WebApplicationFactory<Program> _factory = null!;
@@ -24,7 +39,10 @@ public class TestoviGrupa
     public void SetUp()
     {
         _repository = new InMemoryGroupMembershipRepository();
-        _addHandler = new AddStudentToGroupHandler(_repository);
+        _groupLookup = new TestGroupLookup();
+        _studentLookup = new TestStudentLookup();
+        
+        _addHandler = new AddStudentToGroupHandler(_repository, _groupLookup, _studentLookup);
         _removeHandler = new RemoveStudentFromGroupHandler(_repository);
         
         _factory = new WebApplicationFactory<Program>();
@@ -110,6 +128,55 @@ public class TestoviGrupa
 
         var activeMembership = await _repository.GetActiveAsync(groupId, studentId, CancellationToken.None);
         Assert.That(activeMembership, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task AddStudent_WhenGroupNotExists_ThrowsKeyNotFoundException()
+    {
+        var groupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        
+        _groupLookup.ExistsResult = false; 
+
+        var command = new AddStudentToGroupCommand(groupId, studentId, DateTime.UtcNow);
+
+        KeyNotFoundException? ex = null;
+        try
+        {
+            await _addHandler.Handle(command, CancellationToken.None);
+        }
+        catch (KeyNotFoundException e)
+        {
+            ex = e;
+        }
+
+        Assert.That(ex, Is.Not.Null);
+        Assert.That(ex!.Message, Does.Contain("Navedena grupa ne postoji"));
+    }
+
+    [Test]
+    public async Task AddStudent_WhenStudentNotActive_ThrowsInvalidOperationException()
+    {
+        var groupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        
+        _groupLookup.ExistsResult = true;
+        _studentLookup.IsActiveResult = false; 
+
+        var command = new AddStudentToGroupCommand(groupId, studentId, DateTime.UtcNow);
+
+        InvalidOperationException? ex = null;
+        try
+        {
+            await _addHandler.Handle(command, CancellationToken.None);
+        }
+        catch (InvalidOperationException e)
+        {
+            ex = e;
+        }
+
+        Assert.That(ex, Is.Not.Null);
+        Assert.That(ex!.Message, Does.Contain("Student ne postoji ili nije aktivan"));
     }
 
     [Test]

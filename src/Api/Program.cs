@@ -2,17 +2,23 @@ using Application.Courses;
 using Application.Groups;
 using Infrastructure;
 using Infrastructure.Demo;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Composition root: spoljašnji sloj bira implementaciju ugovora.
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
 
 builder.Services.AddSingleton<IGroupMembershipRepository, InMemoryGroupMembershipRepository>();
+builder.Services.AddSingleton<IGroupLookup, DemoGroupLookup>();
+builder.Services.AddSingleton<IStudentLookup, DemoStudentLookup>();
+
 builder.Services.AddScoped<AddStudentToGroupHandler>();
 builder.Services.AddScoped<RemoveStudentFromGroupHandler>();
 
@@ -42,52 +48,97 @@ var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
-// Javno dostupan demonstracioni endpoint, bez autentifikacije:
-// ne predstavlja funkcionalnost ST-003 i ne koristiti ga za stvarne podatke.
-app.MapGet("/demo/courses", async (
-    ListCoursesHandler handler,
-    CancellationToken cancellationToken) =>
+bool IsUserOwnerOfGroup(System.Security.Claims.ClaimsPrincipal user, Guid groupId)
 {
-    var courses = await handler.HandleAsync(cancellationToken);
-    return Results.Ok(courses);
-});
+    if (!user.Identity?.IsAuthenticated ?? true) return false;
+    
+    var allowedGroupClaim = user.FindFirst("AllowedGroup");
+    if (allowedGroupClaim != null && Guid.TryParse(allowedGroupClaim.Value, out var allowedId))
+    {
+        return allowedId == groupId;
+    }
 
-app.MapGet("/courses", async (
-    string? query,
-    SearchCoursesHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    var courses = await handler.HandleAsync(query, cancellationToken);
-    return Results.Ok(courses);
-});
+    return user.IsInRole("Admin") || user.HasClaim("Permission", "ManageGroups");
+}
 
 app.MapPost("/groups/{groupId}/students", async (
-    Guid groupId,
-    AddStudentRequest request,
-    AddStudentToGroupHandler handler,
-    CancellationToken cancellationToken) =>
+    Guid groupId, 
+    [FromBody] AddStudentRequest request, 
+    AddStudentToGroupHandler handler, 
+    HttpContext httpContext,
+    CancellationToken ct) =>
 {
-    var command = new AddStudentToGroupCommand(groupId, request.StudentId, request.StartDate);
-    await handler.Handle(command, cancellationToken);
-    return Results.Ok(new { message = "Student je uspesno dodat u grupu." });
+    if (!IsUserOwnerOfGroup(httpContext.User, groupId))
+    {
+        return Results.Forbid();
+    }
+
+    try
+    {
+        var command = new AddStudentToGroupCommand(groupId, request.StudentId, request.StartDate);
+        await handler.Handle(command, ct);
+        return Results.Ok(new { message = "Student je uspešno dodat u grupu." });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(ex.Message);
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(ex.Message);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Conflict(ex.Message);
+    }
 }).RequireAuthorization("GroupOwnerPolicy");
 
 app.MapDelete("/groups/{groupId}/students/{studentId}", async (
-    Guid groupId,
-    Guid studentId,
-    [FromBody]RemoveStudentRequest request,
-    RemoveStudentFromGroupHandler handler,
-    CancellationToken cancellationToken) =>
+    Guid groupId, 
+    Guid studentId, 
+    [FromBody] RemoveStudentRequest request, 
+    RemoveStudentFromGroupHandler handler, 
+    HttpContext httpContext,
+    CancellationToken ct) =>
 {
-    var command = new RemoveStudentFromGroupCommand(groupId, studentId, request.EndDate);
-    await handler.Handle(command, cancellationToken);
-    return Results.Ok(new { message = "Clanstvo studenta u grupi je uspešno zavrseno." });
+    if (!IsUserOwnerOfGroup(httpContext.User, groupId))
+    {
+        return Results.Forbid();
+    }
+
+    try
+    {
+        var command = new RemoveStudentFromGroupCommand(groupId, studentId, request.EndDate);
+        await handler.Handle(command, ct);
+        return Results.Ok(new { message = "Članstvo studenta u grupi je uspešno završeno." });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(ex.Message);
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(ex.Message);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Conflict(ex.Message);
+    }
 }).RequireAuthorization("GroupOwnerPolicy");
 
 app.Run();
 
+public class DemoGroupLookup : IGroupLookup
+{
+    public Task<bool> ExistsAsync(Guid groupId, CancellationToken cancellationToken) => Task.FromResult(true);
+}
+
+public class DemoStudentLookup : IStudentLookup
+{
+    public Task<bool> IsActiveAsync(Guid studentId, CancellationToken cancellationToken) => Task.FromResult(true);
+}
 
 public record AddStudentRequest(Guid StudentId, DateTime StartDate);
 public record RemoveStudentRequest(DateTime EndDate);
