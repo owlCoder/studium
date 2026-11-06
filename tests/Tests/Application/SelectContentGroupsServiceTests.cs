@@ -1,29 +1,56 @@
-namespace Application.Courses;
+namespace Tests.Application;
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Domain;
+using global::Application.Courses;
+using NUnit.Framework;
 
-public class SelectContentGroupsService
+[TestFixture]
+public class SelectContentGroupsServiceTests
 {
-    public ContentGroupContract AssignGroupsToContent(Guid contentId, List<Guid> selectedGroupIds)
+    private SelectContentGroupsService _service = null!;
+
+    [SetUp]
+    public void SetUp()
     {
-        if (contentId == Guid.Empty)
-        {
-            throw new ArgumentException("ID sadržaja ne sme biti prazan.", nameof(contentId));
-        }
+        _service = new SelectContentGroupsService();
+    }
 
-        if (selectedGroupIds == null || !selectedGroupIds.Any())
-        {
-            throw new ArgumentException("Mora biti izabrana najmanje jedna grupa za prikaz sadržaja.", nameof(selectedGroupIds));
-        }
+    [Test]
+    public void AssignGroupsToContent_ValidInput_ReturnsContract()
+    {
+        var contentId = Guid.NewGuid();
+        var groupIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() };
 
-        if (selectedGroupIds.Any(id => id == Guid.Empty))
-        {
-            throw new ArgumentException("Lista grupa ne sme sadržati prazan ID.", nameof(selectedGroupIds));
-        }
+        var result = _service.AssignGroupsToContent(contentId, groupIds);
 
-        return new ContentGroupContract(contentId, selectedGroupIds.Distinct().ToList());
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.ContentId, Is.EqualTo(contentId));
+        Assert.That(result.TargetGroupIds.Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void AssignGroupsToContent_EmptyContentId_ThrowsArgumentException()
+    {
+        var groupIds = new List<Guid> { Guid.NewGuid() };
+
+        Assert.Throws<ArgumentException>(() => _service.AssignGroupsToContent(Guid.Empty, groupIds));
+    }
+
+    [Test]
+    public void AssignGroupsToContent_EmptyGroupList_ThrowsArgumentException()
+    {
+        var contentId = Guid.NewGuid();
+
+        Assert.Throws<ArgumentException>(() => _service.AssignGroupsToContent(contentId, new List<Guid>()));
+    }
+
+    [Test]
+    public void AssignGroupsToContent_ContainsEmptyGuidInGroups_ThrowsArgumentException()
+    {
+        var contentId = Guid.NewGuid();
+        var groupIds = new List<Guid> { Guid.NewGuid(), Guid.Empty };
+
+        Assert.Throws<ArgumentException>(() => _service.AssignGroupsToContent(contentId, groupIds));
     }
 }
