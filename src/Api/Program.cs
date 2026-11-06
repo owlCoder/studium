@@ -1,3 +1,5 @@
+using Api.Contracts;
+using Application.Activities;
 using Application.Courses;
 using Infrastructure.Demo;
 
@@ -7,6 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
+
+// Memorijski adapter mora biti singleton da bi aktivnosti preživele između zahteva.
+builder.Services.AddSingleton<IActivityRepository>(_ => DemoData.CreateActivityRepository());
+builder.Services.AddScoped<CreateActivityHandler>();
+builder.Services.AddScoped<ListActivitiesHandler>();
 
 var app = builder.Build();
 
@@ -29,6 +36,47 @@ app.MapGet("/courses", async (
 {
     var courses = await handler.HandleAsync(query, cancellationToken);
     return Results.Ok(courses);
+});
+
+// Demonstracioni tok aktivnosti: memorijski adapter i bez autentifikacije.
+// Ne predstavlja završenu funkcionalnost ST-021 niti proveru prava nad izvođenjem.
+app.MapPost("/Course/{courseId:guid}/CreateActivity", async (
+    Guid courseId,
+    CreateActivityRequest request,
+    CreateActivityHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var result = await handler.HandleAsync(
+        new CreateActivityCommand(
+            courseId,
+            request.Name,
+            request.Description,
+            request.StartDate,
+            request.EndDate),
+        cancellationToken);
+
+    return result.Status switch
+    {
+        CreateActivityStatus.Created => Results.Created("/ListActivities", result.Activity),
+        CreateActivityStatus.CourseNotFound => Results.Problem(
+            title: "Predmet nije pronađen",
+            detail: result.Error,
+            statusCode: StatusCodes.Status404NotFound),
+        CreateActivityStatus.InvalidRequest => Results.ValidationProblem(
+            new Dictionary<string, string[]>
+            {
+                ["activity"] = new[] { result.Error ?? "Nevažeći podaci aktivnosti." }
+            }),
+        _ => Results.Problem(statusCode: StatusCodes.Status500InternalServerError)
+    };
+});
+
+app.MapGet("/ListActivities", async (
+    ListActivitiesHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var activities = await handler.HandleAsync(cancellationToken);
+    return Results.Ok(activities);
 });
 
 app.Run();
