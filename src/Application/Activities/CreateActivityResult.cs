@@ -15,9 +15,9 @@ public sealed record CreateActivityResult(
     public static CreateActivityResult Created(ActivityListItem activity) =>
         new(CreateActivityStatus.Created, activity);
 
-    public static CreateActivityResult CourseNotFound(Guid courseId) =>
+    public static CreateActivityResult CourseNotFound(string courseSlug) =>
         new(CreateActivityStatus.CourseNotFound,
-            Error: $"Predmet sa identifikatorom {courseId} ne postoji.");
+            Error: $"Predmet sa oznakom \"{courseSlug}\" ne postoji.");
 
     public static CreateActivityResult InvalidRequest(string message) =>
         new(CreateActivityStatus.InvalidRequest, Error: message);

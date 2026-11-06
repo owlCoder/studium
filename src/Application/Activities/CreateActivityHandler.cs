@@ -1,11 +1,13 @@
+using Application.Common;
 using Application.Courses;
 using Domain.Activity;
 
 namespace Application.Activities;
 
 /// <summary>
-/// Dodaje aktivnost postojećem predmetu. Katalog predmeta se ne menja; postojeći
-/// port <see cref="ICourseReader"/> služi samo za proveru da predmet postoji.
+/// Dodaje aktivnost postojećem predmetu. Katalog predmeta se ne menja; postojeći port
+/// <see cref="ICourseReader"/> služi samo da se predmet pronađe po oznaci oblika
+/// <c>OZNAKA-xxxxx</c> (vidi <see cref="EntitySlug"/>).
 /// </summary>
 public sealed class CreateActivityHandler
 {
@@ -23,9 +25,19 @@ public sealed class CreateActivityHandler
         CancellationToken cancellationToken = default)
     {
         var courses = await _courseReader.ListAsync(cancellationToken);
-        if (!courses.Any(course => course.Id == command.CourseId))
+        var matches = courses
+            .Where(course => EntitySlug.Matches(command.CourseSlug, course.Code, course.Id))
+            .ToList();
+
+        if (matches.Count == 0)
         {
-            return CreateActivityResult.CourseNotFound(command.CourseId);
+            return CreateActivityResult.CourseNotFound(command.CourseSlug);
+        }
+
+        if (matches.Count > 1)
+        {
+            return CreateActivityResult.InvalidRequest(
+                $"Oznaka predmeta \"{command.CourseSlug}\" nije jedinstvena.");
         }
 
         Activity activity;
@@ -33,7 +45,7 @@ public sealed class CreateActivityHandler
         {
             activity = new Activity(
                 Guid.NewGuid(),
-                command.CourseId,
+                matches[0].Id,
                 command.Name,
                 command.Description,
                 command.StartDate,

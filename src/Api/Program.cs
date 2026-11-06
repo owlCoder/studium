@@ -40,15 +40,16 @@ app.MapGet("/courses", async (
 
 // Demonstracioni tok aktivnosti: memorijski adapter i bez autentifikacije.
 // Ne predstavlja završenu funkcionalnost ST-021 niti proveru prava nad izvođenjem.
-app.MapPost("/Course/{courseId:guid}/CreateActivity", async (
-    Guid courseId,
+// Oznaka predmeta je oblika OZNAKA-xxxxx, npr. ERS-11111.
+app.MapPost("/Course/{courseSlug}/CreateActivity", async (
+    string courseSlug,
     CreateActivityRequest request,
     CreateActivityHandler handler,
     CancellationToken cancellationToken) =>
 {
     var result = await handler.HandleAsync(
         new CreateActivityCommand(
-            courseId,
+            courseSlug,
             request.Name,
             request.Description,
             request.StartDate,
