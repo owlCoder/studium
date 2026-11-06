@@ -53,4 +53,40 @@ public class UpdateReviewDraftHandlerTests
         // Act & Assert
         Assert.ThrowsAsync<KeyNotFoundException>(async () => await _handler.HandleAsync(command));
     }
+
+    [Test]
+    public void HandleAsync_WhenTeacherIsNotOwner_ThrowsUnauthorizedAccessException()
+    {
+        // Arrange: Nacrt pripada jednom nastavniku, a komandu šalje drugi
+        var draftId = Guid.NewGuid();
+        var ownerTeacherId = Guid.NewGuid();
+        var anotherTeacherId = Guid.NewGuid();
+        var existingDraft = new ReviewDraft(draftId, Guid.NewGuid(), ownerTeacherId, "Komentar", "NeedsRevision");
+
+        _repositoryMock.Setup(r => r.GetByIdAsync(draftId, It.IsAny<CancellationToken>()))
+                       .ReturnsAsync(existingDraft);
+
+        var command = new UpdateReviewDraftCommand(draftId, anotherTeacherId, "Novi komentar", "Approved");
+
+        // Act & Assert
+        Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await _handler.HandleAsync(command));
+    }
+
+    [Test]
+    public void HandleAsync_WhenDraftIsAlreadyPublished_ThrowsInvalidOperationException()
+    {
+        // Arrange: Nacrt je već objavljen
+        var draftId = Guid.NewGuid();
+        var teacherId = Guid.NewGuid();
+        var publishedDraft = new ReviewDraft(draftId, Guid.NewGuid(), teacherId, "Komentar", "Approved");
+        publishedDraft.Publish();
+
+        _repositoryMock.Setup(r => r.GetByIdAsync(draftId, It.IsAny<CancellationToken>()))
+                       .ReturnsAsync(publishedDraft);
+
+        var command = new UpdateReviewDraftCommand(draftId, teacherId, "Izmena nakon objavljivanja", "Rejected");
+
+        // Act & Assert
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await _handler.HandleAsync(command));
+    }
 }
