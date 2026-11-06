@@ -32,6 +32,8 @@ Priloženi **demo katalog predmeta** prikazuje tok `API/ConsoleUi → Applicatio
 
 `courseSlug` je kratka oznaka oblika `OZNAKA-xxxxx`, gde je `OZNAKA` oznaka predmeta, a `xxxxx` poslednjih pet znakova njegovog identifikatora (bez razlike između velikih i malih slova). Isti obrazac važi i za buduće rute pojedinačne aktivnosti (`/Course/{courseSlug}/Activity/{activitySlug}`, gde je `activitySlug` oblika `NAZIV-xxxxx`).
 
+Oznaka se normalizuje: zadržavaju se slova, cifre, `-`, `_` i `.`, svaki drugi znak (razmak, `/` i sl.) zamenjuje se jednom crticom, a vodeće i završne crtice se uklanjaju. Ako oznaka nakon normalizacije ostane prazna, slug sadrži samo `xxxxx`.
+
 Primer zahteva (koristi jedan od demo predmeta iz `DemoData`; `ERS` sa identifikatorom `11111111-1111-1111-1111-111111111111` daje `ERS-11111`):
 
 ```bash

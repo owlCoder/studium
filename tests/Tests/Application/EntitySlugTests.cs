@@ -32,6 +32,17 @@ public sealed class EntitySlugTests
     }
 
     [Test]
+    public void Create_TrimsLeadingAndTrailingSeparators()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(EntitySlug.Create("-ERS", Id), Is.EqualTo("ERS-11111"));
+            Assert.That(EntitySlug.Create("--ERS--", Id), Is.EqualTo("ERS-11111"));
+            Assert.That(EntitySlug.Create("-", Id), Is.EqualTo("11111"));
+        });
+    }
+
+    [Test]
     public void Create_WithoutPrefix_ReturnsOnlyIdSuffix()
     {
         Assert.That(EntitySlug.Create("   ", Id), Is.EqualTo("11111"));

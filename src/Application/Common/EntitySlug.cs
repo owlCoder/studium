@@ -53,11 +53,6 @@ public static class EntitySlug
             }
         }
 
-        while (builder.Length > 0 && builder[^1] == '-')
-        {
-            builder.Length--;
-        }
-
-        return builder.ToString();
+        return builder.ToString().Trim('-');
     }
 }
