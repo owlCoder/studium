@@ -84,6 +84,35 @@ public class TestoviGrupa
     }
 
     [Test]
+    public async Task Concurrent_AddStudentToGroup_ShouldPreventDuplicatesAndThrowException()
+    {
+        var groupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        var startDate = DateTime.UtcNow;
+
+        var command1 = new AddStudentToGroupCommand(groupId, studentId, startDate);
+        var command2 = new AddStudentToGroupCommand(groupId, studentId, startDate);
+
+        var task1 = _addHandler.Handle(command1, CancellationToken.None);
+        var task2 = _addHandler.Handle(command2, CancellationToken.None);
+
+        Exception? exception = null;
+        try
+        {
+            await Task.WhenAll(task1, task2);
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+
+        Assert.That(exception, Is.Not.Null);
+
+        var activeMembership = await _repository.GetActiveAsync(groupId, studentId, CancellationToken.None);
+        Assert.That(activeMembership, Is.Not.Null);
+    }
+
+    [Test]
     public async Task RemoveStudent_WhenNotExists_ThrowsKeyNotFoundException()
     {
         var removeCommand = new RemoveStudentFromGroupCommand(Guid.NewGuid(), Guid.NewGuid(), DateTime.UtcNow);

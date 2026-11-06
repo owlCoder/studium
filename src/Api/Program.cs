@@ -30,7 +30,12 @@ builder.Services.AddAuthentication("TestScheme")
             return Task.CompletedTask;
         };
     });
-builder.Services.AddAuthorization();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("GroupOwnerPolicy", policy =>
+        policy.RequireAuthenticatedUser());
+});
 
 var app = builder.Build();
 
@@ -67,7 +72,7 @@ app.MapPost("/groups/{groupId}/students", async (
     var command = new AddStudentToGroupCommand(groupId, request.StudentId, request.StartDate);
     await handler.Handle(command, cancellationToken);
     return Results.Ok(new { message = "Student je uspesno dodat u grupu." });
-}).RequireAuthorization();;
+}).RequireAuthorization("GroupOwnerPolicy");
 
 app.MapDelete("/groups/{groupId}/students/{studentId}", async (
     Guid groupId,
@@ -79,7 +84,7 @@ app.MapDelete("/groups/{groupId}/students/{studentId}", async (
     var command = new RemoveStudentFromGroupCommand(groupId, studentId, request.EndDate);
     await handler.Handle(command, cancellationToken);
     return Results.Ok(new { message = "Clanstvo studenta u grupi je uspešno zavrseno." });
-}).RequireAuthorization();
+}).RequireAuthorization("GroupOwnerPolicy");
 
 app.Run();
 

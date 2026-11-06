@@ -16,6 +16,16 @@ public class InMemoryGroupMembershipRepository : Application.Groups.IGroupMember
     {
         lock (_lock)
         {
+            var existingActive = _memberships.FirstOrDefault(m => 
+                m.GroupId == membership.GroupId && 
+                m.StudentId == membership.StudentId && 
+                m.EndDate == null);
+
+            if (existingActive != null)
+            {
+                throw new InvalidOperationException("Student je vec u ovoj grupi.");
+            }
+
             _memberships.Add(membership);
         }
         return Task.CompletedTask;
@@ -32,7 +42,6 @@ public class InMemoryGroupMembershipRepository : Application.Groups.IGroupMember
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)
     {
-        lock (_lock){}
         // Kod in-memory liste čuvanje se dešava u memoriji, pa je ovde prazno
         return Task.CompletedTask;
     }
