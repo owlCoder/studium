@@ -1,5 +1,6 @@
 using System;
 using Xunit;
+using Studium.Domain.Models;
 
 public class PregledRadaTests
 {
@@ -9,7 +10,7 @@ public class PregledRadaTests
         // Arrange
         var pregled = new PregledRada(Guid.NewGuid(), "Potrebne su izmene u kodu.");
 
-        // Act & Assert (Pravilo: „Potrebna dorada” bez novog roka nije dozvoljena)
+        // Act & Assert
         Assert.Throws<InvalidOperationException>(() => 
             pregled.Objavi(ReviewOutcome.PotrebnaDorada, noviRok: null));
     }
@@ -42,5 +43,20 @@ public class PregledRadaTests
         // Assert
         Assert.Equal(ReviewState.Objavljen, pregled.State);
         Assert.Equal(ReviewOutcome.Prihvacen, pregled.Outcome);
+    }
+
+    [Fact]
+    public void DodajStavkuKomentara_ValidniPodaci_UspesnoDodajeStavku()
+    {
+        // Arrange
+        var pregled = new PregledRada(Guid.NewGuid(), "Glavni komentar.");
+
+        // Act
+        pregled.DodajStavkuKomentara("Proveriti sintaksnu analizu.", 1);
+
+        // Assert
+        var stavka = Assert.Single(pregled.StavkeKomentara);
+        Assert.Equal("Proveriti sintaksnu analizu.", stavka.Tekst);
+        Assert.Equal(1, stavka.RedniBroj);
     }
 }
