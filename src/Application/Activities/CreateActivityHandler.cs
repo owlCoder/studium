@@ -24,7 +24,9 @@ public sealed class CreateActivityHandler
     {
         var courses = await _courseReader.ListAsync(cancellationToken);
         if (!courses.Any(course => course.Id == command.CourseId))
+        {
             return CreateActivityResult.CourseNotFound(command.CourseId);
+        }
 
         Activity activity;
         try

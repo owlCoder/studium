@@ -18,7 +18,9 @@ public sealed class InMemoryActivityRepository : IActivityRepository
         foreach (var activity in activities ?? Array.Empty<Activity>())
         {
             if (!_activities.TryAdd(activity.Id, activity))
+            {
                 throw new ArgumentException("Lista sadrži aktivnosti sa istim identifikatorom.", nameof(activities));
+            }
         }
     }
 
@@ -28,7 +30,9 @@ public sealed class InMemoryActivityRepository : IActivityRepository
         cancellationToken.ThrowIfCancellationRequested();
 
         if (!_activities.TryAdd(activity.Id, activity))
+        {
             throw new InvalidOperationException("Aktivnost sa istim identifikatorom već postoji.");
+        }
 
         return Task.CompletedTask;
     }

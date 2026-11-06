@@ -16,13 +16,24 @@ public sealed class Activity
     public Activity(Guid id, Guid courseId, string name, string description, DateTime startDate, DateTime endDate)
     {
         if (id == Guid.Empty)
+        {
             throw new ArgumentException("Identifikator mora biti zadat", nameof(id));
+        }
+
         if (courseId == Guid.Empty)
+        {
             throw new ArgumentException("Identifikator predmeta mora biti zadat", nameof(courseId));
+        }
+
         if (string.IsNullOrWhiteSpace(name))
+        {
             throw new ArgumentException("Naziv aktivnosti mora biti zadat", nameof(name));
+        }
+
         if (startDate >= endDate)
+        {
             throw new ArgumentException("Datum početka aktivnosti mora biti pre datuma završetka", nameof(startDate));
+        }
         Id = id;
         CourseId = courseId;
         Name = name;
