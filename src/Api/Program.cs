@@ -80,3 +80,8 @@ app.MapGet("/ListActivities", async (
 });
 
 app.Run();
+
+// Potrebno za WebApplicationFactory u integracionim testovima.
+public partial class Program
+{
+}

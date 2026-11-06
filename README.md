@@ -38,7 +38,7 @@ curl -X POST http://localhost:5000/Course/11111111-1111-1111-1111-111111111111/C
   -d '{"name":"Timski projekat","description":"Prva faza","startDate":"2026-03-01T08:00:00Z","endDate":"2026-03-15T23:59:00Z"}'
 ```
 
-**Ograničenje:** aktivnosti se čuvaju samo u memoriji procesa preko porta `IActivityRepository` (`InMemoryActivityRepository`) i gube se pri ponovnom pokretanju. Nema trajne baze, autentifikacije, autorizacije ni provere prava nad konkretnim izvođenjem predmeta. Ovaj tok ne predstavlja završenu implementaciju ST-021 (formiranje studentskih timova) niti bilo kog drugog ST zahteva; pogledati [ADR o memorijskom skladištu aktivnosti](docs/adr/0001-memorijsko-skladiste-aktivnosti.md).
+**Ograničenje:** aktivnosti se čuvaju samo u memoriji procesa preko porta `IActivityRepository` (`InMemoryActivityRepository`) i gube se pri ponovnom pokretanju. Nema trajne baze, autentifikacije, autorizacije ni provere prava nad konkretnim izvođenjem predmeta. Ovaj tok ne predstavlja završenu implementaciju ST-021 (formiranje studentskih timova) niti bilo kog drugog ST zahteva.
 
 ## Preduslovi
 
