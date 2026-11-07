@@ -40,15 +40,21 @@ public class InMemoryGroupMembershipRepository : Application.Groups.IGroupMember
         }
     }
 
-    public Task<IReadOnlyList<Domain.Entities.GroupMembership>> GetActiveByStudentIdAsync(Guid studentId, CancellationToken cancellationToken) //2
+    public Task<IReadOnlyList<Domain.Entities.GroupMembership>> GetActiveByStudentIdAsync(
+    Guid studentId,
+    CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var activeMemberships = _memberships
-            .Where(m => m.StudentId == studentId && m.EndDate == null)
-            .ToList();
+        lock (_lock)
+        {
+            var activeMemberships = _memberships
+                .Where(m => m.StudentId == studentId && m.EndDate == null)
+                .ToList();
 
-        return Task.FromResult<IReadOnlyList<Domain.Entities.GroupMembership>>(activeMemberships);
+            return Task.FromResult<IReadOnlyList<Domain.Entities.GroupMembership>>(
+                activeMemberships);
+        }
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)

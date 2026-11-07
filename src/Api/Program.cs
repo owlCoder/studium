@@ -66,21 +66,21 @@ app.MapControllers();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
-bool IsUserOwnerOfGroup(System.Security.Claims.ClaimsPrincipal user, Guid groupId)
+bool IsUserOwnerOfGroup(
+    System.Security.Claims.ClaimsPrincipal user,
+    Guid groupId)
 {
     if (!user.Identity?.IsAuthenticated ?? true)
         return false;
 
+    if (user.IsInRole("Admin"))
+        return true;
+
     var allowedGroupClaim = user.FindFirst("AllowedGroup");
 
-    if (allowedGroupClaim != null &&
-        Guid.TryParse(allowedGroupClaim.Value, out var allowedId))
-    {
-        return allowedId == groupId;
-    }
-
-    return user.IsInRole("Admin") ||
-           user.HasClaim("Permission", "ManageGroups");
+    return allowedGroupClaim != null &&
+           Guid.TryParse(allowedGroupClaim.Value, out var allowedId) &&
+           allowedId == groupId;
 }
 
 app.MapGet("/courses", async (

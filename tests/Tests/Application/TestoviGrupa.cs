@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using Tests.Application;
+using Microsoft.AspNetCore.TestHost;
 
 namespace Testovi;
 
@@ -39,18 +41,46 @@ public class TestoviGrupa
     private HttpClient _client = null!;
 
     [SetUp]
+
     public void SetUp()
     {
         _repository = new InMemoryGroupMembershipRepository();
         _groupLookup = new TestGroupLookup();
         _studentLookup = new TestStudentLookup();
-        
-        _addHandler = new AddStudentToGroupHandler(_repository, _groupLookup, _studentLookup);
+
+        _addHandler = new AddStudentToGroupHandler(
+            _repository,
+            _groupLookup,
+            _studentLookup);
+
         _removeHandler = new RemoveStudentFromGroupHandler(_repository);
-        
-        _factory = new WebApplicationFactory<Program>();
-        _client = _factory.CreateClient();
+
+        _factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.ConfigureTestServices(services =>
+                {
+                    services.AddSingleton<IGroupMembershipRepository>(_repository);
+
+                    services.AddAuthentication(options =>
+                    {
+                        options.DefaultAuthenticateScheme = "Test";
+                        options.DefaultChallengeScheme = "Test";
+                        options.DefaultForbidScheme = "Test";
+                    })
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
+                        "Test",
+                        options => { });
+                });
+            });
+
+        _client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false
+            });
     }
+
 
     [TearDown]
     public void TearDown()
@@ -89,7 +119,7 @@ public class TestoviGrupa
         await _addHandler.Handle(new AddStudentToGroupCommand(groupId, studentId, startDate), CancellationToken.None);
 
         var duplicateCommand = new AddStudentToGroupCommand(groupId, studentId, startDate);
-        
+
         InvalidOperationException? ex = null;
         try
         {
@@ -231,51 +261,368 @@ public class TestoviGrupa
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
     }
 
+
     [Test]
-    public async Task ApiEndpoint_PostStudentToGroup_WithoutAuth_ReturnsUnauthorized()
+    public async Task Controller_PostStudentToGroup_WithoutAuth_ReturnsUnauthorized()
     {
         var groupId = Guid.NewGuid();
-        var request = new { StudentId = Guid.NewGuid(), StartDate = DateTime.UtcNow };
 
-        var response = await _client.PostAsJsonAsync($"/groups/{groupId}/students", request);
+        var request = new
+        {
+            StudentId = Guid.NewGuid(),
+            StartDate = DateTime.UtcNow
+        };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/Groups/{groupId}/students",
+            request);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
     [Test]
-    public async Task ApiEndpoint_DeleteStudentFromGroup_WithoutAuth_ReturnsUnauthorized()
+    public async Task Controller_PostStudentToGroup_WithoutGroupPermission_ReturnsForbidden()
+    {
+        var groupId = Guid.NewGuid();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"/api/Groups/{groupId}/students");
+
+        request.Headers.Add("X-Test-User", Guid.NewGuid().ToString());
+
+        request.Content = JsonContent.Create(new
+        {
+            StudentId = Guid.NewGuid(),
+            StartDate = DateTime.UtcNow
+        });
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task Controller_DeleteStudentFromGroup_WithoutAuth_ReturnsUnauthorized()
     {
         var groupId = Guid.NewGuid();
         var studentId = Guid.NewGuid();
-        var request = new { EndDate = DateTime.UtcNow };
 
-        var httpRequest = new HttpRequestMessage(HttpMethod.Delete, $"/groups/{groupId}/students/{studentId}")
+        var request = new HttpRequestMessage(
+            HttpMethod.Delete,
+            $"/api/Groups/{groupId}/students/{studentId}")
         {
-            Content = JsonContent.Create(request)
+            Content = JsonContent.Create(new
+            {
+                EndDate = DateTime.UtcNow
+            })
         };
 
-        var response = await _client.SendAsync(httpRequest);
+        var response = await _client.SendAsync(request);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
     [Test]
-    public async Task ApiEndpoint_PostStudentToGroup_WithAdminRole_ReturnsSuccess()
+    public async Task Controller_GetStudentGroups_AnotherStudent_ReturnsForbidden()
     {
-        using var authClient = _factory.WithWebHostBuilder(builder =>
+        var loggedStudentId = Guid.NewGuid();
+        var requestedStudentId = Guid.NewGuid();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/api/Groups/students/{requestedStudentId}/groups");
+
+        request.Headers.Add(
+            "X-Test-User",
+            loggedStudentId.ToString());
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task Controller_GetStudentGroups_OwnGroups_ReturnsOk()
+    {
+        var studentId = Guid.NewGuid();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/api/Groups/students/{studentId}/groups");
+
+        request.Headers.Add("X-Test-User", studentId.ToString());
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
+
+
+[Test]
+    public async Task Controller_PostStudentToGroup_AssignedGroup_ReturnsOk()
+    {
+        var groupId = Guid.NewGuid();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"/api/Groups/{groupId}/students");
+
+        request.Headers.Add("X-Test-User", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Test-AllowedGroup", groupId.ToString());
+
+        request.Content = JsonContent.Create(new
         {
-            builder.ConfigureServices(services =>
-            {
-            });
-        }).CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
+            StudentId = Guid.NewGuid(),
+            StartDate = DateTime.UtcNow
         });
 
-        var groupId = Guid.NewGuid();
-        var request = new { StudentId = Guid.NewGuid(), StartDate = DateTime.UtcNow };
+        var response = await _client.SendAsync(request);
 
-        var response = await _client.PostAsJsonAsync($"/groups/{groupId}/students", request);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    [Test]
+    public async Task Controller_PostStudentToGroup_DifferentGroup_ReturnsForbidden()
+    {
+        var groupId = Guid.NewGuid();
+        var anotherGroupId = Guid.NewGuid();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"/api/Groups/{groupId}/students");
+
+        request.Headers.Add("X-Test-User", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Test-AllowedGroup", anotherGroupId.ToString());
+
+        request.Content = JsonContent.Create(new
+        {
+            StudentId = Guid.NewGuid(),
+            StartDate = DateTime.UtcNow
+        });
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task Controller_PostStudentToGroup_Admin_ReturnsOk()
+    {
+        var groupId = Guid.NewGuid();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"/api/Groups/{groupId}/students");
+
+        request.Headers.Add("X-Test-User", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Test-Role", "Admin");
+
+        request.Content = JsonContent.Create(new
+        {
+            StudentId = Guid.NewGuid(),
+            StartDate = DateTime.UtcNow
+        });
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    [Test]
+    public async Task MinimalApi_PostStudentToGroup_AssignedGroup_ReturnsOk()
+    {
+        var groupId = Guid.NewGuid();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post, $"/groups/{groupId}/students");
+
+        request.Headers.Add("X-Test-User", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Test-AllowedGroup", groupId.ToString());
+
+        request.Content = JsonContent.Create(new
+        {
+            StudentId = Guid.NewGuid(),
+            StartDate = DateTime.UtcNow
+        });
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    [Test]
+    public async Task MinimalApi_PostStudentToGroup_DifferentGroup_ReturnsForbidden()
+    {
+        var groupId = Guid.NewGuid();
+        var anotherGroupId = Guid.NewGuid();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post, $"/groups/{groupId}/students");
+
+        request.Headers.Add("X-Test-User", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Test-AllowedGroup", anotherGroupId.ToString());
+
+        request.Content = JsonContent.Create(new
+        {
+            StudentId = Guid.NewGuid(),
+            StartDate = DateTime.UtcNow
+        });
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task MinimalApi_DeleteStudentFromGroup_AssignedGroup_ReturnsOk()
+    {
+        var groupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+
+        // Prvo kreiramo postojeće aktivno članstvo.
+        var membership = new GroupMembership
+        {
+            Id = Guid.NewGuid(),
+            GroupId = groupId,
+            StudentId = studentId,
+            StartDate = DateTime.UtcNow.AddDays(-5)
+        };
+
+        await _repository.AddAsync(
+            membership,
+            CancellationToken.None);
+
+        // Zatim šaljemo DELETE zahtev.
+        using var request = new HttpRequestMessage(
+            HttpMethod.Delete,
+            $"/groups/{groupId}/students/{studentId}");
+
+        request.Headers.Add("X-Test-User", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Test-AllowedGroup", groupId.ToString());
+
+        request.Content = JsonContent.Create(new
+        {
+            EndDate = DateTime.UtcNow
+        });
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    [Test]
+    public async Task MinimalApi_DeleteStudentFromGroup_DifferentGroup_ReturnsForbidden()
+    {
+        var groupId = Guid.NewGuid();
+        var anotherGroupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Delete,
+            $"/groups/{groupId}/students/{studentId}");
+
+        request.Headers.Add("X-Test-User", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Test-AllowedGroup", anotherGroupId.ToString());
+
+        request.Content = JsonContent.Create(new
+        {
+            EndDate = DateTime.UtcNow
+        });
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task Controller_DeleteStudentFromGroup_AssignedGroup_ReturnsOk()
+    {
+        var groupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+
+        var membership = new GroupMembership
+        {
+            Id = Guid.NewGuid(),
+            GroupId = groupId,
+            StudentId = studentId,
+            StartDate = DateTime.UtcNow.AddDays(-5)
+        };
+
+        await _repository.AddAsync(membership, CancellationToken.None);
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Delete,
+            $"/api/Groups/{groupId}/students/{studentId}");
+
+        request.Headers.Add("X-Test-User", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Test-AllowedGroup", groupId.ToString());
+
+        request.Content = JsonContent.Create(new
+        {
+            EndDate = DateTime.UtcNow
+        });
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    [Test]
+    public async Task Controller_DeleteStudentFromGroup_DifferentGroup_ReturnsForbidden()
+    {
+        var groupId = Guid.NewGuid();
+        var anotherGroupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Delete,
+            $"/api/Groups/{groupId}/students/{studentId}");
+
+        request.Headers.Add("X-Test-User", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Test-AllowedGroup", anotherGroupId.ToString());
+
+        request.Content = JsonContent.Create(new
+        {
+            EndDate = DateTime.UtcNow
+        });
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task Controller_DeleteStudentFromGroup_Admin_ReturnsOk()
+    {
+        var groupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+
+        var membership = new GroupMembership
+        {
+            Id = Guid.NewGuid(),
+            GroupId = groupId,
+            StudentId = studentId,
+            StartDate = DateTime.UtcNow.AddDays(-5)
+        };
+
+        await _repository.AddAsync(membership, CancellationToken.None);
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Delete,
+            $"/api/Groups/{groupId}/students/{studentId}");
+
+        request.Headers.Add("X-Test-User", Guid.NewGuid().ToString());
+        request.Headers.Add("X-Test-Role", "Admin");
+
+        request.Content = JsonContent.Create(new
+        {
+            EndDate = DateTime.UtcNow
+        });
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
     }
 }

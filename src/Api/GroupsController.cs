@@ -1,11 +1,15 @@
+
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Application.Groups;
 using Application;
 
-namespace Api.Controllers; //4
+namespace Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Policy = "GroupOwnerPolicy")]
 public class GroupsController : ControllerBase
 {
     private readonly AddStudentToGroupHandler _addHandler;
@@ -28,6 +32,9 @@ public class GroupsController : ControllerBase
         [FromBody] AddStudentRequest request,
         CancellationToken cancellationToken)
     {
+        if (!CanManageGroup(groupId))
+            return Forbid();
+
         var command = new AddStudentToGroupCommand(
             groupId,
             request.StudentId,
@@ -45,6 +52,9 @@ public class GroupsController : ControllerBase
         [FromBody] RemoveStudentRequest request,
         CancellationToken cancellationToken)
     {
+        if (!CanManageGroup(groupId))
+            return Forbid();
+
         var command = new RemoveStudentFromGroupCommand(
             groupId,
             studentId,
@@ -60,14 +70,51 @@ public class GroupsController : ControllerBase
         Guid studentId,
         CancellationToken cancellationToken)
     {
+        if (!CanViewStudentGroups(studentId))
+            return Forbid();
+
         var groups = await _listHandler.HandleAsync(
             studentId,
             cancellationToken);
 
         return Ok(groups);
     }
+
+
+    private bool CanManageGroup(Guid groupId)
+    {
+        // Admin može da upravlja svim grupama.
+        if (User.IsInRole("Admin"))
+            return true;
+
+        // Nastavnik može da upravlja samo dodeljenom grupom.
+        var allowedGroupClaim = User.FindFirst("AllowedGroup");
+
+        return allowedGroupClaim != null &&
+               Guid.TryParse(allowedGroupClaim.Value, out var allowedId) &&
+               allowedId == groupId;
+    }
+
+
+    private bool CanViewStudentGroups(Guid studentId)
+    {
+        if (User.IsInRole("Admin"))
+        {
+            return true;
+        }
+
+        var studentClaim =
+            User.FindFirst(ClaimTypes.NameIdentifier) ??
+            User.FindFirst("sub") ??
+            User.FindFirst("StudentId");
+
+        return studentClaim != null &&
+               Guid.TryParse(studentClaim.Value, out var loggedStudentId) &&
+               loggedStudentId == studentId;
+    }
 }
 
 public record AddStudentRequest(Guid StudentId, DateTime StartDate);
 
 public record RemoveStudentRequest(DateTime EndDate);
+
