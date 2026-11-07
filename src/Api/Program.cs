@@ -51,12 +51,15 @@ builder.Services.AddAuthorization(options =>
 */
 
 builder.Services.AddSingleton<IContentTargetAudienceRepository, InMemoryContentTargetAudienceRepository>();
-builder.Services.AddSingleton<IContentLookupForAudience, DemoContentLookup>();
-builder.Services.AddSingleton<IGroupLookupForAudience, DemoGroupLookupForAudience>();
-
 builder.Services.AddScoped<SetContentTargetAudienceHandler>();
-builder.Services.AddScoped<IContentLookupForAudience, CourseLookupForAudience>();
-builder.Services.AddScoped<IGroupLookupForAudience, CourseLookupForAudience>();
+
+// DEMO: ovi lookup-i dozvoljavaju sve, zato ih registrujemo samo u Development okruženju.
+// Prava provera vlasništva dolazi iz modula ST-008/ST-019 (tuđi zadaci).
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSingleton<IContentLookupForAudience, DemoContentLookup>();
+    builder.Services.AddSingleton<IGroupLookupForAudience, DemoGroupLookupForAudience>();
+}
 /*------------------------------------*/
 
 var app = builder.Build();
@@ -112,35 +115,42 @@ app.MapPost("/groups/{groupId}/students", async (
 }).RequireAuthorization("GroupOwnerPolicy");
 
 /*---------------------*/
-app.MapPost("/contents/{contentId:guid}/target-audience", async (
-    Guid contentId,
-    SetContentTargetAudienceRequest request,
-    SetContentTargetAudienceHandler handler,
-    HttpContext httpContext,
-    CancellationToken cancellationToken) =>
+if (app.Environment.IsDevelopment())
 {
-    // Izvlačenje ID-a ulogovanog korisnika iz Claim-ova
-    var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
-        ?? httpContext.User.FindFirst("sub")?.Value;
-
-    if (!Guid.TryParse(userIdClaim, out var instructorId))
+    app.MapPost("/contents/{contentId:guid}/target-audience", async (
+        Guid contentId,
+        SetContentTargetAudienceRequest request,
+        SetContentTargetAudienceHandler handler,
+        HttpContext httpContext,
+        CancellationToken ct) =>
     {
-        return Results.Unauthorized();
-    }
+        var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? httpContext.User.FindFirst("sub")?.Value;
 
-    var command = new SetContentTargetAudienceCommand(
-        ContentId: contentId,
-        InstructorId: instructorId,
-        IsForWholeCourseExecution: request.IsForWholeCourseExecution,
-        TargetGroupIds: request.TargetGroupIds ?? new List<Guid>()
-    );
+        if (!Guid.TryParse(userIdClaim, out var instructorId))
+        {
+            return Results.Unauthorized();
+        }
 
-    // OVDE JE BILA GREŠKA: Poziva se .Handle umesto .HandleAsync jer se metoda u hendleru tako zove
-    await handler.Handle(command, cancellationToken);
+        var command = new SetContentTargetAudienceCommand(
+            ContentId: contentId,
+            InstructorId: instructorId,
+            IsForWholeCourseExecution: request.IsForWholeCourseExecution,
+            TargetGroupIds: request.TargetGroupIds ?? new List<Guid>()
+        );
 
-    return Results.Ok();
-})
-.RequireAuthorization();
+        try
+        {
+            await handler.Handle(command, ct);
+            return Results.Ok();
+        }
+        catch (ArgumentException ex)         { return Results.BadRequest(ex.Message); }                      // 400
+        catch (KeyNotFoundException ex)      { return Results.NotFound(ex.Message); }                        // 404
+        catch (UnauthorizedAccessException)  { return Results.StatusCode(StatusCodes.Status403Forbidden); } // 403
+        catch (InvalidOperationException ex) { return Results.Conflict(ex.Message); }                        // 409
+    })
+    .RequireAuthorization();
+}
 /*---------------------*/
 
 app.MapDelete("/groups/{groupId}/students/{studentId}", async (
