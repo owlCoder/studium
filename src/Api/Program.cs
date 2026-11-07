@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Composition root: spoljašnji sloj bira implementaciju ugovora.
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
+builder.Services.AddScoped<SearchCoursesHandler>();
 
 builder.Services.AddSingleton<ICourseEnrollmentRepository, InMemoryCourseEnrollmentRepository>();
 builder.Services.AddScoped<EnrollStudentHandler>();
@@ -40,6 +41,13 @@ app.MapPost("/api/enrollments", async (
     {
         return Results.Conflict(new { error = ex.Message });
     }
+app.MapGet("/courses", async (
+    string? query,
+    SearchCoursesHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var courses = await handler.HandleAsync(query, cancellationToken);
+    return Results.Ok(courses);
 });
 
 app.Run();
