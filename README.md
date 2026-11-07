@@ -72,22 +72,27 @@ Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslo
 
 ## ST-004: stanje i plan
 
-### Urađeno (KT1)
+### Urađeno
 - Domain: AcademicYear, CourseOffering, OfferingState (validacije, stanja samo unapred)
 - Application: handleri za kreiranje akademske godine i izvođenja
-- Infrastructure: čuvanje u memoriji
-- Testovi: 7 NUnit testova (Test Explorer → Run All)
+- Infrastructure: memorijski repozitorijumi; provera i upis su atomarni (TryAddAsync pod lock-om)
+- Testovi: 8 NUnit testova, uključujući test sa 20 paralelnih pokušaja
 - Dijagrami: docs/st-004-arhitektura.png, docs/st-004-dfd.png
 
 ### Poslovna pravila
-- Početak godine pre kraja; oznaka godine jedinstvena
+- Početak godine pre kraja; oznaka godine jedinstvena (bez razlike u veličini slova)
 - Par (predmet, godina) jedinstven; deaktiviran predmet nema novo izvođenje
 - Stanja: U pripremi → Aktivno → Završeno
 
+### Ograničenja (delimična implementacija)
+- Ovo nije kompletan ST-004: nema provere uloge Administrator, Api/ConsoleUi ulaza ni trajne baze.
+- Svojstvo IsArchived postoji, ali logika arhiviranja (ST-091) nije implementirana.
+- `lock` važi samo unutar jednog procesa; trajna baza mora garantovati jedinstvenost unique ograničenjem
+  nad parom (CourseId, AcademicYearId) i nad oznakom godine.
+
 ### Preostalo do KT2
 - Handler za promenu stanja i pregled izvođenja
-- Provera uloge Administrator
-- Arhiviranje (ST-091)
+- Provera uloge Administrator (zavisi od ST-001/002)
 - Povezivanje sa Api/ConsoleUi
 - Više negativnih testova, ažuriranje dijagrama i README
 
