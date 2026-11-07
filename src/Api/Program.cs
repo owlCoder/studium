@@ -20,7 +20,7 @@ builder.Services.AddSingleton<IClock, SystemClock>();
 // ST-002 Prijava: handler zavisi od portova, a ovde se biraju konkretne implementacije.
 builder.Services.AddSingleton<IUserLookup>(
     sp => DemoData.CreateUserLookup(sp.GetRequiredService<IPasswordHasher>()));
-builder.Services.AddScoped<LoginHandler>();
+builder.Services.AddSingleton<LoginHandler>();
 
 var app = builder.Build();
 

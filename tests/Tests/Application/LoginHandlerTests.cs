@@ -14,6 +14,7 @@ namespace Tests.Application;
 public sealed class LoginHandlerTests
 {
     private const string Hash = "hes-ane";
+    private const string DummyHash = "lazni-hes";
     private const string Password = "Sintetika-1";
 
     private static User AnaWith(bool isActive = true, string? hash = Hash) =>
@@ -28,6 +29,7 @@ public sealed class LoginHandlerTests
             .ReturnsAsync(existingUser);
 
         var hasher = new Mock<IPasswordHasher>();
+        hasher.Setup(x => x.Hash(It.IsAny<string>())).Returns(DummyHash);
         hasher.Setup(x => x.Verify(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(passwordMatches);
 
@@ -85,7 +87,40 @@ public sealed class LoginHandlerTests
             Assert.That(result.Failure, Is.EqualTo(LoginFailure.InvalidCredentials));
             Assert.That(result.Identity, Is.Null);
         });
-        hasher.Verify(x => x.Verify(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Test]
+    public async Task HandleAsync_VerifiesAgainstDummyHash_WhenUserDoesNotExist()
+    {
+        var (handler, _, hasher) = Create(existingUser: null);
+
+        await handler.HandleAsync(new LoginCommand("nepoznat", Password));
+
+        // Skupa provera se izvršava i za nepoznato ime, da vreme odgovora ne odaje nalog.
+        hasher.Verify(x => x.Verify(Password, DummyHash), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_RejectsUnknownUsername_EvenIfDummyHashWouldMatch()
+    {
+        // Mock potvrđuje svaku lozinku (passwordMatches: true), a nalog ipak mora biti odbijen.
+        var (handler, _, _) = Create(existingUser: null, passwordMatches: true);
+
+        var result = await handler.HandleAsync(new LoginCommand("nepoznat", Password));
+
+        Assert.That(result.Succeeded, Is.False);
+    }
+
+    [Test]
+    public async Task HandleAsync_CreatesDummyHashOnce_NotPerRequest()
+    {
+        var (handler, _, hasher) = Create(existingUser: null);
+
+        await handler.HandleAsync(new LoginCommand("nepoznat", Password));
+        await handler.HandleAsync(new LoginCommand("nepoznat", Password));
+
+        // Lažni heš se pravi u konstruktoru jednom, ne po zahtevu.
+        hasher.Verify(x => x.Hash(It.IsAny<string>()), Times.Once);
     }
 
     [Test]
@@ -126,7 +161,8 @@ public sealed class LoginHandlerTests
             // Nalog bez lozinke ponaša se kao nepoznat, pa se ne otkriva da postoji.
             Assert.That(result.Failure, Is.EqualTo(LoginFailure.InvalidCredentials));
         });
-        hasher.Verify(x => x.Verify(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        // Isto kao za nepoznat nalog: provera se izvršava protiv lažnog heša.
+        hasher.Verify(x => x.Verify(Password, DummyHash), Times.Once);
     }
 
     [Test]

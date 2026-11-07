@@ -16,13 +16,20 @@ namespace Application.Auth;
 /// </summary>
 public sealed class LoginHandler
 {
+    // Sintetička vrednost, ne koristi se ni za jedan stvaran nalog.
+    private const string DummyPassword = "lazna-lozinka-za-izjednacavanje-vremena";
+
     private readonly IUserLookup _users;
     private readonly IPasswordHasher _passwordHasher;
+
+    // Važeći heš istim algoritmom kao pravi nalozi, pa Verify traje isto koliko i inače.
+    private readonly string _dummyPasswordHash;
 
     public LoginHandler(IUserLookup users, IPasswordHasher passwordHasher)
     {
         _users = users;
         _passwordHasher = passwordHasher;
+        _dummyPasswordHash = passwordHasher.Hash(DummyPassword);
     }
 
     public async Task<LoginResult> HandleAsync(LoginCommand command,
@@ -37,13 +44,13 @@ public sealed class LoginHandler
         string normalized = User.NormalizeUsername(command.Username);
         User? user = await _users.FindByUsernameAsync(normalized, cancellationToken);
 
-        // Nepoznat korisnik ili nalog kome aktivacija nije završena (nema lozinku).
-        if (user?.PasswordHash is not { } passwordHash)
-        {
-            return LoginResult.Rejected(LoginFailure.InvalidCredentials);
-        }
+        // Provera lozinke se izvršava uvek. Za nepoznat nalog ili nalog bez lozinke koristi se
+        // lažni heš, a rezultat takve provere se ignoriše (nalog se svejedno odbija).
+        string? realHash = user?.PasswordHash;
+        bool passwordMatches = _passwordHasher.Verify(
+            command.Password, realHash ?? _dummyPasswordHash);
 
-        if (!_passwordHasher.Verify(command.Password, passwordHash))
+        if (user is null || realHash is null || !passwordMatches)
         {
             return LoginResult.Rejected(LoginFailure.InvalidCredentials);
         }
