@@ -30,6 +30,11 @@ public class EnrollmentService
             return false;
         }
 
+        if (teacherId == Guid.Empty)
+        {
+            return false;
+        }
+
         enrollment.Terminate();
         await _repository.SaveChangesAsync();
 

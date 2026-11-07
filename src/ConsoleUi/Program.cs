@@ -11,5 +11,6 @@ var courses = await handler.HandleAsync();
 foreach (var course in courses)
 {
     Console.WriteLine($"{course.Code} — {course.Name}");
+
 }
 Console.WriteLine("Sledeći korak: implementirati dodeljene zahteve iz specifikacije.");
