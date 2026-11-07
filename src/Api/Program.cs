@@ -1,5 +1,7 @@
 using Application.Courses;
 using Infrastructure.Demo;
+using Application.CourseEnrollments;
+using Infrastructure.CourseEnrollments;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
+
+builder.Services.AddSingleton<ICourseEnrollmentRepository, InMemoryCourseEnrollmentRepository>();
+builder.Services.AddScoped<EnrollStudentHandler>();
 
 var app = builder.Build();
 
@@ -21,6 +26,22 @@ app.MapGet("/demo/courses", async (
     var courses = await handler.HandleAsync(cancellationToken);
     return Results.Ok(courses);
 });
+
+app.MapPost("/api/enrollments", async (
+    EnrollStudentCommand command,
+    EnrollStudentHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        var enrollmentId = await handler.HandleAsync(command, cancellationToken);
+        return Results.Created($"/api/enrollments/{enrollmentId}", new { id = enrollmentId });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Conflict(new { error = ex.Message });
+    }
+}); // <-- OVDE JE FALILO EVEN OVO });
 
 app.MapGet("/courses", async (
     string? query,
