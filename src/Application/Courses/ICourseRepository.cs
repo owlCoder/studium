@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-
 using Domain.Courses;
+
 namespace Application.Courses;
 
 public interface ICourseRepository
@@ -14,6 +12,14 @@ public interface ICourseRepository
         CancellationToken cancellationToken = default);
 
     Task AddAsync(
+        Course course,
+        CancellationToken cancellationToken = default);
+
+    Task<Course?> GetByIdAsync(
+        Guid courseId,
+        CancellationToken cancellationToken = default);
+
+    Task UpdateAsync(
         Course course,
         CancellationToken cancellationToken = default);
 }
