@@ -5,10 +5,10 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Courses;
 using Application.Groups;
 using Domain.Entities;
 using Infrastructure;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -44,10 +44,10 @@ public class TestoviGrupa
         _repository = new InMemoryGroupMembershipRepository();
         _groupLookup = new TestGroupLookup();
         _studentLookup = new TestStudentLookup();
-        
+
         _addHandler = new AddStudentToGroupHandler(_repository, _groupLookup, _studentLookup);
         _removeHandler = new RemoveStudentFromGroupHandler(_repository);
-        
+
         _factory = new WebApplicationFactory<Program>();
         _client = _factory.CreateClient();
     }
@@ -89,7 +89,7 @@ public class TestoviGrupa
         await _addHandler.Handle(new AddStudentToGroupCommand(groupId, studentId, startDate), CancellationToken.None);
 
         var duplicateCommand = new AddStudentToGroupCommand(groupId, studentId, startDate);
-        
+
         InvalidOperationException? ex = null;
         try
         {
@@ -277,5 +277,39 @@ public class TestoviGrupa
 
         var response = await _client.PostAsJsonAsync($"/groups/{groupId}/students", request);
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    // --- ST-020: JEDNOSTAVNI UNIT TESTOVI ZA HANDLER ---
+
+    [Test]
+    public async Task ST020_GetSubmission_WithoutAuth_ReturnsUnauthorized()
+    {
+        var response = await _client.GetAsync("/submissions/sub-01");
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task ST020_GetSubmission_NonExistingId_ReturnsNotFound()
+    {
+        var handler = new GetSubmissionHandler();
+        var result = await handler.HandleAsync("student-autor-1", "nepostojeci-id");
+        Assert.That(result.IsNotFound, Is.True);
+    }
+
+    [Test]
+    public async Task ST020_GetSubmission_OtherStudentSubmission_ReturnsForbidden()
+    {
+        var handler = new GetSubmissionHandler();
+        var result = await handler.HandleAsync("student-neki-drugi", "sub-02");
+        Assert.That(result.IsForbidden, Is.True);
+    }
+
+    [Test]
+    public async Task ST020_GetSubmission_AuthorAccessAfterAudienceChange_ReturnsSuccess()
+    {
+        var handler = new GetSubmissionHandler();
+        var result = await handler.HandleAsync("student-autor-1", "sub-01");
+        Assert.That(result.Submission, Is.Not.Null);
+        Assert.That(result.Submission!.Id, Is.EqualTo("sub-01"));
     }
 }

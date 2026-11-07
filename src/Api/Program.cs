@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,7 +55,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 bool IsUserOwnerOfGroup(System.Security.Claims.ClaimsPrincipal user, Guid groupId)
 {
     if (!user.Identity?.IsAuthenticated ?? true) return false;
-    
+
     var allowedGroupClaim = user.FindFirst("AllowedGroup");
     if (allowedGroupClaim != null && Guid.TryParse(allowedGroupClaim.Value, out var allowedId))
     {
@@ -65,9 +66,9 @@ bool IsUserOwnerOfGroup(System.Security.Claims.ClaimsPrincipal user, Guid groupI
 }
 
 app.MapPost("/groups/{groupId}/students", async (
-    Guid groupId, 
-    [FromBody] AddStudentRequest request, 
-    AddStudentToGroupHandler handler, 
+    Guid groupId,
+    [FromBody] AddStudentRequest request,
+    AddStudentToGroupHandler handler,
     HttpContext httpContext,
     CancellationToken ct) =>
 {
@@ -80,7 +81,7 @@ app.MapPost("/groups/{groupId}/students", async (
     {
         var command = new AddStudentToGroupCommand(groupId, request.StudentId, request.StartDate);
         await handler.Handle(command, ct);
-        return Results.Ok(new { message = "Student je uspešno dodat u grupu." });
+        return Results.Ok(new { message = "Student je uspešno dodan u grupu." });
     }
     catch (ArgumentException ex)
     {
@@ -97,10 +98,10 @@ app.MapPost("/groups/{groupId}/students", async (
 }).RequireAuthorization("GroupOwnerPolicy");
 
 app.MapDelete("/groups/{groupId}/students/{studentId}", async (
-    Guid groupId, 
-    Guid studentId, 
-    [FromBody] RemoveStudentRequest request, 
-    RemoveStudentFromGroupHandler handler, 
+    Guid groupId,
+    Guid studentId,
+    [FromBody] RemoveStudentRequest request,
+    RemoveStudentFromGroupHandler handler,
     HttpContext httpContext,
     CancellationToken ct) =>
 {
@@ -129,22 +130,35 @@ app.MapDelete("/groups/{groupId}/students/{studentId}", async (
     }
 }).RequireAuthorization("GroupOwnerPolicy");
 
-// ST-020: Endpoint za dohvat predaje uz očuvanje pristupa autoru rada
+// ST-020: Endpoint za dohvat predaje uz autentifikaciju i autorizaciju
 app.MapGet("/submissions/{submissionId}", async (
     string submissionId,
-    string studentId,
     Application.Courses.GetSubmissionHandler handler,
+    HttpContext httpContext,
     CancellationToken cancellationToken) =>
 {
-    var submission = await handler.HandleAsync(studentId, submissionId, cancellationToken);
+    var studentId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? httpContext.User.FindFirst("sub")?.Value;
 
-    if (submission is null)
+    if (string.IsNullOrEmpty(studentId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await handler.HandleAsync(studentId, submissionId, cancellationToken);
+
+    if (result.IsNotFound)
+    {
+        return Results.NotFound(new { message = "Tražena predaja ne postoji." });
+    }
+
+    if (result.IsForbidden || result.Submission is null)
     {
         return Results.Forbid();
     }
 
-    return Results.Ok(submission);
-});
+    return Results.Ok(result.Submission);
+}).RequireAuthorization();
 
 app.Run();
 
