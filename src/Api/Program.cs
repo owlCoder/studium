@@ -12,7 +12,6 @@ builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader())
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 builder.Services.AddScoped<EnrollmentService>();
-builder.Services.AddControllers();
 var app = builder.Build();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
@@ -27,6 +26,15 @@ app.MapGet("/demo/courses", async (
     CancellationToken cancellationToken) =>
 {
     var courses = await handler.HandleAsync(cancellationToken);
+    return Results.Ok(courses);
+});
+
+app.MapGet("/courses", async (
+    string? query,
+    SearchCoursesHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var courses = await handler.HandleAsync(query, cancellationToken);
     return Results.Ok(courses);
 });
 
