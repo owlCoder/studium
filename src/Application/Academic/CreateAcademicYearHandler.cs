@@ -21,13 +21,12 @@ public sealed class CreateAcademicYearHandler
             command.StartsAt,
             command.EndsAt);
 
-        if (await _repository.ExistsByLabelAsync(year.Label, cancellationToken))
+        if (!await _repository.TryAddAsync(year, cancellationToken))
         {
             throw new InvalidOperationException(
                 $"Akademska godina '{year.Label}' već postoji.");
         }
 
-        await _repository.AddAsync(year, cancellationToken);
         return year.Id;
     }
 }
