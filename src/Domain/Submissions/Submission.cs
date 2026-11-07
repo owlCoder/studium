@@ -37,6 +37,10 @@ public class Submission
         else
             Attachments = attachments;
 
+        // Predaja mora imati tekst, prilog ili oboje.
+        if (Text == "" && Attachments.Count == 0)
+            throw new ArgumentException("Predaja mora sadržati tekst ili bar jedan prilog.");
+
         SubmittedAt = submittedAt;
     }
 }
