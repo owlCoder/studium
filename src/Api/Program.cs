@@ -22,6 +22,10 @@ builder.Services.AddSingleton<IStudentLookup, DemoStudentLookup>();
 builder.Services.AddScoped<AddStudentToGroupHandler>();
 builder.Services.AddScoped<RemoveStudentFromGroupHandler>();
 
+builder.Services.AddScoped<Application.Content.IContentReader, Infrastructure.Content.DummyContentReader>();
+builder.Services.AddScoped<Application.Groups.IStudentGroupReader, Infrastructure.Groups.DummyStudentGroupReader>();
+builder.Services.AddScoped<Application.Content.GetStudentContentHandler>();
+
 builder.Services.AddAuthentication("TestScheme")
     .AddCookie("TestScheme", options =>
     {
