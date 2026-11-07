@@ -323,7 +323,7 @@ public class TestoviGrupa
 
         var request = new HttpRequestMessage(HttpMethod.Delete, $"/groups/{targetGroupId}/students/{studentId}")
         {
-            Content = JsonContent.Create(new RemoveStudentRequest(DateTime.UtcNow))
+            Content = JsonContent.Create(new { EndDate = DateTime.UtcNow })
         };
 
         var response = await clientWithoutRights.SendAsync(request);
