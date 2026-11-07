@@ -10,6 +10,15 @@ public class GroupMembership
 
     public void Remove(DateTime endDate)
     {
+        if(EndDate != null)
+        {
+            throw new InvalidOperationException("Clanstvo je vec zavrseno!");
+        }
+
+        if(endDate < StartDate)
+        {
+            throw new ArgumentException("Datum zavrsetka clanstva ne moze biti pre datuma pocetka!");
+        }
         EndDate = endDate;
     }
 }
