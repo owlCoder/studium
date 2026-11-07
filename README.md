@@ -69,3 +69,34 @@ Poslednje dve komande pokreću alternativne ulaze; nisu potrebne istovremeno. AP
 - [ADR šablon](docs/templates/adr.md)
 
 Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslovnih zahteva; primeri u repozitorijumu služe isključivo za početnu organizaciju koda.
+
+## ST-004: stanje i plan
+
+### Urađeno
+- Domain: AcademicYear, CourseOffering, OfferingState (validacije, stanja samo unapred)
+- Application: handleri za kreiranje akademske godine i izvođenja
+- Infrastructure: memorijski repozitorijumi; provera i upis su atomarni (TryAddAsync pod lock-om)
+- Testovi: 8 NUnit testova, uključujući test sa 20 paralelnih pokušaja
+- Dijagrami: docs/st-004-arhitektura.png, docs/st-004-dfd.png
+
+### Poslovna pravila
+- Početak godine pre kraja; oznaka godine jedinstvena (bez razlike u veličini slova)
+- Par (predmet, godina) jedinstven; deaktiviran predmet nema novo izvođenje
+- Stanja: U pripremi → Aktivno → Završeno
+
+### Ograničenja (delimična implementacija)
+- Ovo nije kompletan ST-004: nema provere uloge Administrator, Api/ConsoleUi ulaza ni trajne baze.
+- Svojstvo IsArchived postoji, ali logika arhiviranja (ST-091) nije implementirana.
+- `lock` važi samo unutar jednog procesa; trajna baza mora garantovati jedinstvenost unique ograničenjem
+  nad parom (CourseId, AcademicYearId) i nad oznakom godine.
+
+### Preostalo do KT2
+- Handler za promenu stanja i pregled izvođenja
+- Provera uloge Administrator (zavisi od ST-001/002)
+- Povezivanje sa Api/ConsoleUi
+- Više negativnih testova, ažuriranje dijagrama i README
+
+### Zavisnosti
+- ST-001/002: korisnici i uloge
+- ST-003: Course, ICourseReader
+- ST-005, ST-006: koriste CourseOffering.Id
