@@ -68,12 +68,26 @@ app.MapGet("/api/courses/{courseId}/content", async (
     Guid courseId,
     Guid studentId,
     Application.Content.GetStudentContentHandler handler,
+    HttpContext httpContext,
     CancellationToken ct) =>
 {
+    // 1. Provera da li je korisnik ulogovan
+    if (!httpContext.User.Identity?.IsAuthenticated ?? true)
+    {
+        return Results.Unauthorized();
+    }
+
+    // 2. Provera da li student pokušava da čita tudji sadržaj
+    var userIdClaim = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var authenticatedUserId) || authenticatedUserId != studentId)
+    {
+        return Results.Forbid();
+    }
+
     var query = new Application.Content.GetStudentContentQuery(studentId, courseId);
     var result = await handler.Handle(query, ct);
     return Results.Ok(result);
-});
+}).RequireAuthorization(); 
 
 
 bool IsUserOwnerOfGroup(System.Security.Claims.ClaimsPrincipal user, Guid groupId)

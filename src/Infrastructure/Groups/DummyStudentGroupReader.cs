@@ -10,11 +10,13 @@ public class DummyStudentGroupReader : IStudentGroupReader
 {
     public Task<List<Guid>> GetActiveGroupIdsForStudentAsync(Guid studentId, CancellationToken cancellationToken = default)
     {
-        var mockGrupe = new List<Guid>
-        {
-            Guid.Parse("11111111-1111-1111-1111-111111111111")
-        };
+        var authorizedStudentId = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
-        return Task.FromResult(mockGrupe);
+        if (studentId == authorizedStudentId)
+        {
+            return Task.FromResult(new List<Guid> { Guid.Parse("11111111-1111-1111-1111-111111111111") });
+        }
+
+        return Task.FromResult(new List<Guid>());
     }
 }
