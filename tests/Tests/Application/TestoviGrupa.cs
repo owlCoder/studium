@@ -278,4 +278,88 @@ public class TestoviGrupa
         var response = await _client.PostAsJsonAsync($"/groups/{groupId}/students", request);
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
+[Test]
+    public async Task DeleteStudent_AnonymousUser_ReturnsUnauthorized()
+    {
+        var groupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+
+        var response = await _client.DeleteAsync($"/groups/{groupId}/students/{studentId}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task DeleteStudent_InvalidAuthorizationHeader_ReturnsUnauthorized()
+    {
+        var groupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/groups/{groupId}/students/{studentId}");
+        request.Headers.Add("Authorization", "Bearer invalid-or-fake-token");
+
+        var response = await _client.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task DeleteStudent_AuthenticatedUserWithoutRights_ReturnsForbidden()
+    {
+        var targetGroupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+
+        var clientWithoutRights = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = "NoRightsScheme";
+                    options.DefaultChallengeScheme = "NoRightsScheme";
+                })
+                .AddScheme<AuthenticationSchemeOptions, TestNoRightsAuthHandler>("NoRightsScheme", options => { });
+            });
+        }).CreateClient();
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"/groups/{targetGroupId}/students/{studentId}")
+        {
+            Content = JsonContent.Create(new RemoveStudentRequest(DateTime.UtcNow))
+        };
+
+        var response = await clientWithoutRights.SendAsync(request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+public class TestNoRightsAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+{
+    public TestNoRightsAuthHandler(
+        Microsoft.Extensions.Options.IOptionsMonitor<AuthenticationSchemeOptions> options,
+        Microsoft.Extensions.Logging.ILoggerFactory logger,
+        System.Text.Encodings.Web.UrlEncoder encoder)
+        : base(options, logger, encoder)
+    {
+    }
+
+    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    {
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.Name, "KorisnikBezPrava"),
+            new Claim("AllowedGroup", Guid.NewGuid().ToString()) // Pravo na drugu grupu, nikako na ciljnu
+        };
+        var identity = new ClaimsIdentity(claims, "NoRightsScheme");
+        var principal = new ClaimsPrincipal(identity);
+        var ticket = new AuthenticationTicket(principal, "NoRightsScheme");
+
+        return Task.FromResult(AuthenticateResult.Success(ticket));
+    }
+
+   protected override Task HandleForbiddenAsync(AuthenticationProperties properties)
+    {
+        Response.StatusCode = 403;
+        return Task.CompletedTask;
+    }
 }
+}
+
