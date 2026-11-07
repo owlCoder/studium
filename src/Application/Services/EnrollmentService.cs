@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Application.DTOs;
 using Application.Interfaces;
+using Domain.Entities;
 
 namespace Application.Services;
 
@@ -20,10 +21,11 @@ public class EnrollmentService
         return await _repository.GetEnrollmentsByOfferingAsync(offeringId);
     }
 
-    public async Task<bool> TerminateAsync(Guid enrollmentId)
+    public async Task<bool> TerminateAsync(Guid offeringId, Guid enrollmentId, Guid teacherId)
     {
         var enrollment = await _repository.GetByIdAsync(enrollmentId);
-        if (enrollment == null)
+
+        if (enrollment == null || enrollment.OfferingId != offeringId)
         {
             return false;
         }

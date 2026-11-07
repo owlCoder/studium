@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using Application.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Api.Controllers;
 
-
+[Authorize]
 [ApiController]
 [Route("api/offerings/{offeringId}/enrollments")]
 public class EnrollmentsController : ControllerBase
@@ -28,9 +30,18 @@ public class EnrollmentsController : ControllerBase
     }
 
     [HttpPatch("{enrollmentId}/terminate")]
-    public async Task<IActionResult> TerminateEnrollment(Guid enrollmentId)
+    public async Task<IActionResult> TerminateEnrollment(Guid offeringId, Guid enrollmentId)
     {
-        var success = await _service.TerminateAsync(enrollmentId);
-        return success ? NoContent() : NotFound();
+
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid teacherId))
+        {
+            return Unauthorized(new { message = "Korisnik nije autentifikovan." });
+        }
+
+
+        var success = await _service.TerminateAsync(offeringId, enrollmentId, teacherId);
+
+        return success ? NoContent() : NotFound(new { message = "Članstvo nije pronađeno ili ne pripada ovom izvođenju." });
     }
 }

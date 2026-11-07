@@ -1,14 +1,17 @@
 using System;
 using Application.Courses;
+using Application.Interfaces;
+using Application.Services;
 using Infrastructure.Demo;
+using Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Composition root: spoljašnji sloj bira implementaciju ugovora.
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
-builder.Services.AddScoped<Application.Services.EnrollmentService>();
-
+builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+builder.Services.AddScoped<EnrollmentService>();
 var app = builder.Build();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
