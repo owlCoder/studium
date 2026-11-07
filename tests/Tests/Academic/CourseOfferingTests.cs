@@ -104,4 +104,29 @@ public class CourseOfferingTests
         Assert.Throws<InvalidOperationException>(() =>
             offering.ChangeState(OfferingState.Completed));
     }
+
+    [Test]
+    public async Task CreateOffering_ParallelRequests_OnlyOneIsSaved()
+    {
+        var (yearHandler, offeringHandler, offerings) = CreateHandlers();
+        var yearId = await yearHandler.HandleAsync(Year("2026/2027"));
+
+        var tasks = Enumerable.Range(0, 20).Select(async _ =>
+        {
+            try
+            {
+                await offeringHandler.HandleAsync(new CreateCourseOfferingCommand(ErsId, yearId));
+                return true;
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+        });
+
+        var results = await Task.WhenAll(tasks);
+
+        Assert.That(results.Count(r => r), Is.EqualTo(1));
+    }
+
 }
