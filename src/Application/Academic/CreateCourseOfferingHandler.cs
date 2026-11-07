@@ -36,14 +36,15 @@ public sealed class CreateCourseOfferingHandler
         var year = await _years.GetByIdAsync(command.AcademicYearId, cancellationToken)
             ?? throw new InvalidOperationException("Akademska godina ne postoji.");
 
-        if (await _offerings.ExistsAsync(course.Id, year.Id, cancellationToken))
+        var offering = new CourseOffering(Guid.NewGuid(), course.Id, year.Id);
+
+        if (!await _offerings.TryAddAsync(offering, cancellationToken))
         {
             throw new InvalidOperationException(
                 "Izvođenje tog predmeta u toj akademskoj godini već postoji.");
         }
 
-        var offering = new CourseOffering(Guid.NewGuid(), course.Id, year.Id);
-        await _offerings.AddAsync(offering, cancellationToken);
         return offering.Id;
+
     }
 }
