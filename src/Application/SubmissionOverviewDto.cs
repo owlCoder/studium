@@ -11,7 +11,12 @@ public record SubmissionOverviewDto(
     SubmissionStatus Status
 );
 
+// ST-013: svi brojači se računaju iz istih listi pregleda (TaskSubmissionReviewClassifier).
+// TotalCount = broj važećih predaja studenata članova (Unreviewed + Reviewed).
 public record SubmissionStatusCountsDto(
+    int WithoutSubmissionCount,
+    int UnreviewedCount,
+    int ReviewedCount,
     int TotalCount,
     int PendingCount,
     int AcceptedCount,
