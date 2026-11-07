@@ -41,6 +41,8 @@ app.MapPost("/api/enrollments", async (
     {
         return Results.Conflict(new { error = ex.Message });
     }
+}); // <-- OVDE JE FALILO EVEN OVO });
+
 app.MapGet("/courses", async (
     string? query,
     SearchCoursesHandler handler,
