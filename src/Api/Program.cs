@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Application.ContentAudience;
 using System.Security.Claims;
+using Infrastructure.Courses;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +55,8 @@ builder.Services.AddSingleton<IContentLookupForAudience, DemoContentLookup>();
 builder.Services.AddSingleton<IGroupLookupForAudience, DemoGroupLookupForAudience>();
 
 builder.Services.AddScoped<SetContentTargetAudienceHandler>();
+builder.Services.AddScoped<IContentLookupForAudience, CourseLookupForAudience>();
+builder.Services.AddScoped<IGroupLookupForAudience, CourseLookupForAudience>();
 /*------------------------------------*/
 
 var app = builder.Build();
