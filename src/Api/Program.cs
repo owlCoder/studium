@@ -8,6 +8,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +57,24 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+
+app.MapGet("/demo/courses", async (ICourseReader reader, CancellationToken ct) =>
+{
+    var courses = await reader.ListAsync(ct);
+    return Results.Ok(courses);
+});
+
+app.MapGet("/api/courses/{courseId}/content", async (
+    Guid courseId,
+    Guid studentId,
+    Application.Content.GetStudentContentHandler handler,
+    CancellationToken ct) =>
+{
+    var query = new Application.Content.GetStudentContentQuery(studentId, courseId);
+    var result = await handler.Handle(query, ct);
+    return Results.Ok(result);
+});
+
 
 bool IsUserOwnerOfGroup(System.Security.Claims.ClaimsPrincipal user, Guid groupId)
 {
