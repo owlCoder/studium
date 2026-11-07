@@ -8,24 +8,30 @@ using Domain.CourseEnrollments;
 
 namespace Application.CourseEnrollments;
 
-public record EnrollStudentCommand(Guid CourseExecutionId, Guid StudentId);
+public record EnrollStudentCommand(Guid TeacherId, Guid CourseExecutionId, Guid StudentId);
 
 public sealed class EnrollStudentHandler
 {
     private readonly ICourseEnrollmentRepository _repository;
+    private readonly ICourseExecutionPermissionChecker _permissionChecker;
 
-    public EnrollStudentHandler(ICourseEnrollmentRepository repository)
+    public EnrollStudentHandler(
+        ICourseEnrollmentRepository repository,
+        ICourseExecutionPermissionChecker permissionChecker)
     {
         _repository = repository;
+        _permissionChecker = permissionChecker;
     }
 
     public async Task<Guid> HandleAsync(EnrollStudentCommand command, CancellationToken cancellationToken = default)
     {
-        // Provera da li student već ima aktivno članstvo na istom izvođenju
-        var existing = await _repository.GetActiveEnrollmentAsync(command.CourseExecutionId, command.StudentId, cancellationToken);
-        if (existing != null)
+        if (command.TeacherId == Guid.Empty)
+            throw new UnauthorizedAccessException("Korisnik nije autentifikovan.");
+
+        var hasPermission = await _permissionChecker.CanTeacherManageExecutionAsync(command.TeacherId, command.CourseExecutionId, cancellationToken);
+        if (!hasPermission)
         {
-            throw new InvalidOperationException("Student već ima aktivno članstvo na ovom izvođenju predmeta.");
+            throw new UnauthorizedAccessException("Nastavnik nema pravo upisa na ovo izvođenje predmeta.");
         }
 
         var enrollment = new CourseEnrollment(
@@ -35,7 +41,13 @@ public sealed class EnrollStudentHandler
             DateTime.UtcNow
         );
 
-        await _repository.SaveAsync(enrollment, cancellationToken);
+        // Atomski check-and-insert
+        var added = await _repository.TryAddActiveEnrollmentAsync(enrollment, cancellationToken);
+        if (!added)
+        {
+            throw new InvalidOperationException("Student već ima aktivno članstvo na ovom izvođenju predmeta.");
+        }
+
         return enrollment.Id;
     }
 }
