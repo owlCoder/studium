@@ -16,7 +16,8 @@ public class InMemoryTeachingGroupRepository : ITeachingGroupRepository
             group.CourseExecutionId,
             group.Code,
             group.Name,
-            group.Type
+            group.Type,
+            group.Capacity
         );
 
         _groups.Add(response);

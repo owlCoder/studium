@@ -22,7 +22,8 @@ namespace Application.TeachingGroups
         Guid CourseExecutionId,
         string Code,
         string Name,
-        GroupType Type
+        GroupType Type,
+        int? Capacity = null
     );
 }
 
