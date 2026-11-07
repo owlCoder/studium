@@ -1,6 +1,10 @@
 using Application.Courses;
+using Application.Auth;
+using Application.Users;
 using Domain.Courses;
+using Domain.Users;
 using Infrastructure.Courses;
+using Infrastructure.Auth;
 
 namespace Infrastructure.Demo;
 
@@ -14,6 +18,30 @@ public static class DemoData
                 "ERS", "Elementi razvoja softvera"),
             new Course(Guid.Parse("22222222-2222-2222-2222-222222222222"),
                 "OIB", "Osnove informacione bezbednosti")
+        });
+    }
+
+    /// <summary>
+    /// Sintetički demo korisnici za ručno isprobavanje prijave (ST-002). Lozinka je izmišljena i
+    /// važi samo za demonstraciju; ne koristiti je za stvarne naloge.
+    /// </summary>
+    public static IUserLookup CreateUserLookup(IPasswordHasher passwordHasher)
+    {
+        const string demoPassword = "Demo-Lozinka-1";
+
+        return new InMemoryUserLookup(new[]
+        {
+            // Aktivan student: ana.petrovic
+            new User(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), "Ana.Petrovic",
+                UserRole.Student, passwordHasher.Hash(demoPassword), isActive: true),
+
+            // Deaktiviran nalog: stari.nalog
+            new User(Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), "stari.nalog",
+                UserRole.Teacher, passwordHasher.Hash(demoPassword), isActive: false),
+
+            // Aktivacija nije završena (nema lozinku): novi.nalog
+            new User(Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"), "novi.nalog",
+                UserRole.Assistant, passwordHash: null, isActive: true)
         });
     }
 }
