@@ -12,6 +12,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Net.Http.Headers;
+using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Testovi;
 
@@ -262,20 +267,84 @@ public class TestoviGrupa
     [Test]
     public async Task ApiEndpoint_PostStudentToGroup_WithAdminRole_ReturnsSuccess()
     {
-        using var authClient = _factory.WithWebHostBuilder(builder =>
+        
+        var authClient = _factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureServices(services =>
+            builder.ConfigureTestServices(services =>
             {
+                services.AddAuthentication("TestAdminScheme")
+                    .AddScheme<AuthenticationSchemeOptions, TestAdminAuthHandler>("TestAdminScheme", options => { });
             });
-        }).CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
-        });
+        }).CreateClient();
+
+        authClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("TestAdminScheme");
 
         var groupId = Guid.NewGuid();
-        var request = new { StudentId = Guid.NewGuid(), StartDate = DateTime.UtcNow };
+        var command = new { StudentId = Guid.NewGuid(), StartDate = DateTime.UtcNow };
+        var content = JsonContent.Create(command);
 
-        var response = await _client.PostAsJsonAsync($"/groups/{groupId}/students", request);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        
+        var response = await authClient.PostAsJsonAsync($"/groups/{groupId}/students", command);
+
+        
+        response.EnsureSuccessStatusCode();
     }
+
+    [Test]
+    public async Task ApiEndpoint_PostStudentToGroup_WithoutPermission_ReturnsForbidden()
+    {
+        
+        var userClient = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddAuthentication("TestUserScheme")
+                    .AddScheme<AuthenticationSchemeOptions, TestRegularUserAuthHandler>("TestUserScheme", options => { });
+            });
+        }).CreateClient();
+
+        userClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("TestUserScheme");
+
+        var groupId = Guid.NewGuid();
+        var command = new { StudentId = Guid.NewGuid(), StartDate = DateTime.UtcNow };
+        var content = JsonContent.Create(command);
+
+        
+        var response = await userClient.PostAsJsonAsync($"/groups/{groupId}/students", command);
+
+        
+        Assert.AreEqual(403, (int)response.StatusCode);
+    }
+
+    
+    public class TestAdminAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+    {
+        public TestAdminAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock) 
+            : base(options, logger, encoder, clock) { }
+
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        {
+            var claims = new[] { new Claim(ClaimTypes.Name, "AdminUser"), new Claim(ClaimTypes.Role, "Admin") };
+            var identity = new ClaimsIdentity(claims, "TestAdminScheme");
+            var principal = new ClaimsPrincipal(identity);
+            var ticket = new AuthenticationTicket(principal, "TestAdminScheme");
+            return Task.FromResult(AuthenticateResult.Success(ticket));
+        }
+    }
+
+    public class TestRegularUserAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+    {
+        public TestRegularUserAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock) 
+            : base(options, logger, encoder, clock) { }
+
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        {
+            var claims = new[] { new Claim(ClaimTypes.Name, "RegularUser") }; // Bez admin uloge
+            var identity = new ClaimsIdentity(claims, "TestUserScheme");
+            var principal = new ClaimsPrincipal(identity);
+            var ticket = new AuthenticationTicket(principal, "TestUserScheme");
+            return Task.FromResult(AuthenticateResult.Success(ticket));
+        }
+    }
+    
 }
