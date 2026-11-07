@@ -1,3 +1,13 @@
+using System;
+
+namespace Domain.Users;
+
+public enum UserStatus
+{
+    Aktivan,
+    Deaktiviran
+}
+
 public sealed class User
 {
     public Guid Id { get; }
@@ -5,7 +15,7 @@ public sealed class User
     public string LastName { get; }
     public string Username { get; }
     public string? Email { get; private set; }
- 
+    public UserStatus Status { get; }
 
     public User(Guid id, string firstName, string lastName, string username)
     {
@@ -24,6 +34,12 @@ public sealed class User
         Id = id;
         FirstName = firstName.Trim();
         LastName = lastName.Trim();
-        Username = username.Trim().ToLowerInvariant(); // Normalizacija
+        Username = username.Trim().ToLowerInvariant(); // Normalizacija u mala slova
+        Status = UserStatus.Deaktiviran;               // Početno stanje naloga
+    }
+
+    public void UpdateEmail(string email)
+    {
+        Email = email?.Trim();
     }
 }
