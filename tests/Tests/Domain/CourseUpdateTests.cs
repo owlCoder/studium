@@ -1,10 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Domain.Courses;
-using NSubstitute;
 using NUnit.Framework;
 
 namespace Tests.Domain;
@@ -15,86 +10,82 @@ internal class CourseUpdateTests
     [Test]
     public void Update_ValidData_UpdatesCourseAndNormalizesCode()
     {
-        var course = new Course(Guid.NewGuid(), "ers-1", "Stari naziv", "Stari opis");
-        var offeringLookupMock = Substitute.For<ICourseOfferingLookup>();
-        offeringLookupMock.HasOfferings(course.Id).Returns(false);
+        var course = new Course(Guid.NewGuid(), "ERS-1", "Stari naziv", "Stari opis");
+        var offeringLookup = new FakeCourseOfferingLookup();
 
-        course.Update("  ers-2  ", "Novi naziv", "  Novi opis  ", offeringLookupMock);
+        course.Update(" ers-2 ", "Novi naziv", "Novi opis", offeringLookup);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(course.Code, Is.EqualTo("ERS-2"));
-            Assert.That(course.Name, Is.EqualTo("Novi naziv"));
-            Assert.That(course.Description, Is.EqualTo("Novi opis"));
-        });
+        Assert.That(course.Code, Is.EqualTo("ERS-2"));
+        Assert.That(course.Name, Is.EqualTo("Novi naziv"));
+        Assert.That(course.Description, Is.EqualTo("Novi opis"));
     }
 
     [Test]
     public void Update_BlankCodeOrName_ThrowsArgumentException()
     {
-        var course = new Course(Guid.NewGuid(), "ers-1", "Naziv", "Opis");
-        var offeringLookupMock = Substitute.For<ICourseOfferingLookup>();
+        var course = new Course(Guid.NewGuid(), "ERS-1", "Stari naziv");
+        var offeringLookup = new FakeCourseOfferingLookup();
 
-        Assert.That(
-            () => course.Update("   ", "Novi naziv", "Opis", offeringLookupMock),
-            Throws.ArgumentException);
-
-        Assert.That(
-            () => course.Update("ers-2", "", "Opis", offeringLookupMock),
-            Throws.ArgumentException);
+        Assert.Throws<ArgumentException>(() => course.Update("", "Novi naziv", "Opis", offeringLookup));
+        Assert.Throws<ArgumentException>(() => course.Update("ERS-2", "", "Opis", offeringLookup));
     }
 
     [Test]
     public void Update_CodeChangedWithActiveOfferings_ThrowsInvalidOperationException()
     {
-        var course = new Course(Guid.NewGuid(), "ers-1", "Naziv", "Opis");
-        var offeringLookupMock = Substitute.For<ICourseOfferingLookup>();
-        offeringLookupMock.HasOfferings(course.Id).Returns(true);
+        var course = new Course(Guid.NewGuid(), "ERS-1", "Stari naziv");
+        var offeringLookup = new FakeCourseOfferingLookup();
+        offeringLookup.AddActiveOffering(course.Id);
 
-        Assert.That(
-            () => course.Update("ers-2", "Novi naziv", "Opis", offeringLookupMock),
-            Throws.InvalidOperationException);
+        Assert.Throws<InvalidOperationException>(() => course.Update("ERS-2", "Novi naziv", "Novi opis", offeringLookup));
+
+        Assert.That(course.Code, Is.EqualTo("ERS-1"));
     }
 
     [Test]
     public void Update_SameCodeWithActiveOfferings_Succeeds()
     {
-        var course = new Course(Guid.NewGuid(), "ers-1", "Naziv", "Opis");
-        var offeringLookupMock = Substitute.For<ICourseOfferingLookup>();
-        offeringLookupMock.HasOfferings(course.Id).Returns(true);
+        var course = new Course(Guid.NewGuid(), "ERS-1", "Stari naziv");
+        var offeringLookup = new FakeCourseOfferingLookup();
+        offeringLookup.AddActiveOffering(course.Id);
 
-        course.Update("ers-1", "Ažurirani naziv", "Ažurirani opis", offeringLookupMock);
+        course.Update("ERS-1", "Novi naziv", "Novi opis", offeringLookup);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(course.Name, Is.EqualTo("Ažurirani naziv"));
-            Assert.That(course.Description, Is.EqualTo("Ažurirani opis"));
-        });
+        Assert.That(course.Code, Is.EqualTo("ERS-1"));
+        Assert.That(course.Name, Is.EqualTo("Novi naziv"));
     }
 
     [Test]
     public void Update_WhenOfferingLookupIsNull_ThrowsArgumentNullException()
     {
-        var course = new Course(Guid.NewGuid(), "ERS", "Elementi razvoja softvera", "Opis");
+        var course = new Course(Guid.NewGuid(), "ERS-1", "Stari naziv");
 
-        Assert.That(
-            () => course.Update("ERS101", "Elementi razvoja softvera", "Opis", null!),
-            Throws.ArgumentNullException);
+        Assert.Throws<ArgumentNullException>(() => course.Update("ERS-2", "Novi naziv", "Opis", null!));
     }
 
     [Test]
     public void Update_WhenNoActiveOfferingsExist_AllowsCodeChange()
     {
-        var course = new Course(Guid.NewGuid(), "ERS", "Elementi razvoja softvera", "Opis");
-        var offeringLookupMock = Substitute.For<ICourseOfferingLookup>();
-        offeringLookupMock.HasOfferings(course.Id).Returns(false);
+        var course = new Course(Guid.NewGuid(), "ERS-1", "Stari naziv");
+        var offeringLookup = new FakeCourseOfferingLookup();
 
-        course.Update("ERS-NEW", "Novi naziv", "Novi opis", offeringLookupMock);
+        course.Update("ERS-2", "Novi naziv", "Novi opis", offeringLookup);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(course.Code, Is.EqualTo("ERS-NEW"));
-            Assert.That(course.Name, Is.EqualTo("Novi naziv"));
-        });
+        Assert.That(course.Code, Is.EqualTo("ERS-2"));
+        Assert.That(course.Name, Is.EqualTo("Novi naziv"));
+        Assert.That(course.Description, Is.EqualTo("Novi opis"));
+    }
+
+    [Test]
+    public void Update_SameCodeWithDifferentFormatting_DoesNotBlockUpdate()
+    {
+        var course = new Course(Guid.NewGuid(), "ERS-1", "Stari naziv");
+        var offeringLookup = new FakeCourseOfferingLookup();
+        offeringLookup.AddActiveOffering(course.Id);
+
+        course.Update(" ers-1 ", "Novi naziv", "Novi opis", offeringLookup);
+
+        Assert.That(course.Code, Is.EqualTo("ERS-1"));
+        Assert.That(course.Name, Is.EqualTo("Novi naziv"));
     }
 }

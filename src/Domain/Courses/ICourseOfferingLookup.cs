@@ -8,5 +8,5 @@ namespace Domain.Courses;
 
 public interface ICourseOfferingLookup
 {
-    bool HasOfferings(Guid courseId);
+    bool HasActiveOfferings(Guid courseId);
 }
