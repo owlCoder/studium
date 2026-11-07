@@ -17,6 +17,7 @@ var app = builder.Build();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 // Javno dostupan demonstracioni endpoint, bez autentifikacije:
