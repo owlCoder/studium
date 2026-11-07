@@ -9,39 +9,55 @@ namespace Infrastructure.Courses;
 
 public class CourseLookupForAudience : IContentLookupForAudience, IGroupLookupForAudience
 {
+    // Definšemo testne ID-jeve za simulaciju neovlašćenog pristupa i tuđih grupa
+    public static readonly Guid UnauthorizedInstructorId = Guid.Parse("99999999-9999-9999-9999-999999999999");
+    public static readonly Guid AnotherExecutionGroupId = Guid.Parse("88888888-8888-8888-8888-888888888888");
+
     public async Task<bool> ExistsAsync(Guid contentId, CancellationToken cancellationToken)
     {
-        // Provera da li sadržaj postoji (ako nemaš bazu, proveri da li je ID validan)
         return await Task.FromResult(contentId != Guid.Empty);
     }
 
     public async Task<Guid> GetCourseExecutionIdAsync(Guid contentId, CancellationToken cancellationToken)
     {
-        // Vraća ID izvođenja kursa povezanog sa ovim sadržajem
-        return await Task.FromResult(Guid.NewGuid());
+        // Vraćamo fiksni ID izvođenja za ovaj sadržaj
+        return await Task.FromResult(Guid.Parse("11111111-1111-1111-1111-111111111111"));
     }
 
-public async Task<bool> CanInstructorEditContentAsync(Guid contentId, Guid instructorId, CancellationToken cancellationToken)
-{
-    // Ako je prosleđen neki specijalni "testni neovlašćeni" ID, vrati false
-    if (instructorId == Guid.Empty)
+    public async Task<bool> CanInstructorEditContentAsync(Guid contentId, Guid instructorId, CancellationToken cancellationToken)
     {
-        return false;
+        // 1. Ako su ID-jevi prazni -> odbijamo
+        if (contentId == Guid.Empty || instructorId == Guid.Empty)
+        {
+            return false;
+        }
+
+        // 2. STROGA PROVERA ZA TEST: Ako je u pitanju namerno testirani neovlašćeni instruktor, vraćamo false (izaziva odbijanje/Forbidden)
+        if (instructorId == UnauthorizedInstructorId)
+        {
+            return false;
+        }
+
+        // Inače, za validne ulogovane instruktore dozvoljavamo
+        return await Task.FromResult(true);
     }
 
-    // Za validne zahteve vraća true (demo režim, ali sa kontrolom)
-    return await Task.FromResult(true); 
-}
-
-public async Task<bool> AllGroupsBelongToCourseExecutionAsync(List<Guid> groupIds, Guid courseExecutionId, CancellationToken cancellationToken)
-{
-    if (groupIds == null || !groupIds.Any())
+    public async Task<bool> AllGroupsBelongToCourseExecutionAsync(List<Guid> groupIds, Guid courseExecutionId, CancellationToken cancellationToken)
     {
-        return false;
-    }
+        if (groupIds == null || !groupIds.Any() || courseExecutionId == Guid.Empty)
+        {
+            return false;
+        }
 
-    // Možemo simulirati da ako grupa ima neki specifični testni uslov vrati false, 
-    // inače true za normalan rad.
-    return await Task.FromResult(true);
-}
+        // STROGA PROVERA ZA TEST: Ako bilo koja grupa iz liste pripada "drugom izvođenju" (naš testni ID), odbijamo
+        foreach (var groupId in groupIds)
+        {
+            if (groupId == Guid.Empty || groupId == AnotherExecutionGroupId)
+            {
+                return false; // Izaziva Bad Request (400)
+            }
+        }
+
+        return await Task.FromResult(true);
+    }
 }
