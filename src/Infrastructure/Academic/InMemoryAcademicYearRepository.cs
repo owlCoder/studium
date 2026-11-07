@@ -5,6 +5,7 @@ namespace Infrastructure.Academic;
 
 public sealed class InMemoryAcademicYearRepository : IAcademicYearRepository
 {
+    private readonly object _lock = new();
     private readonly List<AcademicYear> _years = new();
 
     public Task<bool> ExistsByLabelAsync(string label, CancellationToken cancellationToken = default)
@@ -24,5 +25,19 @@ public sealed class InMemoryAcademicYearRepository : IAcademicYearRepository
     {
         _years.Add(year);
         return Task.CompletedTask;
+    }
+
+    public Task<bool> TryAddAsync(AcademicYear year, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            if (_years.Any(y => string.Equals(y.Label, year.Label, StringComparison.OrdinalIgnoreCase)))
+            {
+                return Task.FromResult(false);
+            }
+
+            _years.Add(year);
+            return Task.FromResult(true);
+        }
     }
 }
