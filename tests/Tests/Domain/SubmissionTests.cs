@@ -51,11 +51,51 @@ public class SubmissionTests
     }
 
     [Test]
-    public void Constructor_NullTextAndAttachments_BecomeEmpty()
+    public void Constructor_OnlyText_IsAccepted()
     {
-        var submission = new Submission(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), null, null, DateTimeOffset.UtcNow);
+        var submission = new Submission(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Moj rad", null, DateTimeOffset.UtcNow);
+
+        Assert.That(submission.Text, Is.EqualTo("Moj rad"));
+        Assert.That(submission.Attachments.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void Constructor_OnlyAttachment_IsAccepted()
+    {
+        var attachments = new List<Attachment>();
+        attachments.Add(new Attachment("rad.pdf", "application/pdf", 2048));
+
+        var submission = new Submission(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), null, attachments, DateTimeOffset.UtcNow);
 
         Assert.That(submission.Text, Is.EqualTo(""));
-        Assert.That(submission.Attachments.Count, Is.EqualTo(0));
+        Assert.That(submission.Attachments.Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Constructor_WhitespaceTextWithAttachment_IsAccepted()
+    {
+        var attachments = new List<Attachment>();
+        attachments.Add(new Attachment("rad.pdf", "application/pdf", 2048));
+
+        var submission = new Submission(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "   ", attachments, DateTimeOffset.UtcNow);
+
+        Assert.That(submission.Text, Is.EqualTo(""));
+        Assert.That(submission.Attachments.Count, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void Constructor_RejectsNoTextAndNoAttachments()
+    {
+        Assert.That(
+            () => new Submission(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), null, null, DateTimeOffset.UtcNow),
+            Throws.TypeOf<ArgumentException>());
+    }
+
+    [Test]
+    public void Constructor_RejectsOnlyWhitespaceText()
+    {
+        Assert.That(
+            () => new Submission(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "   ", null, DateTimeOffset.UtcNow),
+            Throws.TypeOf<ArgumentException>());
     }
 }
