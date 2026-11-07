@@ -1,6 +1,7 @@
 using Application.Courses;
 using Infrastructure.Demo;
 using Studium.Application.Reviews;
+using Studium.Domain.Reviews;
 using Studium.Infrastructure.Demo;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +36,8 @@ app.Run();
 
 namespace Studium.Infrastructure.Demo
 {
+    using Studium.Domain.Reviews;
+
     public class InMemoryReviewRepository : IReviewRepository
     {
         private readonly List<ReviewDraft> _drafts = new();
