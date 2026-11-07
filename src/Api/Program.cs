@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Application.ContentAudience;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -108,32 +109,35 @@ app.MapPost("/groups/{groupId}/students", async (
 }).RequireAuthorization("GroupOwnerPolicy");
 
 /*---------------------*/
-app.MapPost("/contents/{contentId}/target-audience", async (
+app.MapPost("/contents/{contentId:guid}/target-audience", async (
     Guid contentId,
-    [FromBody] SetTargetAudienceRequest request,
+    SetContentTargetAudienceRequest request,
     SetContentTargetAudienceHandler handler,
     HttpContext httpContext,
-    CancellationToken ct) =>
+    CancellationToken cancellationToken) =>
 {
-    try
+    // Izvlačenje ID-a ulogovanog korisnika iz Claim-ova
+    var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+        ?? httpContext.User.FindFirst("sub")?.Value;
+
+    if (!Guid.TryParse(userIdClaim, out var instructorId))
     {
-        var command = new SetContentTargetAudienceCommand(contentId, request.IsForWholeCourseExecution, request.TargetGroupIds);
-        await handler.Handle(command, ct);
-        return Results.Ok(new { message = "Publika nastavnog sadržaja je uspešno definisana." });
+        return Results.Unauthorized();
     }
-    catch (ArgumentException ex)
-    {
-        return Results.BadRequest(ex.Message);
-    }
-    catch (KeyNotFoundException ex)
-    {
-        return Results.NotFound(ex.Message);
-    }
-    catch (InvalidOperationException ex)
-    {
-        return Results.Conflict(ex.Message);
-    }
-});
+
+    var command = new SetContentTargetAudienceCommand(
+        ContentId: contentId,
+        InstructorId: instructorId,
+        IsForWholeCourseExecution: request.IsForWholeCourseExecution,
+        TargetGroupIds: request.TargetGroupIds ?? new List<Guid>()
+    );
+
+    // OVDE JE BILA GREŠKA: Poziva se .Handle umesto .HandleAsync jer se metoda u hendleru tako zove
+    await handler.Handle(command, cancellationToken);
+
+    return Results.Ok();
+})
+.RequireAuthorization();
 /*---------------------*/
 
 app.MapDelete("/groups/{groupId}/students/{studentId}", async (
@@ -206,6 +210,9 @@ public class DemoContentLookup : IContentLookupForAudience
 {
     public Task<bool> ExistsAsync(Guid contentId, CancellationToken cancellationToken) => Task.FromResult(true);
     public Task<Guid> GetCourseExecutionIdAsync(Guid contentId, CancellationToken cancellationToken) => Task.FromResult(Guid.NewGuid());
+    
+    // Za demo svrhe vraćamo true da ne blokira lokalni rad
+    public Task<bool> CanInstructorEditContentAsync(Guid contentId, Guid instructorId, CancellationToken cancellationToken) => Task.FromResult(true);
 }
 
 public class DemoGroupLookupForAudience : IGroupLookupForAudience
@@ -218,6 +225,11 @@ public record RemoveStudentRequest(DateTime EndDate);
 
 /*---------------------*/
 public record SetTargetAudienceRequest(bool IsForWholeCourseExecution, List<Guid>? TargetGroupIds);
+
+public record SetContentTargetAudienceRequest(
+    bool IsForWholeCourseExecution,
+    List<Guid>? TargetGroupIds
+);
 /*---------------------*/
 
 public partial class Program { }
