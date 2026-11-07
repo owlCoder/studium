@@ -16,6 +16,17 @@ public class InMemoryGroupMembershipRepository : Application.Groups.IGroupMember
         return Task.FromResult(active);
     }
 
+    public Task<IReadOnlyList<Domain.Entities.GroupMembership>> GetActiveByStudentIdAsync(Guid studentId, CancellationToken cancellationToken) //2
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var activeMemberships = _memberships
+            .Where(m => m.StudentId == studentId && m.EndDate == null)
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<Domain.Entities.GroupMembership>>(activeMemberships);
+    }
+
     public Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         // Kod in-memory liste čuvanje se dešava u memoriji, pa je ovde prazno

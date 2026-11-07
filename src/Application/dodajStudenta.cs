@@ -6,6 +6,8 @@ public interface IGroupMembershipRepository
 {
     Task AddAsync(Domain.Entities.GroupMembership membership, CancellationToken cancellationToken);
     Task<Domain.Entities.GroupMembership?> GetActiveAsync(Guid groupId, Guid studentId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<Domain.Entities.GroupMembership>> GetActiveByStudentIdAsync(Guid studentId, CancellationToken cancellationToken); //1
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }
 

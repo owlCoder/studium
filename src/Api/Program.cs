@@ -2,8 +2,14 @@ using Application.Courses;
 using Application.Groups;
 using Infrastructure;
 using Infrastructure.Demo;
+using Application;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();//6
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Composition root: spoljašnji sloj bira implementaciju ugovora.
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
@@ -13,8 +19,15 @@ builder.Services.AddScoped<SearchCoursesHandler>();
 builder.Services.AddSingleton<IGroupMembershipRepository, InMemoryGroupMembershipRepository>();
 builder.Services.AddScoped<AddStudentToGroupHandler>();
 builder.Services.AddScoped<RemoveStudentFromGroupHandler>();
+builder.Services.AddScoped<ListStudentGroupsHandler>();//5
+builder.Services.AddSingleton<Application.IGroupRepository>(_ => new InMemoryGroupRepository(DemoData.CreateGroups()));
 
 var app = builder.Build();
+
+app.UseSwagger();
+app.UseSwaggerUI();
+
+app.MapControllers();//7
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
@@ -37,11 +50,11 @@ app.MapGet("/courses", async (
     return Results.Ok(courses);
 });
 
-app.Run();
+
 
 app.MapPost("/groups/{groupId}/students", async (
     Guid groupId,
-    AddStudentRequest request,
+    MinimalApiAddStudentRequest request,
     AddStudentToGroupHandler handler,
     CancellationToken cancellationToken) =>
 {
@@ -53,7 +66,7 @@ app.MapPost("/groups/{groupId}/students", async (
 app.MapDelete("/groups/{groupId}/students/{studentId}", async (
     Guid groupId,
     Guid studentId,
-    RemoveStudentRequest request,
+    [FromBody] MinimalApiRemoveStudentRequest request,
     RemoveStudentFromGroupHandler handler,
     CancellationToken cancellationToken) =>
 {
@@ -65,5 +78,5 @@ app.MapDelete("/groups/{groupId}/students/{studentId}", async (
 app.Run();
 
 
-public record AddStudentRequest(Guid StudentId, DateTime StartDate);
-public record RemoveStudentRequest(DateTime EndDate);
+public record MinimalApiAddStudentRequest(Guid StudentId, DateTime StartDate);
+public record MinimalApiRemoveStudentRequest(DateTime EndDate);
