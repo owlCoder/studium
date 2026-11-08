@@ -21,6 +21,8 @@ public class TestGroupLookup : IGroupLookup
 {
     public bool ExistsResult { get; set; } = true;
     public Task<bool> ExistsAsync(Guid groupId, CancellationToken cancellationToken) => Task.FromResult(ExistsResult);
+    public Task<Domain.Entities.Group?> GetByIdAsync(Guid groupId, CancellationToken cancellationToken) 
+    => Task.FromResult<Domain.Entities.Group?>(null);
 }
 
 public class TestStudentLookup : IStudentLookup
