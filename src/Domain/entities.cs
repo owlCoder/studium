@@ -22,3 +22,20 @@ public class GroupMembership
         EndDate = endDate;
     }
 }
+
+public enum GroupType
+{
+    Predavanja,
+    Vezbe
+}
+
+public class Group //8
+{
+    public Guid Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public GroupType Type { get; set; } 
+
+    public Guid CourseId { get; set; }
+}

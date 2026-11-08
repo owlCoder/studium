@@ -1,4 +1,3 @@
-using Domain.Entities;
 using Domain.TeachingGroups;
 
 namespace Application.TeachingGroups
@@ -22,27 +21,7 @@ namespace Application.TeachingGroups
         Guid CourseExecutionId,
         string Code,
         string Name,
-        GroupType Type,
+        Domain.TeachingGroups.GroupType Type,
         int? Capacity = null
     );
-}
-
-namespace Application.Groups
-{
-    public interface IGroupMembershipRepository
-    {
-        Task AddAsync(GroupMembership membership, CancellationToken cancellationToken = default);
-        Task<GroupMembership?> GetActiveAsync(Guid groupId, Guid studentId, CancellationToken cancellationToken = default);
-        Task SaveChangesAsync(CancellationToken cancellationToken = default);
-    }
-
-    public interface IGroupLookup
-    {
-        Task<bool> ExistsAsync(Guid groupId, CancellationToken cancellationToken = default);
-    }
-
-    public interface IStudentLookup
-    {
-        Task<bool> IsActiveAsync(Guid studentId, CancellationToken cancellationToken = default);
-    }
 }
