@@ -1,6 +1,4 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+using Domain.Entities;
 
 namespace Application.Groups;
 
@@ -12,39 +10,23 @@ public class RemoveStudentFromGroupHandler
 
     public RemoveStudentFromGroupHandler(IGroupMembershipRepository repository)
     {
-        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _repository = repository;
     }
 
-    public async Task Handle(RemoveStudentFromGroupCommand request, CancellationToken cancellationToken)
+    public async Task Handle(RemoveStudentFromGroupCommand request, CancellationToken cancellationToken = default)
     {
-        if(request==null)
-        {
-            throw new ArgumentNullException(nameof(request));
-        }
-
-        if(request.GroupId==Guid.Empty)
-        {
-            throw new ArgumentException("ID grupe ne moze biti prazan!",nameof(request.GroupId));
-        }
-
-        if (request.StudentId == Guid.Empty)
-        {
-            throw new ArgumentException("ID studenta ne moze biti prazan!", nameof(request.StudentId));
-        }
-
-        if (request.EndDate == default)
-        {
-            throw new ArgumentException("Datum zavrsetka mora biti validan!", nameof(request.EndDate));
-        }
-
         var membership = await _repository.GetActiveAsync(request.GroupId, request.StudentId, cancellationToken);
         if (membership == null)
         {
-            throw new KeyNotFoundException("Aktivno clanstvo studenta u ovoj grupi nije pronadjeno.");
+            throw new KeyNotFoundException("Aktivno clanstvo studenta u ovoj grupi nije pronadjeno");
         }
 
-        membership.Remove(request.EndDate);
+        if (request.EndDate < membership.StartDate)
+        {
+            throw new ArgumentException("Datum zavrsetka clanstva ne moze biti pre datuma pocetka");
+        }
 
+        membership.EndDate = request.EndDate;
         await _repository.SaveChangesAsync(cancellationToken);
     }
 }

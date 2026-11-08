@@ -29,20 +29,20 @@ public interface IStudentLookup
 public class AddStudentToGroupHandler
 {
     private readonly IGroupMembershipRepository _repository;
-    private readonly IGroupLookup _groupLookup;
-    private readonly IStudentLookup _studentLookup;
+    private readonly IGroupLookup? _groupLookup;
+    private readonly IStudentLookup? _studentLookup;
 
     public AddStudentToGroupHandler(
         IGroupMembershipRepository repository,
-        IGroupLookup groupLookup,
-        IStudentLookup studentLookup)
+        IGroupLookup? groupLookup = null,
+        IStudentLookup? studentLookup = null)
     {
         _repository = repository;
         _groupLookup = groupLookup;
         _studentLookup = studentLookup;
     }
 
-    public async Task Handle(AddStudentToGroupCommand request, CancellationToken cancellationToken)
+    public async Task Handle(AddStudentToGroupCommand request, CancellationToken cancellationToken = default)
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
         if (request.GroupId == Guid.Empty) throw new ArgumentException("ID grupe ne moze biti prazan!");
@@ -99,8 +99,7 @@ public class AddStudentToGroupHandler
             Id = Guid.NewGuid(),
             GroupId = request.GroupId,
             StudentId = request.StudentId,
-            StartDate = request.StartDate,
-            EndDate = null
+            StartDate = request.StartDate
         };
 
         await _repository.AddAsync(membershipEntity, cancellationToken);
