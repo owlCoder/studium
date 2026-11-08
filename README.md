@@ -100,3 +100,24 @@ Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslo
 - ST-001/002: korisnici i uloge
 - ST-003: Course, ICourseReader
 - ST-005, ST-006: koriste CourseOffering.Id
+
+## ST-004: akademske godine (grana `feature/st-004-akademske-godine-tim-5`)
+
+Delimična in-memory/demonstraciona implementacija.
+
+**Urađeno (KT1)**
+- Application: `ListAcademicYearsHandler` (pregled i pretraga po oznaci), `UpdateAcademicYearCommand` i `UpdateAcademicYearHandler` (izmena); `IAcademicYearRepository` proširen metodama `ListAsync` i `TryUpdateAsync`
+- Infrastructure: `ListAsync` i atomarni `TryUpdateAsync` u `InMemoryAcademicYearRepository`
+- ConsoleUi: demo scenario `AcademicYearsDemo` (kreiranje, lista, pretraga, izmena i odbijeni unosi)
+- Testovi: 10 NUnit testova u `AcademicYearsHandlersTests`
+- Dijagrami: `docs/5/st004-akademske-godine-arhitektura.png`, `docs/5/st004-akademske-godine-dfd.png` (izvori u `.drawio`)
+
+**Poslovna pravila**
+- Oznaka je obavezna, bez razmaka na krajevima i jedinstvena bez razlike u veličini slova
+- Početak godine prethodi završetku
+- Izmena zadržava isti Id
+- Odbijena operacija ne menja postojeće podatke
+
+**Pokretanje demoa:** `dotnet run --project src/ConsoleUi`
+
+**Preostalo:** provera uloge Administratora, trajno skladište, veza sa izvođenjima.
