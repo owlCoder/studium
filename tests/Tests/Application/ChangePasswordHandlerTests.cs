@@ -1,4 +1,4 @@
-using Application.Users;
+﻿using Application.Users;
 using NSubstitute;
 using NUnit.Framework;
 
@@ -20,13 +20,17 @@ public sealed class ChangePasswordHandlerTests
         _handler = new ChangePasswordHandler(_accounts, _hasher);
     }
 
+    private void GivenAccount(Guid userId, bool isActive = true)
+    {
+        _accounts.GetAccountAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(new PasswordAccount("old-hash", isActive));
+    }
+
     [Test]
     public async Task HandleAsync_ReturnsSuccess_WhenPasswordIsCorrect()
     {
         var userId = Guid.NewGuid();
-
-        _accounts.GetPasswordHashAsync(userId, Arg.Any<CancellationToken>())
-            .Returns("old-hash");
+        GivenAccount(userId);
 
         _hasher.Verify("Stara123!", "old-hash").Returns(true);
         _hasher.Hash("Nova123!").Returns("new-hash");
@@ -44,9 +48,7 @@ public sealed class ChangePasswordHandlerTests
     public async Task HandleAsync_ReturnsInvalidCurrentPassword_WhenOldPasswordIsWrong()
     {
         var userId = Guid.NewGuid();
-
-        _accounts.GetPasswordHashAsync(userId, Arg.Any<CancellationToken>())
-            .Returns("old-hash");
+        GivenAccount(userId);
 
         _hasher.Verify("Pogresna123!", "old-hash").Returns(false);
 
@@ -64,13 +66,30 @@ public sealed class ChangePasswordHandlerTests
     {
         var userId = Guid.NewGuid();
 
-        _accounts.GetPasswordHashAsync(userId, Arg.Any<CancellationToken>())
-            .Returns((string?)null);
+        _accounts.GetAccountAsync(userId, Arg.Any<CancellationToken>())
+            .Returns((PasswordAccount?)null);
 
         var result = await _handler.HandleAsync(
             userId, "Stara123!", "Nova123!");
 
         Assert.That(result, Is.EqualTo(ChangePasswordResult.AccountNotFound));
+    }
+
+    [Test]
+    public async Task HandleAsync_ReturnsAccountInactive_WhenAccountIsDeactivated()
+    {
+        var userId = Guid.NewGuid();
+        GivenAccount(userId, isActive: false);
+
+        _hasher.Verify("Stara123!", "old-hash").Returns(true);
+
+        var result = await _handler.HandleAsync(
+            userId, "Stara123!", "Nova123!");
+
+        Assert.That(result, Is.EqualTo(ChangePasswordResult.AccountInactive));
+
+        await _accounts.DidNotReceive().UpdatePasswordHashAsync(
+            Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -98,9 +117,7 @@ public sealed class ChangePasswordHandlerTests
     public async Task HandleAsync_ReturnsInvalidNewPassword_WhenNewPasswordEqualsCurrent()
     {
         var userId = Guid.NewGuid();
-
-        _accounts.GetPasswordHashAsync(userId, Arg.Any<CancellationToken>())
-            .Returns("old-hash");
+        GivenAccount(userId);
 
         _hasher.Verify("Stara123!", "old-hash").Returns(true);
 

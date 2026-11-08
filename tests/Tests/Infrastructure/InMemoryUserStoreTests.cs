@@ -8,6 +8,8 @@ namespace Tests.Infrastructure;
 public sealed class InMemoryUserStoreTests
 {
     private static readonly Guid UserId = Guid.NewGuid();
+    private static readonly Guid InactiveId = Guid.NewGuid();
+    private static readonly Guid NoPasswordId = Guid.NewGuid();
     private InMemoryUserStore _store = null!;
 
     [SetUp]
@@ -15,7 +17,9 @@ public sealed class InMemoryUserStoreTests
     {
         _store = new InMemoryUserStore(new[]
         {
-            new User(UserId, "ana", UserRole.Student, "old-hash", isActive: true)
+            new User(UserId, "ana", UserRole.Student, "old-hash", isActive: true),
+            new User(InactiveId, "stari", UserRole.Teacher, "inactive-hash", isActive: false),
+            new User(NoPasswordId, "novi", UserRole.Assistant, passwordHash: null, isActive: true)
         });
     }
 
@@ -32,9 +36,32 @@ public sealed class InMemoryUserStoreTests
     }
 
     [Test]
-    public async Task GetPasswordHash_ReturnsNull_ForUnknownUser()
+    public async Task GetAccount_ReturnsHashAndActiveState()
     {
-        Assert.That(await _store.GetPasswordHashAsync(Guid.NewGuid()), Is.Null);
+        var account = await _store.GetAccountAsync(UserId);
+
+        Assert.That(account!.PasswordHash, Is.EqualTo("old-hash"));
+        Assert.That(account.IsActive, Is.True);
+    }
+
+    [Test]
+    public async Task GetAccount_ReportsInactiveAccount()
+    {
+        var account = await _store.GetAccountAsync(InactiveId);
+
+        Assert.That(account!.IsActive, Is.False);
+    }
+
+    [Test]
+    public async Task GetAccount_ReturnsNull_ForUnknownUser()
+    {
+        Assert.That(await _store.GetAccountAsync(Guid.NewGuid()), Is.Null);
+    }
+
+    [Test]
+    public async Task GetAccount_ReturnsNull_WhenActivationNotCompleted()
+    {
+        Assert.That(await _store.GetAccountAsync(NoPasswordId), Is.Null);
     }
 
     [Test]

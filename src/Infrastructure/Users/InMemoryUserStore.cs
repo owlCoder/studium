@@ -1,4 +1,4 @@
-using Application.Auth;
+﻿using Application.Auth;
 using Application.Users;
 using Domain.Users;
 
@@ -35,14 +35,17 @@ public sealed class InMemoryUserStore : IUserLookup, IPasswordAccountRepository
         }
     }
 
-    public Task<string?> GetPasswordHashAsync(Guid userId,
+    public Task<PasswordAccount?> GetAccountAsync(Guid userId,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (_lock)
         {
-            _usersById.TryGetValue(userId, out var user);
-            return Task.FromResult(user?.PasswordHash);
+            if (!_usersById.TryGetValue(userId, out var user) || user.PasswordHash is null)
+                return Task.FromResult<PasswordAccount?>(null);
+
+            return Task.FromResult<PasswordAccount?>(
+                new PasswordAccount(user.PasswordHash, user.IsActive));
         }
     }
 

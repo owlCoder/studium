@@ -1,4 +1,4 @@
-namespace Application.Users;
+﻿namespace Application.Users;
 
 public sealed class ChangePasswordHandler
 {
@@ -28,15 +28,20 @@ public sealed class ChangePasswordHandler
         if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < MinPasswordLength)
             return ChangePasswordResult.InvalidNewPassword;
 
-        var currentHash = await _accounts.GetPasswordHashAsync(
+        var account = await _accounts.GetAccountAsync(
             authenticatedUserId,
             cancellationToken);
 
-        if (currentHash is null)
+        if (account is null)
             return ChangePasswordResult.AccountNotFound;
 
+        // ST-002: deaktiviran nalog ne sme da koristi zaštićene funkcije.
+        // Proverava se pre lozinke, da se ne otkriva da li je lozinka tačna.
+        if (!account.IsActive)
+            return ChangePasswordResult.AccountInactive;
+
         if (string.IsNullOrEmpty(currentPassword)
-            || !_passwordHasher.Verify(currentPassword, currentHash))
+            || !_passwordHasher.Verify(currentPassword, account.PasswordHash))
             return ChangePasswordResult.InvalidCurrentPassword;
 
         // Nova lozinka mora da se razlikuje od postojeće.
