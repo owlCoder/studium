@@ -69,3 +69,54 @@ Poslednje dve komande pokreću alternativne ulaze; nisu potrebne istovremeno. AP
 - [ADR šablon](docs/templates/adr.md)
 
 Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslovnih zahteva; primeri u repozitorijumu služe isključivo za početnu organizaciju koda.
+
+
+
+# STUDIUM: ST-005 Odgovorni nastavnik
+
+Dio sistema STUDIUM (ST-001 do ST-100) koji pokriva dodjelu odgovornog
+nastavnika i upravljanje saradnicima na izvođenju predmeta.
+
+## Šta radi ovaj dio
+- Administrator dodjeljuje odgovornog nastavnika izvođenju.
+- Odgovorni nastavnik dodaje i uklanja nastavnike i asistente na svom izvođenju.
+- Odgovorni nastavnik pregleda spisak saradnika.
+
+## Poslovna pravila
+- Aktivno izvođenje mora imati najmanje jednog odgovornog nastavnika.
+- Odgovorni nastavnik ne može ukloniti sebe dok nije određen drugi.
+- Uklanjanje saradnika ukida buduće operacije, ali čuva autorstvo ranijih zapisa.
+- Za saradnika se koristi postojeći aktivan nalog odgovarajuće uloge.
+- Ista osoba ne može biti dvaput angažovana na istom izvođenju.
+
+## Pokretanje
+1. Preduslovi: (npr. JDK 21, Node 20, PostgreSQL 16)
+2. Kloniranje: git clone (URL repozitorija)
+3. Konfiguracija baze: (naziv fajla / varijable okruženja)
+4. Pokretanje: (komanda za pokretanje)
+5. Testovi: (komanda za testove)
+
+## Dijagrami
+- Dijagram arhitekture: ST-005 Odgovorni nastavnik (docs/arhitektura-st005.png)
+- Dijagram toka podataka (DFD): ST-005 Odgovorni nastavnik (docs/dfd-st005.png)
+
+## Zavisnosti od drugih dijelova
+- ST-001: korisnički nalozi
+- ST-002: prijava i provjera ovlaštenja
+- ST-004: izvođenja predmeta
+- ST-089: evidencija promjena (planirano)
+
+## Stanje implementacije (KT1)
+Urađeno:
+- (npr. entitet TeachingAssignment, migracija, unique indeks)
+- (npr. dodjela odgovornog nastavnika)
+
+Preostalo do KT2:
+- (npr. dodavanje i uklanjanje saradnika, pregled spiska)
+- (npr. testovi, integracija sa ST-002/004)
+
+## Demo scenario
+1. Administrator dodjeljuje Petra kao odgovornog nastavnika na ERS.
+2. Petar dodaje asistenta Anu.
+3. Petar pokuša ukloniti sebe: operacija se odbija.
+4. Petar pregleda spisak saradnika.
