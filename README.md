@@ -107,4 +107,5 @@ Svaka funkcionalna cjelina ima svoj folder u Domain, Application i Infrastructur
 
 Akademske godine i izvođenja predmeta (ST-004), te nastavnici i saradnici na
 predmetu (ST-005). Plan, demo scenario, pravila i zavisnosti od drugih timova:
-[docs/ST-004-ST-005-plan.md](docs/ST-004-ST-005-plan.md).
+[docs/5/plan.md](docs/5/plan.md).
+Dijagrami: [arhitektura](docs/5/arhitektura.png), [DFD](docs/5/dfd.png).
