@@ -5,8 +5,9 @@ namespace Application.Submissions;
 /// <summary>
 /// Obrađuje predaju individualnog rada (ST-012).
 /// Student se uzima iz prijave (ICurrentUser), a vreme predaje iz sata (IClock),
-/// nikad iz komande. Predaja je dozvoljena samo za objavljen zadatak.
-/// Pravila za rok i članstvo dodaju se u sledećim commitovima.
+/// nikad iz komande. Predaja je dozvoljena samo za objavljen zadatak
+/// i najkasnije u trenutku isteka roka.
+/// Pravilo za članstvo dodaje se u sledećem commitu.
 /// </summary>
 public class SubmitWorkHandler
 {
@@ -48,7 +49,14 @@ public class SubmitWorkHandler
             return SubmitWorkResult.Fail("AssignmentNotOpen");
         }
 
-        // 4. Sve provere su prošle, pravimo predaju.
+        // 4. Rok je uključiv, pa predaja tačno u trenutku roka prolazi.
+        //    Sve posle roka se odbija. Ništa se ne čuva.
+        if (submittedAt > assignment.Deadline)
+        {
+            return SubmitWorkResult.Fail("DeadlinePassed");
+        }
+
+        // 5. Sve provere su prošle, pravimo predaju.
         //    Ako je predaja prazna, Submission baca izuzetak i ništa se ne čuva.
         var submission = new Submission(
             Guid.NewGuid(),
@@ -58,7 +66,7 @@ public class SubmitWorkHandler
             command.Attachments,
             submittedAt);
 
-        // 5. Čuvamo predaju i vraćamo potvrdu studentu.
+        // 6. Čuvamo predaju i vraćamo potvrdu studentu.
         await _repository.AddAsync(submission);
 
         var confirmation = new SubmissionConfirmation(submission.Id, submission.SubmittedAt);
