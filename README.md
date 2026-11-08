@@ -73,23 +73,24 @@ Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslo
 ## ST-004: stanje i plan
 
 ### Urađeno (KT1)
-- Domain: AcademicYear, CourseOffering, OfferingState (validacije, stanja samo unapred)
-- Application: handleri za kreiranje akademske godine i izvođenja
-- Infrastructure: čuvanje u memoriji
-- Testovi: 7 NUnit testova (Test Explorer → Run All)
-- Dijagrami: docs/st-004-arhitektura.png, docs/st-004-dfd.png
+- Application: `ListAcademicYearsHandler` (pregled i pretraga po oznaci), `UpdateAcademicYearCommand` i `UpdateAcademicYearHandler` (izmena); `IAcademicYearRepository` proširen metodama `ListAsync` i `TryUpdateAsync`
+- Infrastructure: `ListAsync` i atomarni `TryUpdateAsync` u `InMemoryAcademicYearRepository`
+- ConsoleUi: demo scenario `AcademicYearsDemo` (kreiranje, lista, pretraga, izmena i odbijeni unosi)
+- Testovi: 10 NUnit testova u `AcademicYearsHandlersTests` (lista, pretraga, izmena, odbijeni slučajevi, paralelne izmene)
+- Dijagrami: `docs/5/st004-akademske-godine-arhitektura.png`, `docs/5/st004-akademske-godine-dfd.png` (izvori u `.drawio`)
 
 ### Poslovna pravila
-- Početak godine pre kraja; oznaka godine jedinstvena
-- Par (predmet, godina) jedinstven; deaktiviran predmet nema novo izvođenje
-- Stanja: U pripremi → Aktivno → Završeno
+- Oznaka je obavezna, bez razmaka na krajevima i jedinstvena bez razlike u veličini slova
+- Početak godine prethodi završetku
+- Izmena zadržava isti Id
+- Odbijena operacija ne menja postojeće podatke
+
+**Pokretanje demoa:** `dotnet run --project src/ConsoleUi`
 
 ### Preostalo do KT2
-- Handler za promenu stanja i pregled izvođenja
-- Provera uloge Administrator
-- Arhiviranje (ST-091)
-- Povezivanje sa Api/ConsoleUi
-- Više negativnih testova, ažuriranje dijagrama i README
+- Provera uloge Administratora pri svakoj operaciji
+- Trajno skladište umesto memorijskog
+- Veza sa izvođenjima (izvođenje je par predmet + godina)
 
 ### Zavisnosti
 - ST-001/002: korisnici i uloge
