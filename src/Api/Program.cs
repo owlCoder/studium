@@ -1,3 +1,4 @@
+﻿using Api.Users;
 using Application.Auth;
 using Application.Courses;
 using Application.Time;
@@ -5,6 +6,7 @@ using Application.Users;
 using Infrastructure.Demo;
 using Infrastructure.Security;
 using Infrastructure.Time;
+using Infrastructure.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,9 +20,20 @@ builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 builder.Services.AddSingleton<IClock, SystemClock>();
 
 // ST-002 Prijava: handler zavisi od portova, a ovde se biraju konkretne implementacije.
-builder.Services.AddSingleton<IUserLookup>(
-    sp => DemoData.CreateUserLookup(sp.GetRequiredService<IPasswordHasher>()));
+// Prijava i promena lozinke dele isti skup naloga (InMemoryUserStore).
+builder.Services.AddSingleton(sp => new InMemoryUserStore(
+    DemoData.CreateDemoUsers(sp.GetRequiredService<IPasswordHasher>())));
+builder.Services.AddSingleton<IUserLookup>(sp => sp.GetRequiredService<InMemoryUserStore>());
 builder.Services.AddSingleton<LoginHandler>();
+
+// Odjava i promena sopstvene lozinke
+builder.Services.AddSingleton<IPasswordAccountRepository>(
+    sp => sp.GetRequiredService<InMemoryUserStore>());
+builder.Services.AddSingleton<InMemorySessionRevoker>();
+builder.Services.AddSingleton<ISessionRevoker>(
+    sp => sp.GetRequiredService<InMemorySessionRevoker>());
+builder.Services.AddScoped<LogoutHandler>();
+builder.Services.AddScoped<ChangePasswordHandler>();
 
 var app = builder.Build();
 
@@ -69,6 +82,9 @@ app.MapPost("/api/auth/login", async (
             statusCode: StatusCodes.Status401Unauthorized)
     };
 });
+
+// Odjava i promena sopstvene lozinke
+app.MapAccountEndpoints();
 
 app.Run();
 
