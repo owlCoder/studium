@@ -3,10 +3,14 @@ namespace Application.Assignments;
 public sealed class PublishAssignmentHandler
 {
     private readonly IAssignmentRepository _repository;
+    private readonly IAssignmentPublicationAccess _access;
 
-    public PublishAssignmentHandler(IAssignmentRepository repository)
+    public PublishAssignmentHandler(
+        IAssignmentRepository repository,
+        IAssignmentPublicationAccess access)
     {
         _repository = repository;
+        _access = access;
     }
 
     public async Task<PublishAssignmentResult> HandleAsync(
@@ -18,8 +22,8 @@ public sealed class PublishAssignmentHandler
         if (assignment is null)
             return PublishAssignmentResult.Failure("Zadatak ne postoji.");
 
-        // TODO (kolega): Pre objave proveriti da li je trenutni korisnik nastavnik
-        // angažovan na izvođenju predmeta kome ovaj zadatak pripada.
+        if (!await _access.CanPublishAsync(assignment.OfferingId, cancellationToken))
+            return PublishAssignmentResult.Failure("Nemate pravo da objavite zadatak na ovom izvođenju predmeta.");
 
         var publicationError = assignment.Publish();
         if (publicationError is not null)
