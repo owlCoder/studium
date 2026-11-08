@@ -10,7 +10,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +36,10 @@ builder.Services.AddScoped<RemoveStudentFromGroupHandler>();
 builder.Services.AddScoped<ListStudentGroupsHandler>();
 
 builder.Services.AddSingleton<IGroupRepository>(_ => new InMemoryGroupRepository(DemoData.CreateGroups()));
+
+builder.Services.AddScoped<Application.Content.IContentReader, Infrastructure.Content.DummyContentReader>();
+builder.Services.AddScoped<Application.Groups.IStudentGroupReader, Infrastructure.Groups.DummyStudentGroupReader>();
+builder.Services.AddScoped<Application.Content.GetStudentContentHandler>();
 
 builder.Services.AddAuthentication("TestScheme")
     .AddCookie("TestScheme", options =>
@@ -79,6 +87,38 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+
+app.MapGet("/demo/courses", async (ICourseReader reader, CancellationToken ct) =>
+{
+    var courses = await reader.ListAsync(ct);
+    return Results.Ok(courses);
+});
+
+app.MapGet("/api/courses/{courseId}/content", async (
+    Guid courseId,
+    Guid studentId,
+    Application.Content.GetStudentContentHandler handler,
+    HttpContext httpContext,
+    CancellationToken ct) =>
+{
+    // 1. Provera da li je korisnik ulogovan
+    if (!httpContext.User.Identity?.IsAuthenticated ?? true)
+    {
+        return Results.Unauthorized();
+    }
+
+    // 2. Provera da li student pokušava da čita tudji sadržaj
+    var userIdClaim = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var authenticatedUserId) || authenticatedUserId != studentId)
+    {
+        return Results.Forbid();
+    }
+
+    var query = new Application.Content.GetStudentContentQuery(studentId, courseId);
+    var result = await handler.Handle(query, ct);
+    return Results.Ok(result);
+}).RequireAuthorization();
+
 
 bool IsUserOwnerOfGroup(
     System.Security.Claims.ClaimsPrincipal user,
