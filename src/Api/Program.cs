@@ -1,7 +1,7 @@
-
 using Application;
 using Application.Courses;
 using Application.Groups;
+using Application.ContentAudience;
 using Infrastructure;
 using Infrastructure.Demo;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +54,19 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("GroupOwnerPolicy", policy =>
         policy.RequireAuthenticatedUser());
 });
+
+/* ---------- ST-020: publika nastavnog sadrzaja ---------- */
+builder.Services.AddSingleton<IContentTargetAudienceRepository, InMemoryContentTargetAudienceRepository>();
+builder.Services.AddScoped<SetContentTargetAudienceHandler>();
+
+// DEMO: ovi lookup-i dozvoljavaju sve, zato ih registrujemo samo u Development okruzenju.
+// Prava provera vlasnistva dolazi iz modula ST-008/ST-019 (tudji zadaci).
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSingleton<IContentLookupForAudience, DemoContentLookup>();
+    builder.Services.AddSingleton<IGroupLookupForAudience, DemoGroupLookupForAudience>();
+}
+/* -------------------------------------------------------- */
 
 var app = builder.Build();
 
@@ -163,14 +177,53 @@ app.MapDelete("/groups/{groupId}/students/{studentId}", async (
     }
 }).RequireAuthorization("GroupOwnerPolicy");
 
+/* ---------- ST-020: endpoint (samo Development / demo) ---------- */
+if (app.Environment.IsDevelopment())
+{
+    app.MapPost("/contents/{contentId:guid}/target-audience", async (
+        Guid contentId,
+        SetContentTargetAudienceRequest request,
+        SetContentTargetAudienceHandler handler,
+        HttpContext httpContext,
+        CancellationToken ct) =>
+    {
+        var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? httpContext.User.FindFirst("sub")?.Value;
+
+        if (!Guid.TryParse(userIdClaim, out var instructorId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var command = new SetContentTargetAudienceCommand(
+            ContentId: contentId,
+            InstructorId: instructorId,
+            IsForWholeCourseExecution: request.IsForWholeCourseExecution,
+            TargetGroupIds: request.TargetGroupIds ?? new List<Guid>()
+        );
+
+        try
+        {
+            await handler.Handle(command, ct);
+            return Results.Ok();
+        }
+        catch (ArgumentException ex)         { return Results.BadRequest(ex.Message); }                      // 400
+        catch (KeyNotFoundException ex)      { return Results.NotFound(ex.Message); }                        // 404
+        catch (UnauthorizedAccessException)  { return Results.StatusCode(StatusCodes.Status403Forbidden); } // 403
+        catch (InvalidOperationException ex) { return Results.Conflict(ex.Message); }                        // 409
+    })
+    .RequireAuthorization();
+}
+/* ---------------------------------------------------------------- */
+
 app.Run();
 
 public class DemoGroupLookup : IGroupLookup
 {
     public Task<bool> ExistsAsync(Guid groupId, CancellationToken cancellationToken)
         => Task.FromResult(true);
-    public Task<Domain.Entities.Group?> GetByIdAsync(Guid groupId, CancellationToken cancellationToken) 
-    => Task.FromResult<Domain.Entities.Group?>(null);
+    public Task<Domain.Entities.Group?> GetByIdAsync(Guid groupId, CancellationToken cancellationToken)
+        => Task.FromResult<Domain.Entities.Group?>(null);
 }
 
 public class DemoStudentLookup : IStudentLookup
@@ -182,5 +235,44 @@ public class DemoStudentLookup : IStudentLookup
 public record MinimalApiAddStudentRequest(Guid StudentId, DateTime StartDate);
 public record MinimalApiRemoveStudentRequest(DateTime EndDate);
 
-public partial class Program { }
+/* ---------- ST-020: in-memory i demo implementacije ---------- */
+public class InMemoryContentTargetAudienceRepository : IContentTargetAudienceRepository
+{
+    private readonly Dictionary<Guid, Domain.Entities.ContentTargetAudience> _storage = new();
 
+    public Task AddOrUpdateAsync(Domain.Entities.ContentTargetAudience audience, CancellationToken cancellationToken)
+    {
+        _storage[audience.ContentId] = audience;
+        return Task.CompletedTask;
+    }
+
+    public Task<Domain.Entities.ContentTargetAudience?> GetByContentIdAsync(Guid contentId, CancellationToken cancellationToken)
+    {
+        _storage.TryGetValue(contentId, out var audience);
+        return Task.FromResult(audience);
+    }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+}
+
+public class DemoContentLookup : IContentLookupForAudience
+{
+    public Task<bool> ExistsAsync(Guid contentId, CancellationToken cancellationToken) => Task.FromResult(true);
+    public Task<Guid> GetCourseExecutionIdAsync(Guid contentId, CancellationToken cancellationToken) => Task.FromResult(Guid.NewGuid());
+
+    // Za demo svrhe vraćamo true da ne blokira lokalni rad
+    public Task<bool> CanInstructorEditContentAsync(Guid contentId, Guid instructorId, CancellationToken cancellationToken) => Task.FromResult(true);
+}
+
+public class DemoGroupLookupForAudience : IGroupLookupForAudience
+{
+    public Task<bool> AllGroupsBelongToCourseExecutionAsync(List<Guid> groupIds, Guid courseExecutionId, CancellationToken cancellationToken) => Task.FromResult(true);
+}
+
+public record SetContentTargetAudienceRequest(
+    bool IsForWholeCourseExecution,
+    List<Guid>? TargetGroupIds
+);
+/* -------------------------------------------------------------- */
+
+public partial class Program { }
