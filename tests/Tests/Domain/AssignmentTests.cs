@@ -6,10 +6,21 @@ namespace Tests.Domain;
 [TestFixture]
 public sealed class AssignmentTests
 {
+    private static readonly Guid OfferingId = Guid.NewGuid();
+
+    [Test]
+    public void Constructor_RejectsEmptyOfferingId()
+    {
+        var error = Assert.Throws<ArgumentException>(() =>
+            new Assignment(Guid.Empty, "Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch));
+
+        Assert.That(error!.ParamName, Is.EqualTo("offeringId"));
+    }
+
     [Test]
     public void GetMissingPublicationFields_ReturnsOnlyMissingFields()
     {
-        var assignment = new Assignment("Zadatak", " \t", "Uputstvo", null);
+        var assignment = new Assignment(OfferingId, "Zadatak", " \t", "Uputstvo", null);
 
         Assert.That(assignment.GetMissingPublicationFields(), Is.EqualTo(new[] { "opis", "rok" }));
     }
@@ -17,7 +28,7 @@ public sealed class AssignmentTests
     [Test]
     public void GetMissingPublicationFields_ReturnsEmptyListForCompleteDraft()
     {
-        var assignment = new Assignment("Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
+        var assignment = new Assignment(OfferingId, "Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
 
         Assert.That(assignment.GetMissingPublicationFields(), Is.Empty);
     }
@@ -25,7 +36,7 @@ public sealed class AssignmentTests
     [Test]
     public void GetPublicationError_ReturnsNullWithoutPublishingCompleteDraft()
     {
-        var assignment = new Assignment("Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
+        var assignment = new Assignment(OfferingId, "Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
 
         Assert.That(assignment.GetPublicationError(), Is.Null);
         Assert.That(assignment.State, Is.EqualTo(AssignmentStatus.Draft));
@@ -34,7 +45,7 @@ public sealed class AssignmentTests
     [Test]
     public void GetPublicationError_ReportsMissingFields()
     {
-        var assignment = new Assignment("Zadatak", "Opis", "Uputstvo", null);
+        var assignment = new Assignment(OfferingId, "Zadatak", "Opis", "Uputstvo", null);
 
         Assert.That(assignment.GetPublicationError(), Is.EqualTo("Nedostaju obavezni podaci: rok."));
     }
@@ -42,7 +53,7 @@ public sealed class AssignmentTests
     [Test]
     public void GetPublicationError_ReportsAlreadyPublishedAssignment()
     {
-        var assignment = new Assignment("Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
+        var assignment = new Assignment(OfferingId, "Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
         Assert.That(assignment.Publish(), Is.Null);
 
         Assert.That(assignment.GetPublicationError(), Is.EqualTo("Samo zadatak u nacrtu može da se objavi."));
@@ -51,7 +62,7 @@ public sealed class AssignmentTests
     [Test]
     public void IsVisibleToStudents_BecomesTrueAfterPublication()
     {
-        var assignment = new Assignment("Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
+        var assignment = new Assignment(OfferingId, "Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
 
         Assert.That(assignment.IsVisibleToStudents(), Is.False);
         Assert.That(assignment.Publish(), Is.Null);
@@ -61,7 +72,7 @@ public sealed class AssignmentTests
     [Test]
     public void IsVisibleToStudents_RemainsFalseAfterRejectedPublication()
     {
-        var assignment = new Assignment("Zadatak", "Opis", "Uputstvo", null);
+        var assignment = new Assignment(OfferingId, "Zadatak", "Opis", "Uputstvo", null);
 
         Assert.That(assignment.Publish(), Is.Not.Null);
         Assert.That(assignment.IsVisibleToStudents(), Is.False);
@@ -70,7 +81,7 @@ public sealed class AssignmentTests
     [Test]
     public void Publish_PublishesCompleteDraft()
     {
-        var assignment = new Assignment("Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
+        var assignment = new Assignment(OfferingId, "Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
 
         var error = assignment.Publish();
 
@@ -81,7 +92,7 @@ public sealed class AssignmentTests
     [Test]
     public void Publish_ReportsMissingFieldsAndKeepsDraft()
     {
-        var assignment = new Assignment("Zadatak", "Opis", "  ", null);
+        var assignment = new Assignment(OfferingId, "Zadatak", "Opis", "  ", null);
 
         var error = assignment.Publish();
 
@@ -92,7 +103,7 @@ public sealed class AssignmentTests
     [Test]
     public void Publish_RejectsAlreadyPublishedAssignment()
     {
-        var assignment = new Assignment("Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
+        var assignment = new Assignment(OfferingId, "Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
         Assert.That(assignment.Publish(), Is.Null);
 
         var error = assignment.Publish();
