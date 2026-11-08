@@ -6,6 +6,7 @@ namespace Tests.Domain;
 [TestFixture]
 public sealed class TeachingSessionStateTests
 {
+    // Kreira sesiju u početnom stanju Planned.
     private static TeachingSession Planned() => new(
         Guid.NewGuid(), "Vežbe", Guid.NewGuid(), Guid.NewGuid(),
         new DateTime(2026, 11, 7, 10, 0, 0),
@@ -19,6 +20,7 @@ public sealed class TeachingSessionStateTests
 
         session.MarkHeld();
 
+        // Proverava da li se planirana sesija može označiti kao održana.
         Assert.That(session.State, Is.EqualTo(SessionState.Odrzan));
     }
 
@@ -29,6 +31,7 @@ public sealed class TeachingSessionStateTests
 
         session.Cancel();
 
+        // Proverava promenu stanja iz Planned u Otkazan.
         Assert.That(session.State, Is.EqualTo(SessionState.Otkazan));
     }
 
@@ -44,6 +47,7 @@ public sealed class TeachingSessionStateTests
 
         session.Cancel();
 
+        // Otkazivanje treba da promeni samo stanje sesije.
         Assert.Multiple(() =>
         {
             Assert.That(session.Id, Is.EqualTo(id));
@@ -61,6 +65,7 @@ public sealed class TeachingSessionStateTests
         var session = Planned();
         session.Cancel();
 
+        // Otkazana sesija ne može biti označena kao održana.
         Assert.That(
             () => session.MarkHeld(),
             Throws.TypeOf<InvalidOperationException>());
@@ -72,6 +77,7 @@ public sealed class TeachingSessionStateTests
         var session = Planned();
         session.MarkHeld();
 
+        // Održana sesija ne može biti otkazana.
         Assert.That(
             () => session.Cancel(),
             Throws.TypeOf<InvalidOperationException>());
@@ -83,6 +89,7 @@ public sealed class TeachingSessionStateTests
         var session = Planned();
         session.MarkHeld();
 
+        // Ponovljeno izvršavanje operacije ne treba da izazove grešku.
         Assert.DoesNotThrow(() => session.MarkHeld());
         Assert.That(session.State, Is.EqualTo(SessionState.Odrzan));
     }
@@ -93,6 +100,7 @@ public sealed class TeachingSessionStateTests
         var session = Planned();
         session.Cancel();
 
+        // Ponovljeno otkazivanje ne treba da promeni postojeće stanje.
         Assert.DoesNotThrow(() => session.Cancel());
         Assert.That(session.State, Is.EqualTo(SessionState.Otkazan));
     }
