@@ -1,11 +1,15 @@
 using Application.Courses;
+using Application.Users;
 using Infrastructure.Demo;
+using Infrastructure.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Composition root: spoljašnji sloj bira implementaciju ugovora.
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
+builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
+builder.Services.AddScoped<DeactivateUserHandler>();
 
 var app = builder.Build();
 
@@ -21,4 +25,26 @@ app.MapGet("/demo/courses", async (
     return Results.Ok(courses);
 });
 
+app.MapPut("/users/{id}/deactivate", async (
+    Guid id,
+    DeactivateUserHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    try
+    {
+        await handler.HandleAsync(id, cancellationToken);
+        return Results.NoContent();
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.NotFound(new { message = ex.Message });
+    }
+});
+
 app.Run();
+
+public partial class Program { }
