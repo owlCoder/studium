@@ -279,7 +279,7 @@ public class TestoviGrupa
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
-    // --- ST-020: JEDNOSTAVNI UNIT TESTOVI ZA HANDLER ---
+    // --- ST-020: PARAMETRIZOVANI TESTOVI ZA HANDLER ---
 
     [Test]
     public async Task ST020_GetSubmission_WithoutAuth_ReturnsUnauthorized()
@@ -288,11 +288,14 @@ public class TestoviGrupa
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
-    [Test]
-    public async Task ST020_GetSubmission_NonExistingId_ReturnsNotFound()
+    [TestCase("nepostojeci-id")]
+    [TestCase("random-id-999")]
+    [TestCase("sub-non-existent-123")]
+    [TestCase("abc-xyz-404")]
+    public async Task ST020_GetSubmission_NonExistingId_ReturnsNotFound(string nonExistingSubmissionId)
     {
         var handler = new GetSubmissionHandler();
-        var result = await handler.HandleAsync("student-autor-1", "nepostojeci-id");
+        var result = await handler.HandleAsync("student-autor-1", nonExistingSubmissionId);
         Assert.That(result.IsNotFound, Is.True);
     }
 

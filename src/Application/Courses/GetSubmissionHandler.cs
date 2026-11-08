@@ -12,12 +12,12 @@ public class GetSubmissionResult
     public static GetSubmissionResult Forbidden() => new() { IsForbidden = true };
     public static GetSubmissionResult Success(SubmissionDto submission) => new() { Submission = submission };
 
-    // Omogućava starim testovima da se i dalje izvršavaju bez izmena
     public static implicit operator SubmissionDto?(GetSubmissionResult result) => result.Submission;
 }
 
 public class GetSubmissionHandler
 {
+    // In-memory repozitorijum sa poznatim sačuvanim predajama
     private static readonly List<SubmissionDto> DemoSubmissions = new()
     {
         new SubmissionDto("sub-01", "task-01", "student-autor-1", "Sadržaj rada 1", DateTime.UtcNow.AddDays(-2), true),
@@ -26,20 +26,13 @@ public class GetSubmissionHandler
 
     public async Task<GetSubmissionResult> HandleAsync(string requestingStudentId, string submissionId, CancellationToken cancellationToken = default)
     {
-        // 1. Potraži rad po ID-ju (ili kreiraj testni po potrebi)
+        // 1. Potraži rad po ID-ju u repozitorijumu
         var submission = DemoSubmissions.FirstOrDefault(s => s.Id == submissionId);
 
-        // Ako ne postoji u demo listi, a traži se u testu:
+        // Za SVAKI nepostojeći ID vraćamo NotFound (404)
         if (submission is null)
         {
-            // Ako je u pitanju generički testni id, vrati NotFound za nepostojeće
-            if (submissionId == "nepostojeci-id")
-            {
-                return GetSubmissionResult.NotFound();
-            }
-
-            // Za ostale ID-jeve iz testova kreiramo dinamički zapis
-            submission = new SubmissionDto(submissionId, "task-01", requestingStudentId, "Predati rad", DateTime.UtcNow);
+            return GetSubmissionResult.NotFound();
         }
 
         // 2. Provera prava pristupa po Pravilniku
