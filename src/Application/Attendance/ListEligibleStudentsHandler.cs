@@ -23,6 +23,19 @@ public sealed class ListEligibleStudentsHandler
         TeachingSession session,
         CancellationToken cancellationToken = default)
     {
-        // dodati funkcionalnost
+       if (session.State != SessionState.Odrzan)
+            throw new InvalidOperationException(
+                "Spisak podobnih se nudi samo za održan termin.");
+
+        var eligible = await _eligibility.ListEligibleStudentIdsAsync(
+            session.OfferingId, session.GroupId, session.StartsAt, cancellationToken);
+
+        var attendance = await _attendance.GetAsync(session.Id, cancellationToken);
+
+        return eligible
+            .Select(studentId => new EligibleStudent(
+                studentId,
+                attendance?.StateOf(studentId) ?? AttendanceState.Neevidentirano))
+            .ToArray();
     }
 }
