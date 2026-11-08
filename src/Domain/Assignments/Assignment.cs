@@ -16,15 +16,29 @@ public sealed class Assignment
         Deadline = deadline;
     }
 
-    public string? Publish()
+    public IReadOnlyList<string> GetMissingPublicationFields()
     {
-        var error = AssignmentPublication.GetPublicationError(
+        return AssignmentPublication.GetMissingPublicationFields(Title, Description, Instructions, Deadline);
+    }
+
+    public string? GetPublicationError()
+    {
+        return AssignmentPublication.GetPublicationError(
             isDraft: State == AssignmentStatus.Draft,
             title: Title,
             description: Description,
             instructions: Instructions,
             deadline: Deadline);
+    }
 
+    public bool IsVisibleToStudents()
+    {
+        return State == AssignmentStatus.Published;
+    }
+
+    public string? Publish()
+    {
+        var error = GetPublicationError();
         if (error is not null)
             return error;
 
