@@ -13,15 +13,10 @@ public sealed class DeactivateUserHandler
         _userRepository = userRepository;
     }
 
-    public async Task HandleAsync(Guid id, CancellationToken cancellationToken = default)
+    public Task<DeactivateUserResult> HandleAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
     {
-        var user = await _userRepository.GetByIdAsync(id, cancellationToken);
-        if (user == null)
-        {
-            throw new ArgumentException($"Korisnik sa ID-jem {id} nije pronađen.");
-        }
-
-        user.Deactivate();
-        await _userRepository.UpdateAsync(user, cancellationToken);
+        return _userRepository.DeactivateAsync(id, cancellationToken);
     }
 }
