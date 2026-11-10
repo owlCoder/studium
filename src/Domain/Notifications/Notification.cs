@@ -67,4 +67,16 @@ public sealed class Notification
             eventKey.Trim(),
             createdAt);
     }
+
+    /// <summary>
+    /// Označava obaveštenje kao pročitano (ST-017, US-4).
+    /// Ponovni poziv ne menja stanje.
+    /// </summary>
+    public void MarkAsRead()
+    {
+        if (IsRead)
+            return;
+
+        IsRead = true;
+    }
 }
