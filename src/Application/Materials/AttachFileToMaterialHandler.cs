@@ -7,6 +7,7 @@ namespace Application.Materials;
 /// Poslovno pravilo: prilog se vezuje za materijal tek kada je datoteka uspešno sačuvana.
 /// Redosled je zato uvek: provera ulaza i materijala → čuvanje sadržaja u skladištu →
 /// tek onda zapis priloga. Ako čuvanje ne uspe, izuzetak se prosleđuje i zapis se ne pravi.
+/// Ako čuvanje uspe, a upis zapisa ne uspe, sačuvani sadržaj se briše (US-06, tačka 2).
 /// NAPOMENA: provera pripadnosti nastavnom osoblju izvođenja (ST-005), ograničenje tipa
 /// i veličine (US-05) i prijava rezultata po datoteci za više datoteka (US-06, tačka 3)
 /// nisu deo ovog koraka.
@@ -58,17 +59,41 @@ public sealed class AttachFileToMaterialHandler
         var storageKey = await _storage.SaveAsync(counting, cancellationToken);
 
         // Do ove tačke se dolazi samo ako je skladište potvrdilo čuvanje (vratilo ključ).
-        var attachment = new MaterialAttachment(
-            Guid.NewGuid(),
-            material.Id,
-            command.OriginalFileName,
-            command.ContentType,
-            counting.BytesRead,
-            storageKey);
+        try
+        {
+            var attachment = new MaterialAttachment(
+                Guid.NewGuid(),
+                material.Id,
+                command.OriginalFileName,
+                command.ContentType,
+                counting.BytesRead,
+                storageKey);
 
-        await _attachments.AddAsync(attachment, cancellationToken);
+            await _attachments.AddAsync(attachment, cancellationToken);
 
-        return attachment.Id;
+            return attachment.Id;
+        }
+        catch
+        {
+            // Neuspela operacija ne sme delimično promeniti stanje (docs/architecture.md):
+            // sadržaj bez zapisa priloga se uklanja, a prosleđuje se izvorna greška.
+            await TryDeleteStoredContentAsync(storageKey);
+            throw;
+        }
+    }
+
+    private async Task TryDeleteStoredContentAsync(string storageKey)
+    {
+        try
+        {
+            // Bez tokena otkazivanja: čišćenje mora da se izvrši i kada je zahtev otkazan.
+            await _storage.DeleteAsync(storageKey, CancellationToken.None);
+        }
+        catch (Exception)
+        {
+            // Greška čišćenja ne sme da sakrije izvornu grešku. Zaostali sadržaj nije
+            // prilog (nema zapisa), pa ga korisnik ne vidi niti može da preuzme.
+        }
     }
 
     /// <summary>

@@ -73,6 +73,25 @@ public sealed class LocalDiskAttachmentFileStorage : IAttachmentFileStorage
         return Task.FromResult<Stream?>(stream);
     }
 
+    public Task<bool> DeleteAsync(string storageKey, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!IsValidKey(storageKey))
+        {
+            return Task.FromResult(false);
+        }
+
+        var path = Path.Combine(_rootPath, storageKey);
+        if (!File.Exists(path))
+        {
+            return Task.FromResult(false);
+        }
+
+        File.Delete(path);
+        return Task.FromResult(true);
+    }
+
     // Ključ mora biti tačno u formatu koji skladište generiše (32 heksadecimalna znaka),
     // čime se sprečava pristup putanjama van korenskog direktorijuma (npr. "..\\").
     private static bool IsValidKey(string? storageKey) =>

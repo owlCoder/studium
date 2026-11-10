@@ -153,6 +153,110 @@ public sealed class AttachFileToMaterialHandlerTests
         Assert.That(stored.Single().SizeInBytes, Is.EqualTo(100_000));
     }
 
+    // US-06, tačka 2: neuspeli prenos ne ostavlja zapis bez datoteke ni datoteku bez zapisa.
+
+    [Test]
+    public void HandleAsync_RecordWriteFails_SavedFileIsDeletedAndNoRecordLeft()
+    {
+        var storage = new LocalDiskAttachmentFileStorage(_root);
+        var attachments = new Mock<IMaterialAttachmentRepository>();
+        attachments
+            .Setup(a => a.AddAsync(It.IsAny<MaterialAttachment>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Upis zapisa nije uspeo."));
+        var handler = new AttachFileToMaterialHandler(_materials, attachments.Object, storage);
+
+        Assert.ThrowsAsync<InvalidOperationException>(() => handler.HandleAsync(new AttachFileToMaterialCommand(
+            _material.Id, "skripta.pdf", "application/pdf", Content("sadrzaj"))));
+
+        Assert.That(Directory.GetFiles(_root), Is.Empty);
+    }
+
+    [Test]
+    public async Task HandleAsync_CancelledAfterFileIsSaved_FileIsDeletedAndNoRecordLeft()
+    {
+        using var cts = new CancellationTokenSource();
+        var storage = new CancelAfterSaveStorage(new LocalDiskAttachmentFileStorage(_root), cts);
+        var handler = CreateHandler(storage);
+
+        Assert.ThrowsAsync<OperationCanceledException>(() => handler.HandleAsync(
+            new AttachFileToMaterialCommand(_material.Id, "skripta.pdf", "application/pdf", Content("sadrzaj")),
+            cts.Token));
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(storage.Saved, Is.True, "Datoteka je morala biti sačuvana pre otkazivanja.");
+            Assert.That(await _attachments.ListByMaterialAsync(_material.Id), Is.Empty);
+            Assert.That(Directory.GetFiles(_root), Is.Empty);
+        });
+    }
+
+    [Test]
+    public void HandleAsync_RecordWriteAndCleanupFail_OriginalErrorIsReported()
+    {
+        var storage = new Mock<IAttachmentFileStorage>();
+        storage
+            .Setup(s => s.SaveAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid().ToString("N"));
+        storage
+            .Setup(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IOException("Brisanje nije uspelo."));
+        var attachments = new Mock<IMaterialAttachmentRepository>();
+        attachments
+            .Setup(a => a.AddAsync(It.IsAny<MaterialAttachment>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Upis zapisa nije uspeo."));
+        var handler = new AttachFileToMaterialHandler(_materials, attachments.Object, storage.Object);
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(() => handler.HandleAsync(
+            new AttachFileToMaterialCommand(_material.Id, "skripta.pdf", "application/pdf", Content("sadrzaj"))));
+
+        Assert.That(ex!.Message, Is.EqualTo("Upis zapisa nije uspeo."));
+        storage.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_Success_DoesNotDeleteSavedFile()
+    {
+        var storage = new Mock<IAttachmentFileStorage>();
+        storage
+            .Setup(s => s.SaveAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid().ToString("N"));
+        var handler = CreateHandler(storage.Object);
+
+        await handler.HandleAsync(new AttachFileToMaterialCommand(
+            _material.Id, "skripta.pdf", "application/pdf", Content("sadrzaj")));
+
+        storage.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    /// <summary>Skladište koje otkaže zahtev odmah posle uspešnog čuvanja.</summary>
+    private sealed class CancelAfterSaveStorage : IAttachmentFileStorage
+    {
+        private readonly IAttachmentFileStorage _inner;
+        private readonly CancellationTokenSource _cts;
+
+        public CancelAfterSaveStorage(IAttachmentFileStorage inner, CancellationTokenSource cts)
+        {
+            _inner = inner;
+            _cts = cts;
+        }
+
+        public bool Saved { get; private set; }
+
+        public async Task<string> SaveAsync(Stream content, CancellationToken cancellationToken = default)
+        {
+            var key = await _inner.SaveAsync(content, cancellationToken);
+            Saved = true;
+            _cts.Cancel();
+            return key;
+        }
+
+        public Task<Stream?> OpenReadAsync(string storageKey, CancellationToken cancellationToken = default) =>
+            _inner.OpenReadAsync(storageKey, cancellationToken);
+
+        public Task<bool> DeleteAsync(string storageKey, CancellationToken cancellationToken = default) =>
+            _inner.DeleteAsync(storageKey, cancellationToken);
+    }
+
     /// <summary>Tok koji pukne posle prvog dela sadržaja (prekinut prenos).</summary>
     private sealed class FailingStream : MemoryStream
     {
