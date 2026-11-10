@@ -15,4 +15,12 @@ public interface IMaterialRepository
     Task<Material?> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Čuva izmene postojećeg materijala (ST-009, US-02).
+    /// Baca <see cref="InvalidOperationException"/> ako materijal ne postoji.
+    /// </summary>
+    Task UpdateAsync(
+        Material material,
+        CancellationToken cancellationToken = default);
 }

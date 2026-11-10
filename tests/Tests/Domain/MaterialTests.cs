@@ -67,4 +67,77 @@ public sealed class MaterialTests
 
         Assert.That(material.Name, Is.EqualTo("A"));
     }
+
+    // ST-009, US-02: izmena naziva i opisa
+
+    [Test]
+    public void UpdateDetails_ChangesAndTrimsNameAndDescription()
+    {
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Staro", "Stari opis");
+
+        material.UpdateDetails("  Novo ime ", "  Novi opis ");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(material.Name, Is.EqualTo("Novo ime"));
+            Assert.That(material.Description, Is.EqualTo("Novi opis"));
+        });
+    }
+
+    [Test]
+    public void UpdateDetails_DoesNotChangeIdentityOfferingOrPublicationState()
+    {
+        var id = Guid.NewGuid();
+        var offeringId = Guid.NewGuid();
+        var material = new Material(id, offeringId, "Staro", null);
+
+        material.UpdateDetails("Novo", "Opis");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(material.Id, Is.EqualTo(id));
+            Assert.That(material.CourseOfferingId, Is.EqualTo(offeringId));
+            Assert.That(material.PublicationState, Is.EqualTo(MaterialPublicationState.Draft));
+        });
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    public void UpdateDetails_RejectsBlankNameAndKeepsPreviousValues(string? name)
+    {
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Staro", "Stari opis");
+
+        Assert.That(
+            () => material.UpdateDetails(name!, "Novi opis"),
+            Throws.TypeOf<ArgumentException>().With.Property("ParamName").EqualTo("name"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(material.Name, Is.EqualTo("Staro"));
+            Assert.That(material.Description, Is.EqualTo("Stari opis"));
+        });
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    public void UpdateDetails_AllowsClearingDescription(string? description)
+    {
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Naziv", "Opis");
+
+        material.UpdateDetails("Naziv", description);
+
+        Assert.That(material.Description, Is.Empty);
+    }
+
+    [Test]
+    public void UpdateDetails_AcceptsSingleCharacterName()
+    {
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Naziv", null);
+
+        material.UpdateDetails("B", null);
+
+        Assert.That(material.Name, Is.EqualTo("B"));
+    }
 }

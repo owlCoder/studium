@@ -32,4 +32,19 @@ public sealed class InMemoryMaterialRepository : IMaterialRepository
         _materials.TryGetValue(id, out var material);
         return Task.FromResult(material);
     }
+
+    public Task UpdateAsync(Material material, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(material);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!_materials.TryGetValue(material.Id, out var existing)
+            || !_materials.TryUpdate(material.Id, material, existing))
+        {
+            throw new InvalidOperationException(
+                $"Materijal sa identifikatorom '{material.Id}' ne postoji.");
+        }
+
+        return Task.CompletedTask;
+    }
 }
