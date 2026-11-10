@@ -17,4 +17,11 @@ public interface IAttachmentFileStorage
     /// Otvara sačuvani sadržaj za čitanje ili vraća <c>null</c> ako sadržaj ne postoji.
     /// </summary>
     Task<Stream?> OpenReadAsync(string storageKey, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Briše sačuvani sadržaj (ST-009, US-06; koristiće ga i US-07 pri uklanjanju priloga).
+    /// Vraća <c>true</c> ako je sadržaj obrisan, a <c>false</c> ako pod ključem nema sadržaja
+    /// ili ključ nije u formatu koji skladište generiše. Ponovljeno brisanje nije greška.
+    /// </summary>
+    Task<bool> DeleteAsync(string storageKey, CancellationToken cancellationToken = default);
 }
