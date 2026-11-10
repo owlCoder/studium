@@ -14,6 +14,13 @@ builder.Services.AddScoped<SearchCoursesHandler>();
 builder.Services.AddSingleton<IMaterialRepository, InMemoryMaterialRepository>();
 builder.Services.AddScoped<CreateMaterialHandler>();
 
+// ST-009 (US-05): dozvoljeni tipovi i maksimalna veličina priloga iz konfiguracije.
+// Nedostajuća ili neispravna konfiguracija zaustavlja pokretanje umesto da prihvati sve.
+var attachmentSection = builder.Configuration.GetSection("MaterialAttachments");
+builder.Services.AddSingleton(new AttachmentUploadPolicy(
+    attachmentSection.GetSection("AllowedExtensions").Get<string[]>() ?? [],
+    attachmentSection.GetValue<long>("MaxSizeInBytes")));
+
 var app = builder.Build();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
