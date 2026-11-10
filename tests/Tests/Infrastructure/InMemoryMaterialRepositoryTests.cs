@@ -65,7 +65,7 @@ public sealed class InMemoryMaterialRepositoryTests
         var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Staro", null);
         await repository.AddAsync(material);
 
-        material.UpdateDetails("Novo", "Novi opis");
+        material.UpdateDetails("Novo", "Novi opis", DateTimeOffset.UtcNow);
         await repository.UpdateAsync(material);
 
         var loaded = await repository.GetByIdAsync(material.Id);
