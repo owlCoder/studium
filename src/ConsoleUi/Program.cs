@@ -1,6 +1,10 @@
 using System.Text;
 using Application.Courses;
+using Application.Materials;
+using ConsoleUi.Materials;
+using Domain.Materials;
 using Infrastructure.Demo;
+using Infrastructure.Materials;
 
 Console.OutputEncoding = Encoding.UTF8;
 Console.WriteLine("STUDIUM | Demonstracija čitanja kataloga (nije ST-003)");
@@ -11,4 +15,21 @@ var courses = await handler.HandleAsync();
 foreach (var course in courses)
     Console.WriteLine($"{course.Code} — {course.Name}");
 
+// ST-009, US-02: forma za izmenu naziva i opisa nad sintetičkim materijalom u memoriji.
+// Podaci se ne čuvaju trajno; provera nastavnika izvođenja (ST-005) nije uključena.
+Console.WriteLine();
+Console.WriteLine("STUDIUM | ST-009 US-02: izmena materijala (sintetički podaci u memoriji)");
+
+var materials = new InMemoryMaterialRepository();
+var demoMaterial = new Material(Guid.NewGuid(), Guid.NewGuid(), "Predavanje 1", "Uvod u predmet");
+await materials.AddAsync(demoMaterial);
+
+var editForm = new EditMaterialDetailsForm(
+    materials,
+    new UpdateMaterialDetailsHandler(materials, TimeProvider.System),
+    Console.In,
+    Console.Out);
+await editForm.RunAsync(demoMaterial.Id);
+
+Console.WriteLine();
 Console.WriteLine("Sledeći korak: implementirati dodeljene zahteve iz specifikacije.");
