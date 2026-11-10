@@ -1,3 +1,5 @@
+using Domain.Notifications;
+
 namespace Application.Notifications;
 
 /// <summary>
@@ -11,5 +13,12 @@ public interface INotificationReader
     Task<bool> ExistsForEventAsync(
         Guid recipientId,
         string eventKey,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Vraća sva obaveštenja jednog primaoca (ST-017, US-3).
+    /// </summary>
+    Task<IReadOnlyList<Notification>> ListForRecipientAsync(
+        Guid recipientId,
         CancellationToken cancellationToken = default);
 }

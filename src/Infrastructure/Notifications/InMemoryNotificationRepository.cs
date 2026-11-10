@@ -40,6 +40,21 @@ public sealed class InMemoryNotificationRepository : INotificationWriter, INotif
         }
     }
 
+    public Task<IReadOnlyList<Notification>> ListForRecipientAsync(
+        Guid recipientId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (_sync)
+        {
+            IReadOnlyList<Notification> result = _notifications
+                .Where(n => n.RecipientId == recipientId)
+                .ToArray();
+            return Task.FromResult(result);
+        }
+    }
+
     private bool ContainsEvent(Guid recipientId, string eventKey) =>
         _notifications.Any(n =>
             n.RecipientId == recipientId &&
