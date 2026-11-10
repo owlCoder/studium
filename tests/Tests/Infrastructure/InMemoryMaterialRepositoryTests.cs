@@ -55,4 +55,42 @@ public sealed class InMemoryMaterialRepositoryTests
             async () => await repository.AddAsync(null!),
             Throws.TypeOf<ArgumentNullException>());
     }
+
+    // ST-009, US-02: čuvanje izmena
+
+    [Test]
+    public async Task UpdateAsync_StoresChangesOfExistingMaterial()
+    {
+        var repository = new InMemoryMaterialRepository();
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Staro", null);
+        await repository.AddAsync(material);
+
+        material.UpdateDetails("Novo", "Novi opis", DateTimeOffset.UtcNow);
+        await repository.UpdateAsync(material);
+
+        var loaded = await repository.GetByIdAsync(material.Id);
+        Assert.That(loaded!.Name, Is.EqualTo("Novo"));
+    }
+
+    [Test]
+    public async Task UpdateAsync_RejectsUnknownMaterialAndDoesNotAddIt()
+    {
+        var repository = new InMemoryMaterialRepository();
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Naziv", null);
+
+        Assert.That(
+            async () => await repository.UpdateAsync(material),
+            Throws.TypeOf<InvalidOperationException>());
+        Assert.That(await repository.GetByIdAsync(material.Id), Is.Null);
+    }
+
+    [Test]
+    public void UpdateAsync_RejectsNull()
+    {
+        var repository = new InMemoryMaterialRepository();
+
+        Assert.That(
+            async () => await repository.UpdateAsync(null!),
+            Throws.TypeOf<ArgumentNullException>());
+    }
 }
