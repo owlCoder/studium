@@ -1,6 +1,7 @@
 using Moq;
 using NUnit.Framework;
 using Application.Auth;
+using Application.Sessions;
 using Application.Users;
 using Domain.Users;
 
@@ -17,13 +18,23 @@ public sealed class LoginHandlerTests
     private const string DummyHash = "lazni-hes";
     private const string Password = "Sintetika-1";
 
+    private static readonly IssuedSession Issued =
+        new("token-1", new DateTimeOffset(2026, 11, 10, 20, 0, 0, TimeSpan.Zero));
+
     private static User AnaWith(bool isActive = true, string? hash = Hash) =>
         new(Guid.NewGuid(), "Ana.Petrovic", UserRole.Student, hash, isActive);
 
     /// <summary>Pravi handler; <paramref name="passwordMatches"/> određuje ishod provere lozinke.</summary>
     private static (LoginHandler Handler, Mock<IUserLookup> Users, Mock<IPasswordHasher> Hasher) Create(
-        User? existingUser, bool passwordMatches = true)
+        User? existingUser, bool passwordMatches = true, Mock<ISessionIssuer>? sessions = null)
     {
+        if (sessions is null)
+        {
+            sessions = new Mock<ISessionIssuer>();
+            sessions.Setup(x => x.IssueAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Issued);
+        }
+
         var users = new Mock<IUserLookup>();
         users.Setup(x => x.FindByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingUser);
@@ -33,7 +44,7 @@ public sealed class LoginHandlerTests
         hasher.Setup(x => x.Verify(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(passwordMatches);
 
-        return (new LoginHandler(users.Object, hasher.Object), users, hasher);
+        return (new LoginHandler(users.Object, hasher.Object, sessions.Object), users, hasher);
     }
 
     // ---------- Uspeh ----------
@@ -70,6 +81,54 @@ public sealed class LoginHandlerTests
         users.Verify(
             x => x.FindByUsernameAsync("ana.petrovic", It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    // ---------- Sesija ----------
+
+    [Test]
+    public async Task HandleAsync_IssuesSession_ForSuccessfulLogin()
+    {
+        var user = AnaWith();
+        var sessions = new Mock<ISessionIssuer>();
+        sessions.Setup(x => x.IssueAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Issued);
+        var (handler, _, _) = Create(user, sessions: sessions);
+
+        var result = await handler.HandleAsync(new LoginCommand("Ana.Petrovic", Password));
+
+        Assert.That(result.Session, Is.EqualTo(Issued));
+        sessions.Verify(
+            x => x.IssueAsync(user.Id, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task HandleAsync_DoesNotIssueSession_WhenLoginIsRejected()
+    {
+        var sessions = new Mock<ISessionIssuer>();
+        var scenarios = new (User? User, bool PasswordMatches, string? Username, string? Pass)[]
+        {
+            (null, true, "nepoznat", Password),                  // nepoznato ime
+            (AnaWith(), false, "Ana.Petrovic", "pogresna"),      // pogrešna lozinka
+            (AnaWith(hash: null), true, "Ana.Petrovic", Password), // aktivacija nije završena
+            (AnaWith(isActive: false), true, "Ana.Petrovic", Password), // deaktiviran nalog
+            (AnaWith(), true, "", Password)                      // prazan unos
+        };
+
+        foreach (var scenario in scenarios)
+        {
+            var (handler, _, _) = Create(scenario.User, scenario.PasswordMatches, sessions);
+
+            var result = await handler.HandleAsync(
+                new LoginCommand(scenario.Username, scenario.Pass));
+
+            Assert.That(result.Session, Is.Null);
+        }
+
+        // Odbijena prijava ne ostavlja nikakav zapis o sesiji.
+        sessions.Verify(
+            x => x.IssueAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     // ---------- Ista poruka za nepoznato ime i pogrešnu lozinku ----------
@@ -222,7 +281,8 @@ public sealed class LoginHandlerTests
         var users = new Mock<IUserLookup>();
         users.Setup(x => x.FindByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Izvor podataka nije dostupan."));
-        var handler = new LoginHandler(users.Object, Mock.Of<IPasswordHasher>());
+        var handler = new LoginHandler(
+            users.Object, Mock.Of<IPasswordHasher>(), Mock.Of<ISessionIssuer>());
 
         // Tehnička greška ne sme da izgleda kao "pogrešna lozinka".
         Assert.That(
