@@ -27,7 +27,6 @@ public sealed class EnrollmentGuardTests
         public Task<Enrollment?> GetActiveAsync(
             Guid courseOfferingId, Guid studentId, CancellationToken ct = default)
         {
-            // Imitira repozitorijum: vraća samo aktivno članstvo
             if (_enrollment is null || !_enrollment.IsActive)
                 return Task.FromResult<Enrollment?>(null);
 
@@ -38,7 +37,7 @@ public sealed class EnrollmentGuardTests
     // ---- testovi ----
 
     [Test]
-    public async Task EnsureCanSubmitWork_ActiveEnrollment_Allows()
+    public void EnsureCanSubmitWork_ActiveEnrollment_Allows()   // ← uklonjen async
     {
         var offeringId = Guid.NewGuid();
         var studentId = Guid.NewGuid();
