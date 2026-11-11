@@ -8,34 +8,41 @@ namespace Application.Materials;
 /// Redosled je zato uvek: provera ulaza i materijala → čuvanje sadržaja u skladištu →
 /// tek onda zapis priloga. Ako čuvanje ne uspe, izuzetak se prosleđuje i zapis se ne pravi.
 /// Ako čuvanje uspe, a upis zapisa ne uspe, sačuvani sadržaj se briše (US-06, tačka 2).
-/// NAPOMENA: provera pripadnosti nastavnom osoblju izvođenja (ST-005), ograničenje tipa
-/// i veličine (US-05) i prijava rezultata po datoteci za više datoteka (US-06, tačka 3)
-/// nisu deo ovog koraka.
+/// Ograničenje tipa i veličine (US-05): nedozvoljen tip se odbija pre čuvanja, a veličina
+/// se proverava na stvarno pročitanim bajtovima, pa prevelika datoteka ne ostaje u skladištu.
+/// NAPOMENA: provera pripadnosti nastavnom osoblju izvođenja (ST-005) i prijava rezultata
+/// po datoteci za više datoteka (US-06, tačka 3) nisu deo ovog koraka.
 /// </summary>
 public sealed class AttachFileToMaterialHandler
 {
     private readonly IMaterialRepository _materials;
     private readonly IMaterialAttachmentRepository _attachments;
     private readonly IAttachmentFileStorage _storage;
+    private readonly AttachmentUploadPolicy _policy;
 
     public AttachFileToMaterialHandler(
         IMaterialRepository materials,
         IMaterialAttachmentRepository attachments,
-        IAttachmentFileStorage storage)
+        IAttachmentFileStorage storage,
+        AttachmentUploadPolicy policy)
     {
         ArgumentNullException.ThrowIfNull(materials);
         ArgumentNullException.ThrowIfNull(attachments);
         ArgumentNullException.ThrowIfNull(storage);
+        ArgumentNullException.ThrowIfNull(policy);
 
         _materials = materials;
         _attachments = attachments;
         _storage = storage;
+        _policy = policy;
     }
 
     /// <summary>
     /// Vraća identifikator novog priloga ili <c>null</c> ako materijal ne postoji
     /// (tada se sadržaj ne čuva). Nevažeći naziv ili tip izazivaju
     /// <see cref="ArgumentException"/> pre bilo kakvog upisa u skladište.
+    /// Datoteka nedozvoljenog tipa ili prevelika datoteka izaziva
+    /// <see cref="AttachmentRejectedException"/>; tada nema ni zapisa ni sačuvanog sadržaja.
     /// </summary>
     public async Task<Guid?> HandleAsync(
         AttachFileToMaterialCommand command,
@@ -50,12 +57,24 @@ public sealed class AttachFileToMaterialHandler
         if (string.IsNullOrWhiteSpace(command.ContentType))
             throw new ArgumentException("Tip priloga je obavezan.", nameof(command));
 
+        // US-05: tip i (kada je poznata unapred) veličina proveravaju se pre čuvanja.
+        if (!_policy.IsAllowedFileName(command.OriginalFileName))
+            throw Rejected(AttachmentRejectionReason.UnsupportedType, command.OriginalFileName);
+        if (command.Content.CanSeek &&
+            !_policy.IsWithinMaxSize(command.Content.Length - command.Content.Position))
+            throw Rejected(AttachmentRejectionReason.TooLarge, command.OriginalFileName);
+
         var material = await _materials.GetByIdAsync(command.MaterialId, cancellationToken);
         if (material is null)
             return null;
 
         // Veličina se meri na stvarno sačuvanim bajtovima, ne na deklarisanoj vrednosti.
-        var counting = new ByteCountingStream(command.Content);
+        // Čim pročitani sadržaj pređe maksimum, čitanje se prekida (US-05); skladište tada
+        // ne zadržava delimičnu datoteku, a zapis priloga se ne pravi.
+        var counting = new ByteCountingStream(
+            command.Content,
+            _policy.MaxSizeInBytes,
+            () => Rejected(AttachmentRejectionReason.TooLarge, command.OriginalFileName));
         var storageKey = await _storage.SaveAsync(counting, cancellationToken);
 
         // Do ove tačke se dolazi samo ako je skladište potvrdilo čuvanje (vratilo ključ).
@@ -82,6 +101,15 @@ public sealed class AttachFileToMaterialHandler
         }
     }
 
+    private AttachmentRejectedException Rejected(AttachmentRejectionReason reason, string fileName)
+    {
+        var name = fileName.Trim();
+        var message = reason == AttachmentRejectionReason.UnsupportedType
+            ? $"Tip datoteke '{name}' nije dozvoljen."
+            : $"Datoteka '{name}' prelazi maksimalnu veličinu od {_policy.MaxSizeInBytes} bajtova.";
+        return new AttachmentRejectedException(reason, name, message);
+    }
+
     private async Task TryDeleteStoredContentAsync(string storageKey)
     {
         try
@@ -97,13 +125,21 @@ public sealed class AttachFileToMaterialHandler
     }
 
     /// <summary>
-    /// Omotač toka samo za čitanje koji broji pročitane bajtove.
+    /// Omotač toka samo za čitanje koji broji pročitane bajtove i prekida čitanje
+    /// izuzetkom čim broj pročitanih bajtova pređe dozvoljeni maksimum.
     /// </summary>
     private sealed class ByteCountingStream : Stream
     {
         private readonly Stream _inner;
+        private readonly long _maxBytes;
+        private readonly Func<Exception> _onLimitExceeded;
 
-        public ByteCountingStream(Stream inner) => _inner = inner;
+        public ByteCountingStream(Stream inner, long maxBytes, Func<Exception> onLimitExceeded)
+        {
+            _inner = inner;
+            _maxBytes = maxBytes;
+            _onLimitExceeded = onLimitExceeded;
+        }
 
         public long BytesRead { get; private set; }
 
@@ -119,16 +155,20 @@ public sealed class AttachFileToMaterialHandler
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            var read = _inner.Read(buffer, offset, count);
-            BytesRead += read;
-            return read;
+            return Count(_inner.Read(buffer, offset, count));
         }
 
         public override async ValueTask<int> ReadAsync(
             Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            var read = await _inner.ReadAsync(buffer, cancellationToken);
+            return Count(await _inner.ReadAsync(buffer, cancellationToken));
+        }
+
+        private int Count(int read)
+        {
             BytesRead += read;
+            if (BytesRead > _maxBytes)
+                throw _onLimitExceeded();
             return read;
         }
 

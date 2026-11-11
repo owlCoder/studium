@@ -92,4 +92,57 @@ public sealed class AttachmentUploadPolicyTests
 
         Assert.That(ex!.ParamName, Is.EqualTo("maxSizeInBytes"));
     }
+
+    // US-05, tačka 2: provera konkretne datoteke.
+
+    private static AttachmentUploadPolicy AgreedPolicy() => new(
+        new[] { ".pdf", ".docx", ".pptx", ".xlsx", ".txt", ".png", ".jpg", ".jpeg", ".zip" },
+        TwentyMegabytes);
+
+    [TestCase("skripta.pdf")]
+    [TestCase("SKRIPTA.PDF")]
+    [TestCase("  predavanje 1.pptx  ")]
+    [TestCase("tabela.v2.xlsx")]
+    [TestCase("slika.JpEg")]
+    public void IsAllowedFileName_AllowedExtension_ReturnsTrue(string fileName)
+    {
+        Assert.That(AgreedPolicy().IsAllowedFileName(fileName), Is.True);
+    }
+
+    [TestCase("program.exe")]
+    [TestCase("skripta.pdf.exe")]
+    [TestCase("arhiva.tar.gz")]
+    [TestCase("makro.docm")]
+    [TestCase("bez-ekstenzije")]
+    [TestCase("tacka-na-kraju.")]
+    [TestCase(".pdf.")]
+    public void IsAllowedFileName_NotAllowedExtension_ReturnsFalse(string fileName)
+    {
+        Assert.That(AgreedPolicy().IsAllowedFileName(fileName), Is.False);
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    public void IsAllowedFileName_BlankName_ReturnsFalse(string? fileName)
+    {
+        Assert.That(AgreedPolicy().IsAllowedFileName(fileName), Is.False);
+    }
+
+    [TestCase(0L)]
+    [TestCase(1L)]
+    [TestCase(TwentyMegabytes - 1)]
+    [TestCase(TwentyMegabytes)]
+    public void IsWithinMaxSize_UpToLimit_ReturnsTrue(long size)
+    {
+        Assert.That(AgreedPolicy().IsWithinMaxSize(size), Is.True);
+    }
+
+    [TestCase(TwentyMegabytes + 1)]
+    [TestCase(long.MaxValue)]
+    [TestCase(-1L)]
+    public void IsWithinMaxSize_OverLimitOrNegative_ReturnsFalse(long size)
+    {
+        Assert.That(AgreedPolicy().IsWithinMaxSize(size), Is.False);
+    }
 }
