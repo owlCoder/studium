@@ -13,6 +13,15 @@ public sealed class Enrollment
 
     public bool IsActive => Status == EnrollmentStatus.Active;
 
+    // Prekida članstvo — baca ako je već prekinuto.
+    public void End()
+    {
+        if (Status == EnrollmentStatus.Ended)
+            throw new InvalidOperationException("Članstvo je već prekinuto.");
+
+        Status = EnrollmentStatus.Ended;
+    }
+
     public Enrollment(
         Guid id,
         Guid studentId,
