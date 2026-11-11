@@ -18,11 +18,25 @@ foreach (var course in courses)
 // ST-009, US-02: forma za izmenu naziva i opisa nad sintetičkim materijalom u memoriji.
 // Podaci se ne čuvaju trajno; provera nastavnika izvođenja (ST-005) nije uključena.
 Console.WriteLine();
-Console.WriteLine("STUDIUM | ST-009 US-02: izmena materijala (sintetički podaci u memoriji)");
+Console.WriteLine("STUDIUM | ST-009: kreiranje i izmena materijala (sintetički podaci u memoriji)");
 
 var materials = new InMemoryMaterialRepository();
 var demoMaterial = new Material(Guid.NewGuid(), Guid.NewGuid(), "Predavanje 1", "Uvod u predmet");
 await materials.AddAsync(demoMaterial);
+
+// ST-009: forma za unos naziva i opisa novog materijala.
+// Sintetički nastavnik je angažovan na sintetičkom izvođenju samo za ovu demonstraciju;
+// stvarna provera osoblja (ST-005) i prijava (ST-002) još nisu integrisane.
+var demoTeacherId = Guid.NewGuid();
+var demoOfferingId = Guid.NewGuid();
+var createForm = new CreateMaterialForm(
+    new CreateMaterialHandler(
+        materials,
+        new InMemoryOfferingStaffChecker([(demoTeacherId, demoOfferingId)])),
+    Console.In,
+    Console.Out);
+await createForm.RunAsync(demoTeacherId, demoOfferingId);
+Console.WriteLine();
 
 var editForm = new EditMaterialDetailsForm(
     materials,
