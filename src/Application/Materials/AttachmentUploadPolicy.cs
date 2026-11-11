@@ -38,7 +38,36 @@ public sealed class AttachmentUploadPolicy
 
         AllowedExtensions = normalized;
         MaxSizeInBytes = maxSizeInBytes;
+        AllowedExtensionsDisplay = string.Join(", ", normalized.Order(StringComparer.Ordinal));
+        MaxSizeDisplay = FormatSize(maxSizeInBytes);
     }
+
+    /// <summary>
+    /// Dozvoljene ekstenzije za prikaz korisniku, azbučno i odvojene zarezom
+    /// (npr. <c>.docx, .pdf, .zip</c>).
+    /// </summary>
+    public string AllowedExtensionsDisplay { get; }
+
+    /// <summary>
+    /// Maksimalna veličina za prikaz korisniku (npr. <c>20 MB</c>), gde je 1 MB = 1024 × 1024 bajtova.
+    /// </summary>
+    public string MaxSizeDisplay { get; }
+
+    private static string FormatSize(long bytes)
+    {
+        const long kilobyte = 1024;
+        const long megabyte = kilobyte * 1024;
+
+        if (bytes >= megabyte)
+            return OneDecimalRoundedDown(bytes, megabyte) + " MB";
+        if (bytes >= kilobyte)
+            return OneDecimalRoundedDown(bytes, kilobyte) + " KB";
+        return bytes.ToString(System.Globalization.CultureInfo.InvariantCulture) + " B";
+    }
+
+    // Zaokružuje se naniže, da prikazana granica nikad ne bude veća od stvarne.
+    private static string OneDecimalRoundedDown(long bytes, long unit) =>
+        (Math.Floor(bytes * 10.0 / unit) / 10).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Da li je tip datoteke dozvoljen, prema ekstenziji iz izvornog naziva

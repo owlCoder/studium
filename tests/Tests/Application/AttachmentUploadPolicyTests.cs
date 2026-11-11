@@ -145,4 +145,38 @@ public sealed class AttachmentUploadPolicyTests
     {
         Assert.That(AgreedPolicy().IsWithinMaxSize(size), Is.False);
     }
+
+    // US-05, tačka 3: prikaz pravila korisniku u poruci o grešci.
+
+    [Test]
+    public void AllowedExtensionsDisplay_AgreedPolicy_IsSortedAndCommaSeparated()
+    {
+        Assert.That(
+            AgreedPolicy().AllowedExtensionsDisplay,
+            Is.EqualTo(".docx, .jpeg, .jpg, .pdf, .png, .pptx, .txt, .xlsx, .zip"));
+    }
+
+    [Test]
+    public void AllowedExtensionsDisplay_ShowsNormalizedExtensionsOnce()
+    {
+        var policy = new AttachmentUploadPolicy(new[] { " .ZIP", ".pdf", ".PDF" }, TwentyMegabytes);
+
+        Assert.That(policy.AllowedExtensionsDisplay, Is.EqualTo(".pdf, .zip"));
+    }
+
+    [TestCase(TwentyMegabytes, "20 MB")]
+    [TestCase(1024L * 1024, "1 MB")]
+    [TestCase(1024L * 1024 * 3 / 2, "1.5 MB")]
+    [TestCase(TwentyMegabytes - 1, "19.9 MB")]
+    [TestCase(1024L * 1024 - 1, "1023.9 KB")]
+    [TestCase(500L * 1024, "500 KB")]
+    [TestCase(1024L, "1 KB")]
+    [TestCase(1023L, "1023 B")]
+    [TestCase(1L, "1 B")]
+    public void MaxSizeDisplay_IsReadableAndNeverAboveRealLimit(long maxSize, string expected)
+    {
+        var policy = new AttachmentUploadPolicy(new[] { ".pdf" }, maxSize);
+
+        Assert.That(policy.MaxSizeDisplay, Is.EqualTo(expected));
+    }
 }

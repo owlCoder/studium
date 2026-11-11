@@ -322,6 +322,48 @@ public sealed class AttachFileToMaterialHandlerTests
             () => new AttachFileToMaterialHandler(_materials, _attachments, storage, null!));
     }
 
+    // US-05, tačka 3: jasna poruka o grešci pri odbijenoj datoteci.
+
+    [Test]
+    public void HandleAsync_NotAllowedType_MessageNamesFileAndListsAllowedTypes()
+    {
+        var handler = CreateHandler(new Mock<IAttachmentFileStorage>(MockBehavior.Strict).Object);
+
+        var ex = Assert.ThrowsAsync<AttachmentRejectedException>(() => handler.HandleAsync(
+            new AttachFileToMaterialCommand(_material.Id, " program.exe ", "application/octet-stream", Content("x"))));
+
+        Assert.That(ex!.Message, Is.EqualTo(
+            "Datoteka 'program.exe' nije priložena: tip datoteke nije dozvoljen. " +
+            "Dozvoljeni tipovi: .docx, .jpeg, .jpg, .pdf, .png, .pptx, .txt, .xlsx, .zip."));
+    }
+
+    [Test]
+    public void HandleAsync_TooLargeSeekableContent_MessageNamesFileAndReadableLimit()
+    {
+        var handler = CreateHandler(new Mock<IAttachmentFileStorage>(MockBehavior.Strict).Object);
+        var tooLarge = new MemoryStream(new byte[20 * 1024 * 1024 + 1]);
+
+        var ex = Assert.ThrowsAsync<AttachmentRejectedException>(() => handler.HandleAsync(
+            new AttachFileToMaterialCommand(_material.Id, "velika.pdf", "application/pdf", tooLarge)));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ex!.Message, Is.EqualTo("Datoteka 'velika.pdf' nije priložena: veća je od dozvoljenih 20 MB."));
+            Assert.That(ex.Message, Does.Not.Contain("bajt"));
+        });
+    }
+
+    [Test]
+    public void HandleAsync_TooLargeNonSeekableContent_MessageIsSameAsForKnownSize()
+    {
+        var handler = CreateHandler(new LocalDiskAttachmentFileStorage(_root), SmallLimitPolicy(maxBytes: 1024));
+
+        var ex = Assert.ThrowsAsync<AttachmentRejectedException>(() => handler.HandleAsync(
+            new AttachFileToMaterialCommand(_material.Id, "velika.pdf", "application/pdf", new NonSeekableStream(new byte[2048]))));
+
+        Assert.That(ex!.Message, Is.EqualTo("Datoteka 'velika.pdf' nije priložena: veća je od dozvoljenih 1 KB."));
+    }
+
     private static AttachmentUploadPolicy SmallLimitPolicy(long maxBytes) =>
         new(new[] { ".pdf" }, maxBytes);
 
