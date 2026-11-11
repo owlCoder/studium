@@ -59,6 +59,10 @@ internal sealed class StudentImportFixture
     public PreviewStudentImportHandler PreviewFor(Guid? accountId, string? role)
         => new(AuthorizerFor(accountId, role), OfferingGuard, Parser, Classifier, FileReader);
 
+    public ConfirmStudentImportHandler ConfirmFor(Guid? accountId, string? role)
+        => new(AuthorizerFor(accountId, role), OfferingGuard, Parser, Classifier,
+               Processor, UnitOfWork, Clock, FileReader);
+
     /// <summary>Пример из спецификације: 20 редова, 2 дупликата, 1 ред без корисничког имена.</summary>
     public const string SpecExample =
         "firstname,lastname,username,email\n" +

@@ -142,7 +142,20 @@ public sealed class UlazDatotekeTests
             Throws.TypeOf<ImportFileRejectedException>().With.Message.Contains("predugacko"));
     }
 
+    [Test]
+    public async Task Potvrda_Iz_Datoteke_Uz_Izbor_Obradjuje_Samo_Oznacene()
+    {
+        var fixture = new StudentImportFixture();
+        var bytes = new UTF8Encoding(false)
+            .GetBytes("firstname,lastname,username\nAna,Anić,ana.anic\nMarko,Marković,marko.markovic\n");
 
+        var result = await fixture.ConfirmFor(fixture.AdminId, AccountRoles.Administrator)
+            .HandleAsync(fixture.OfferingId, Bytes(bytes), new[] { 3 });
+
+        Assert.That(result.CreatedAccountCount, Is.EqualTo(1));
+        Assert.That(await fixture.Accounts.FindByUsernameAsync("ana.anic"), Is.Null);
+        Assert.That(await fixture.Accounts.FindByUsernameAsync("marko.markovic"), Is.Not.Null);
+    }
 
     /// <summary>Мери потрошене бајтове без ослањања на Length или Seek.</summary>
     private sealed class CountingInput(int totalBytes) : Stream

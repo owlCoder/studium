@@ -51,7 +51,22 @@ public sealed class CsvRobusnostTests
             Throws.TypeOf<ImportFileRejectedException>().With.Message.Contains("navodnik"));
     }
 
+    [Test]
+    public async Task Odbijena_Datoteka_Ne_Menja_Nijedan_Zapis()
+    {
+        var fixture = new StudentImportFixture();
 
+        Assert.ThrowsAsync<ImportFileRejectedException>(async () =>
+            await fixture.ConfirmFor(fixture.AdminId, AccountRoles.Administrator)
+                .HandleAsync(
+                    fixture.OfferingId,
+                    "firstname,lastname,username\nMarko,Markovic,marko.markovic\nAna,\"Anić,ana.anic\n"));
+
+        Assert.That(fixture.Activations.ActivationRequested, Is.Empty);
+        Assert.That(fixture.Enrollments.Count, Is.Zero);
+        Assert.That(await fixture.Accounts.FindByUsernameAsync("ana.anic"), Is.Null);
+        Assert.That(await fixture.Accounts.FindByUsernameAsync("marko.markovic"), Is.Null);
+    }
 
     /// <summary>Тачка-зарез у пољу под наводницима није раздељивач.</summary>
     [Test]
