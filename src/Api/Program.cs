@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Application.Courses;
 using Application.Materials;
 using Infrastructure.Demo;
@@ -13,6 +14,8 @@ builder.Services.AddScoped<SearchCoursesHandler>();
 // ST-009: memorijsko skladište materijala do odluke o bazi (ADR).
 builder.Services.AddSingleton<IMaterialRepository, InMemoryMaterialRepository>();
 builder.Services.AddScoped<CreateMaterialHandler>();
+// ST-005 još nije integrisan: privremeni adapter bez angažovanja odbija sve (403).
+builder.Services.AddSingleton<IOfferingStaffChecker>(_ => new InMemoryOfferingStaffChecker());
 
 // ST-009 (US-05): dozvoljeni tipovi i maksimalna veličina priloga iz konfiguracije.
 // Nedostajuća ili neispravna konfiguracija zaustavlja pokretanje umesto da prihvati sve.
@@ -45,36 +48,47 @@ app.MapGet("/courses", async (
 });
 
 // ST-009: kreiranje materijala kao nacrta na konkretnom izvođenju.
-// Provera nastavnog osoblja izvođenja (ST-005) još NIJE dodata.
+// Redosled: 401 bez identiteta -> 403 ako korisnik nije nastavno osoblje
+// izvođenja (ST-005) -> 400 za neispravne podatke -> 201.
+// Identitet se čita iz ClaimsPrincipal (NameIdentifier); dok ST-002 ne doda
+// autentifikaciju, svaki zahtev dobija 401.
 app.MapPost("/offerings/{offeringId:guid}/materials", async (
     Guid offeringId,
     CreateMaterialRequest request,
+    HttpContext httpContext,
     CreateMaterialHandler handler,
     CancellationToken cancellationToken) =>
 {
-    if (string.IsNullOrWhiteSpace(request.Name))
+    var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (!Guid.TryParse(userIdClaim, out var userId) || userId == Guid.Empty)
     {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["name"] = ["Naziv materijala je obavezan."]
-        });
+        return Results.Unauthorized();
     }
 
     try
     {
         var id = await handler.HandleAsync(
-            new CreateMaterialCommand(offeringId, request.Name, request.Description),
+            new CreateMaterialCommand(userId, offeringId, request.Name ?? string.Empty, request.Description),
             cancellationToken);
 
         return Results.Created(
             $"/offerings/{offeringId}/materials/{id}",
             new CreateMaterialResponse(id, "Draft"));
     }
+    catch (MaterialAccessDeniedException ex)
+    {
+        // Results.Forbid() zahteva registrovanu autentifikaciju koje još nema.
+        return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status403Forbidden);
+    }
     catch (ArgumentException ex)
     {
+        var message = ex.ParamName is null
+            ? ex.Message
+            : ex.Message.Replace($" (Parameter '{ex.ParamName}')", string.Empty);
+
         return Results.ValidationProblem(new Dictionary<string, string[]>
         {
-            [ex.ParamName ?? "request"] = [ex.Message]
+            [ex.ParamName ?? "request"] = [message]
         });
     }
 });
