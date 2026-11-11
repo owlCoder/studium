@@ -35,8 +35,14 @@ public sealed class AttachFileToMaterialHandlerTests
             Directory.Delete(_root, recursive: true);
     }
 
-    private AttachFileToMaterialHandler CreateHandler(IAttachmentFileStorage storage) =>
-        new(_materials, _attachments, storage);
+    // Dogovorena pravila tima za US-05 (iste vrednosti kao u src/Api/appsettings.json).
+    private static readonly AttachmentUploadPolicy Policy = new(
+        new[] { ".pdf", ".docx", ".pptx", ".xlsx", ".txt", ".png", ".jpg", ".jpeg", ".zip" },
+        20L * 1024 * 1024);
+
+    private AttachFileToMaterialHandler CreateHandler(
+        IAttachmentFileStorage storage, AttachmentUploadPolicy? policy = null) =>
+        new(_materials, _attachments, storage, policy ?? Policy);
 
     private static MemoryStream Content(string text) => new(Encoding.UTF8.GetBytes(text));
 
@@ -163,7 +169,7 @@ public sealed class AttachFileToMaterialHandlerTests
         attachments
             .Setup(a => a.AddAsync(It.IsAny<MaterialAttachment>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Upis zapisa nije uspeo."));
-        var handler = new AttachFileToMaterialHandler(_materials, attachments.Object, storage);
+        var handler = new AttachFileToMaterialHandler(_materials, attachments.Object, storage, Policy);
 
         Assert.ThrowsAsync<InvalidOperationException>(() => handler.HandleAsync(new AttachFileToMaterialCommand(
             _material.Id, "skripta.pdf", "application/pdf", Content("sadrzaj"))));
@@ -204,7 +210,7 @@ public sealed class AttachFileToMaterialHandlerTests
         attachments
             .Setup(a => a.AddAsync(It.IsAny<MaterialAttachment>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Upis zapisa nije uspeo."));
-        var handler = new AttachFileToMaterialHandler(_materials, attachments.Object, storage.Object);
+        var handler = new AttachFileToMaterialHandler(_materials, attachments.Object, storage.Object, Policy);
 
         var ex = Assert.ThrowsAsync<InvalidOperationException>(() => handler.HandleAsync(
             new AttachFileToMaterialCommand(_material.Id, "skripta.pdf", "application/pdf", Content("sadrzaj"))));
@@ -227,6 +233,97 @@ public sealed class AttachFileToMaterialHandlerTests
 
         storage.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    // US-05, tačka 2: provera tipa i veličine na serveru.
+
+    [TestCase("program.exe")]
+    [TestCase("skripta.pdf.exe")]
+    [TestCase("bez-ekstenzije")]
+    public void HandleAsync_NotAllowedType_RejectedBeforeSavingFile(string fileName)
+    {
+        var storage = new Mock<IAttachmentFileStorage>(MockBehavior.Strict);
+        var handler = CreateHandler(storage.Object);
+
+        var ex = Assert.ThrowsAsync<AttachmentRejectedException>(() => handler.HandleAsync(
+            new AttachFileToMaterialCommand(_material.Id, fileName, "application/octet-stream", Content("sadrzaj"))));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ex!.Reason, Is.EqualTo(AttachmentRejectionReason.UnsupportedType));
+            Assert.That(ex.FileName, Is.EqualTo(fileName));
+            Assert.That(_attachments.ListByMaterialAsync(_material.Id).Result, Is.Empty);
+        });
+        storage.VerifyNoOtherCalls();
+    }
+
+    [Test]
+    public void HandleAsync_TooLargeSeekableContent_RejectedBeforeSavingFile()
+    {
+        var storage = new Mock<IAttachmentFileStorage>(MockBehavior.Strict);
+        var handler = CreateHandler(storage.Object, SmallLimitPolicy(maxBytes: 10));
+
+        var ex = Assert.ThrowsAsync<AttachmentRejectedException>(() => handler.HandleAsync(
+            new AttachFileToMaterialCommand(_material.Id, "skripta.pdf", "application/pdf", new MemoryStream(new byte[11]))));
+
+        Assert.That(ex!.Reason, Is.EqualTo(AttachmentRejectionReason.TooLarge));
+        storage.VerifyNoOtherCalls();
+    }
+
+    [Test]
+    public async Task HandleAsync_TooLargeNonSeekableContent_RejectedAndNothingLeft()
+    {
+        var handler = CreateHandler(new LocalDiskAttachmentFileStorage(_root), SmallLimitPolicy(maxBytes: 1000));
+
+        var ex = Assert.ThrowsAsync<AttachmentRejectedException>(() => handler.HandleAsync(
+            new AttachFileToMaterialCommand(_material.Id, "skripta.pdf", "application/pdf", new NonSeekableStream(new byte[1001]))));
+
+        var stored = await _attachments.ListByMaterialAsync(_material.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(ex!.Reason, Is.EqualTo(AttachmentRejectionReason.TooLarge));
+            Assert.That(stored, Is.Empty);
+            Assert.That(Directory.GetFiles(_root), Is.Empty, "Na disku ne sme ostati ni privremena datoteka.");
+        });
+    }
+
+    [Test]
+    public async Task HandleAsync_NonSeekableContentExactlyAtLimit_IsSaved()
+    {
+        var handler = CreateHandler(new LocalDiskAttachmentFileStorage(_root), SmallLimitPolicy(maxBytes: 1000));
+
+        var id = await handler.HandleAsync(new AttachFileToMaterialCommand(
+            _material.Id, "skripta.pdf", "application/pdf", new NonSeekableStream(new byte[1000])));
+
+        var stored = await _attachments.ListByMaterialAsync(_material.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(id, Is.Not.Null);
+            Assert.That(stored.Single().SizeInBytes, Is.EqualTo(1000));
+        });
+    }
+
+    [Test]
+    public async Task HandleAsync_AllowedTypeWithUpperCaseExtension_IsSaved()
+    {
+        var handler = CreateHandler(new LocalDiskAttachmentFileStorage(_root));
+
+        var id = await handler.HandleAsync(new AttachFileToMaterialCommand(
+            _material.Id, "SKRIPTA.PDF", "application/pdf", Content("sadrzaj")));
+
+        Assert.That(id, Is.Not.Null);
+    }
+
+    [Test]
+    public void Constructor_RequiresPolicy()
+    {
+        var storage = new LocalDiskAttachmentFileStorage(_root);
+
+        Assert.Throws<ArgumentNullException>(
+            () => new AttachFileToMaterialHandler(_materials, _attachments, storage, null!));
+    }
+
+    private static AttachmentUploadPolicy SmallLimitPolicy(long maxBytes) =>
+        new(new[] { ".pdf" }, maxBytes);
 
     /// <summary>Skladište koje otkaže zahtev odmah posle uspešnog čuvanja.</summary>
     private sealed class CancelAfterSaveStorage : IAttachmentFileStorage
