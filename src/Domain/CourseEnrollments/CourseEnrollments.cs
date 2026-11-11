@@ -22,12 +22,16 @@ public sealed class CourseEnrollment
 
     public CourseEnrollment(Guid id, Guid courseExecutionId, Guid studentId, DateTime enrolledAt)
     {
-        if (id == Guid.Empty)
+        if (id == Guid.Empty) {  
             throw new ArgumentException("Identifikator upisa mora biti zadat.", nameof(id));
+        }
         if (courseExecutionId == Guid.Empty)
+        {
             throw new ArgumentException("Identifikator izvođenja je obavezan.", nameof(courseExecutionId));
-        if (studentId == Guid.Empty)
+        }
+        if (studentId == Guid.Empty) { 
             throw new ArgumentException("Identifikator studenta je obavezan.", nameof(studentId));
+        }
 
         Id = id;
         CourseExecutionId = courseExecutionId;
@@ -38,8 +42,9 @@ public sealed class CourseEnrollment
 
     public void Terminate()
     {
-        if (Status == EnrollmentStatus.Terminated)
+        if (Status == EnrollmentStatus.Terminated) { 
             throw new InvalidOperationException("Članstvo je već prekinuto.");
+        }
 
         Status = EnrollmentStatus.Terminated;
     }

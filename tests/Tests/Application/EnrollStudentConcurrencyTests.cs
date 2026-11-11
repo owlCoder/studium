@@ -17,7 +17,7 @@ public sealed class EnrollStudentConcurrencyTests
     public async Task HandleAsync_ParallelRequests_OnlyOneSucceeds()
     {
         var repo = new InMemoryCourseEnrollmentRepository();
-        var checker = new AllowAllCourseExecutionPermissionChecker();
+        var checker = new AlwaysAllowTestChecker();
         var handler = new EnrollStudentHandler(repo, checker);
 
         var teacherId = Guid.NewGuid();
@@ -26,7 +26,7 @@ public sealed class EnrollStudentConcurrencyTests
 
         var command = new EnrollStudentCommand(teacherId, executionId, studentId);
 
-        // Pokrećemo 10 paralelnih zahteva za upis u isto vreme
+        
         var tasks = Enumerable.Range(0, 10)
             .Select(_ => Task.Run(async () =>
             {
@@ -44,7 +44,16 @@ public sealed class EnrollStudentConcurrencyTests
 
         var results = await Task.WhenAll(tasks);
 
-        // Tačno jedan zahtev mora da uspe, ostalih 9 moraju da padnu sa InvalidOperationException
+        
         Assert.That(results.Count(r => r == true), Is.EqualTo(1));
+    }
+
+    private sealed class AlwaysAllowTestChecker : ICourseExecutionPermissionChecker
+    {
+        public Task<bool> CanTeacherManageExecutionAsync(
+            Guid teacherId,
+            Guid courseExecutionId,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult(true);
     }
 }

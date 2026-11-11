@@ -13,12 +13,15 @@ public sealed class Course
 
     public Course(Guid id, string code, string name)
     {
-        if (id == Guid.Empty)
+        if (id == Guid.Empty) { 
             throw new ArgumentException("Identifikator mora biti zadat.", nameof(id));
-        if (string.IsNullOrWhiteSpace(code))
+        }
+        if (string.IsNullOrWhiteSpace(code)) { 
             throw new ArgumentException("Oznaka predmeta je obavezna.", nameof(code));
-        if (string.IsNullOrWhiteSpace(name))
+        }
+        if (string.IsNullOrWhiteSpace(name)) { 
             throw new ArgumentException("Naziv predmeta je obavezan.", nameof(name));
+        }
 
         Id = id;
         Code = code.Trim().ToUpperInvariant();

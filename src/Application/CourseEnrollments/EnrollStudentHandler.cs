@@ -26,7 +26,9 @@ public sealed class EnrollStudentHandler
     public async Task<Guid> HandleAsync(EnrollStudentCommand command, CancellationToken cancellationToken = default)
     {
         if (command.TeacherId == Guid.Empty)
+        {
             throw new UnauthorizedAccessException("Korisnik nije autentifikovan.");
+        }
 
         var hasPermission = await _permissionChecker.CanTeacherManageExecutionAsync(command.TeacherId, command.CourseExecutionId, cancellationToken);
         if (!hasPermission)
