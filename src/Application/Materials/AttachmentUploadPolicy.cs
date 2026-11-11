@@ -3,7 +3,8 @@ namespace Application.Materials;
 /// <summary>
 /// Pravila za priloge nastavnog materijala (ST-009, US-05): dozvoljene ekstenzije
 /// datoteka i maksimalna veličina jednog priloga. Vrednosti se zadaju konfiguracijom
-/// u spoljnom sloju (<c>Api</c>). Provera konkretne datoteke nije deo ove klase.
+/// u spoljnom sloju (<c>Api</c>). Klasa proverava naziv i veličinu konkretne datoteke,
+/// a slučaj upotrebe otpremanja odlučuje šta se dešava sa odbijenom datotekom.
 /// </summary>
 public sealed class AttachmentUploadPolicy
 {
@@ -38,6 +39,26 @@ public sealed class AttachmentUploadPolicy
         AllowedExtensions = normalized;
         MaxSizeInBytes = maxSizeInBytes;
     }
+
+    /// <summary>
+    /// Da li je tip datoteke dozvoljen, prema ekstenziji iz izvornog naziva
+    /// (bez obzira na velika i mala slova). Proverava se samo poslednja ekstenzija,
+    /// pa se npr. <c>skripta.pdf.exe</c> odbija. Naziv bez ekstenzije nije dozvoljen.
+    /// </summary>
+    public bool IsAllowedFileName(string? fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+            return false;
+
+        var extension = Path.GetExtension(fileName.Trim());
+        return extension.Length > 1 && AllowedExtensions.Contains(extension.ToLowerInvariant());
+    }
+
+    /// <summary>
+    /// Da li veličina u bajtovima ne prelazi dozvoljeni maksimum (granica je uključena).
+    /// </summary>
+    public bool IsWithinMaxSize(long sizeInBytes) =>
+        sizeInBytes >= 0 && sizeInBytes <= MaxSizeInBytes;
 
     private static string NormalizeExtension(string? extension)
     {
