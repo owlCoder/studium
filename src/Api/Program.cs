@@ -1,9 +1,12 @@
+using Api;
 using Application.Auth;
 using Application.Courses;
+using Application.Sessions;
 using Application.Time;
 using Application.Users;
 using Infrastructure.Demo;
 using Infrastructure.Security;
+using Infrastructure.Sessions;
 using Infrastructure.Time;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +24,13 @@ builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<IUserLookup>(
     sp => DemoData.CreateUserLookup(sp.GetRequiredService<IPasswordHasher>()));
 builder.Services.AddSingleton<LoginHandler>();
+
+// ST-002 Sesija: neprozirni nasumični token, na serveru se čuva samo njegov heš.
+builder.Services.AddSingleton(new SessionSettings(TimeSpan.FromHours(8)));
+builder.Services.AddSingleton<ISessionStore, InMemorySessionStore>();
+builder.Services.AddSingleton<ISessionTokenProvider, SecureSessionTokenProvider>();
+builder.Services.AddSingleton<ISessionIssuer, SessionIssuer>();
+builder.Services.AddSingleton<ResolveSessionHandler>();
 
 var app = builder.Build();
 
@@ -57,7 +67,8 @@ app.MapPost("/api/auth/login", async (
 
     if (result.Succeeded)
     {
-        return Results.Ok(result.Identity);
+        return Results.Ok(new LoginResponse(
+            result.Session!.Token, result.Session.ExpiresAt, result.Identity!));
     }
 
     return result.Failure switch
@@ -70,7 +81,28 @@ app.MapPost("/api/auth/login", async (
     };
 });
 
+// ST-002 Sesija: proverava token iz zaglavlja "Authorization: Bearer ...".
+// Dijagnostički endpoint za proveru sesije;
+app.MapGet("/api/auth/session", async (
+    HttpRequest request,
+    ResolveSessionHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    Guid? userId = await handler.HandleAsync(BearerToken.Read(request), cancellationToken);
+
+    return userId is null
+        ? Results.Json(new { error = "Sesija ne važi." },
+            statusCode: StatusCodes.Status401Unauthorized)
+        : Results.Ok(new { userId });
+});
+
 app.Run();
 
 /// <summary>HTTP ulaz prijave.</summary>
 public sealed record LoginRequest(string? Username, string? Password);
+
+/// <summary>HTTP izlaz uspešne prijave: token (vidi se samo ovde), rok isteka i identitet.</summary>
+public sealed record LoginResponse(
+    string Token,
+    DateTimeOffset ExpiresAt,
+    AuthenticatedIdentity Identity);
