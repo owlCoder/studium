@@ -159,6 +159,27 @@ public sealed class StrukturaTests
     }
 
     [Test]
+    public async Task Procesor_Razlikuje_Novi_Nalog_Od_Postojeceg()
+    {
+        var fixture = new StudentImportFixture();
+        fixture.Accounts.Seed("postoji.vec", Guid.NewGuid());
+
+        var existing = await fixture.Processor.ProcessAsync(
+            new ParsedStudentRow(2, "postoji.vec", "Već", "Postoji", null!), fixture.OfferingId,
+            StudentImportFixture.Now);
+
+        var fresh = await fixture.Processor.ProcessAsync(
+            new ParsedStudentRow(3, "nova.student", "Nova", "Student", null!), fixture.OfferingId,
+            StudentImportFixture.Now);
+
+        Assert.That(existing.Outcome, Is.EqualTo(RowWriteOutcome.Written));
+        Assert.That(existing.CreatedAccount, Is.False);
+        Assert.That(fresh.Outcome, Is.EqualTo(RowWriteOutcome.Written));
+        Assert.That(fresh.CreatedAccount, Is.True);
+        Assert.That(fixture.Activations.ActivationRequested, Has.Count.EqualTo(1));
+    }
+
+    [Test]
     public void Nazivi_Kolona_Prate_Oblik_Korisnika_Iz_ST001()
     {
         // Исти подаци, два записа истог облика: енглески и српски назив поља.

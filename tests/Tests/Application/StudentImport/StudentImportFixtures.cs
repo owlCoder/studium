@@ -49,6 +49,8 @@ internal sealed class StudentImportFixture
 
     public IImportRowClassifier Classifier => new ImportRowClassifier(Accounts, Enrollments);
 
+    public IImportRowProcessor Processor => new ImportRowProcessor(Accounts, Enrollments, Activations);
+
     public IStudentOfferingGuard OfferingGuard => new StudentOfferingGuard(Offerings);
 
     public IStudentImportAuthorizer AuthorizerFor(Guid? accountId, string? role)
