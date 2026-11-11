@@ -21,4 +21,11 @@ public interface INotificationReader
     Task<IReadOnlyList<Notification>> ListForRecipientAsync(
         Guid recipientId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Vraća obaveštenje po identifikatoru ili null ako ne postoji (ST-017, US-4).
+    /// </summary>
+    Task<Notification?> GetByIdAsync(
+        Guid notificationId,
+        CancellationToken cancellationToken = default);
 }

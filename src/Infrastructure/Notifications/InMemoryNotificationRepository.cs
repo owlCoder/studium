@@ -55,6 +55,34 @@ public sealed class InMemoryNotificationRepository : INotificationWriter, INotif
         }
     }
 
+    public Task<Notification?> GetByIdAsync(
+        Guid notificationId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (_sync)
+        {
+            return Task.FromResult(_notifications.FirstOrDefault(n => n.Id == notificationId));
+        }
+    }
+
+    public Task SaveAsync(Notification notification, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(notification);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (_sync)
+        {
+            var index = _notifications.FindIndex(n => n.Id == notification.Id);
+            if (index < 0)
+                throw new InvalidOperationException("Obaveštenje ne postoji u skladištu.");
+
+            _notifications[index] = notification;
+            return Task.CompletedTask;
+        }
+    }
+
     private bool ContainsEvent(Guid recipientId, string eventKey) =>
         _notifications.Any(n =>
             n.RecipientId == recipientId &&
