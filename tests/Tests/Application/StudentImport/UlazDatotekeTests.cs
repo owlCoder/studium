@@ -105,7 +105,21 @@ public sealed class UlazDatotekeTests
         Assert.That(stream.BytesRead, Is.LessThan(stream.TotalBytes));
     }
 
+    /// <summary>Крајњи ток: датотека → текст → предлог, са дијакритиком очуваном.</summary>
+    [Test]
+    public async Task Dijakritika_Se_Cuva_Kroz_Ceo_Tok()
+    {
+        var fixture = new StudentImportFixture();
+        var bytes = new UTF8Encoding(true)
+            .GetBytes("firstname,lastname,username\nĐorđe,Đorđević,đorđe.đorđević\n");
 
+        bytes = new UTF8Encoding(true).GetPreamble().Concat(bytes).ToArray();
+        var preview = await fixture.PreviewFor(fixture.AdminId, AccountRoles.Administrator)
+            .HandleAsync(fixture.OfferingId, Bytes(bytes));
+
+        Assert.That(preview.Rows.Single().Username, Is.EqualTo("đorđe.đorđević"));
+        Assert.That(preview.Rows.Single().Status, Is.EqualTo(RowStatus.Ispravan));
+    }
 
     [Test]
     public void Predugacko_Polje_Se_Odbija()

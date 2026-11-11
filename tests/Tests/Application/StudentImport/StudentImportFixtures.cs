@@ -54,6 +54,9 @@ internal sealed class StudentImportFixture
     public IStudentImportAuthorizer AuthorizerFor(Guid? accountId, string? role)
         => new StudentImportAuthorizer(new SimpleCurrentUser(accountId, role), Assignments);
 
+    public PreviewStudentImportHandler PreviewFor(Guid? accountId, string? role)
+        => new(AuthorizerFor(accountId, role), OfferingGuard, Parser, Classifier, FileReader);
+
     /// <summary>Пример из спецификације: 20 редова, 2 дупликата, 1 ред без корисничког имена.</summary>
     public const string SpecExample =
         "firstname,lastname,username,email\n" +

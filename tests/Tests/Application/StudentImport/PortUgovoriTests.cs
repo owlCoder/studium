@@ -214,3 +214,63 @@ public sealed class OstaliPortoviUgovorTests
         Assert.That(parsed, Is.EqualTo(AccountRole.Nastavnik));
     }
 }
+
+/// <summary>
+/// Архитектонске провере се покрећу посебно: <c>dotnet test --filter
+/// "FullyQualifiedName~ArhitektonskeGraniceTests"</c>.
+/// </summary>
+[TestFixture]
+[Category("Architecture")]
+[Explicit("Konvencije celog repozitorijuma: pokrenuti samo eksplicitno, ne u standardnom test batchu.")]
+public sealed class ArhitektonskeGraniceTests
+{
+    [Test]
+    public void Domain_Ne_Zavisi_Ni_Od_Jednog_Drugog_Projektnog_Sloja()
+    {
+        var forbidden = new[] { "Application", "Infrastructure", "Api", "ConsoleUi" };
+        var referenced = typeof(global::Domain.Courses.Course).Assembly
+            .GetReferencedAssemblies()
+            .Select(a => a.Name)
+            .ToArray();
+
+        Assert.That(referenced.Intersect(forbidden), Is.Empty);
+    }
+
+    [Test]
+    public void Application_Ne_Zavisi_Od_Infrastrukture_Ni_Ulaznih_Slojeva()
+    {
+        var forbidden = new[] { "Infrastructure", "Api", "ConsoleUi" };
+        var referenced = typeof(PreviewStudentImportHandler).Assembly
+            .GetReferencedAssemblies()
+            .Select(a => a.Name)
+            .ToArray();
+
+        Assert.That(referenced.Intersect(forbidden), Is.Empty);
+    }
+
+    [Test]
+    public void Domain_I_Application_Nemaju_Nativne_Interop_Atribute()
+    {
+        var assemblies = new[]
+        {
+            typeof(global::Domain.Courses.Course).Assembly,
+            typeof(PreviewStudentImportHandler).Assembly,
+        };
+
+        var nativeMethods = assemblies
+            .SelectMany(a => a.GetTypes())
+            .SelectMany(t => t.GetMethods(
+                System.Reflection.BindingFlags.Public
+                | System.Reflection.BindingFlags.NonPublic
+                | System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.Static
+                | System.Reflection.BindingFlags.DeclaredOnly))
+            .Where(m =>
+                (m.Attributes & System.Reflection.MethodAttributes.PinvokeImpl) != 0
+                || m.CustomAttributes.Any(ca =>
+                    ca.AttributeType.Name is "DllImportAttribute" or "LibraryImportAttribute"))
+            .ToArray();
+
+        Assert.That(nativeMethods, Is.Empty);
+    }
+}
