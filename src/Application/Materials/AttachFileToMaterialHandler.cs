@@ -105,8 +105,9 @@ public sealed class AttachFileToMaterialHandler
     {
         var name = fileName.Trim();
         var message = reason == AttachmentRejectionReason.UnsupportedType
-            ? $"Tip datoteke '{name}' nije dozvoljen."
-            : $"Datoteka '{name}' prelazi maksimalnu veličinu od {_policy.MaxSizeInBytes} bajtova.";
+            ? $"Datoteka '{name}' nije priložena: tip datoteke nije dozvoljen. " +
+              $"Dozvoljeni tipovi: {_policy.AllowedExtensionsDisplay}."
+            : $"Datoteka '{name}' nije priložena: veća je od dozvoljenih {_policy.MaxSizeDisplay}.";
         return new AttachmentRejectedException(reason, name, message);
     }
 
