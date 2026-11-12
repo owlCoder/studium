@@ -125,3 +125,6 @@ public sealed record LoginResponse(
     string Token,
     DateTimeOffset ExpiresAt,
     AuthenticatedIdentity Identity);
+
+/// <summary>Omogućava integracionim testovima da pokrenu aplikaciju.</summary>
+public partial class Program { }
