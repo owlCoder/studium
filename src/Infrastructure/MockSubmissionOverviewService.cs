@@ -74,6 +74,17 @@ public class MockSubmissionOverviewService : ISubmissionOverviewService
         return Task.FromResult<IReadOnlyList<SubmissionOverviewDto>>(result);
     }
 
+    public Task<TaskSubmissionReviewLists> GetTaskSubmissionReviewAsync(
+        Guid taskId,
+        Guid requestingMemberId)
+    {
+        EnsureAuthorized(requestingMemberId);
+
+        var lists = ClassifyTask(taskId);
+
+        return Task.FromResult(lists);
+    }
+    
     public Task<SubmissionStatusCountsDto> GetStatusCountsForTaskAsync(Guid taskId, Guid requestingMemberId)
     {
         EnsureAuthorized(requestingMemberId);
