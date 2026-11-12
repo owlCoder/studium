@@ -1,8 +1,12 @@
 using System.Security.Claims;
+using Api.Identity;
 using Application.Courses;
 using Application.Engagements;
 using Application.Enrollments;
+using Application.Identity;
 using Infrastructure.Demo;
+using Infrastructure.Identity;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +22,24 @@ builder.Services.AddScoped<ListStudentOfferingsHandler>();
 builder.Services.AddSingleton<IStaffOfferingsReader>(_ => DemoData.CreateStaffOfferingsReader());
 builder.Services.AddScoped<ListMyOfferingsHandler>();
 
+// US-7.5: identitet iz sesije. Privremeni memorijski adapteri dok se ne integrišu ST-001 i ST-002;
+// tada se samo ove dve registracije porta preusmere na njihove evidencije.
+builder.Services.AddSingleton<InMemorySessionReader>();
+builder.Services.AddSingleton<ISessionReader>(sp => sp.GetRequiredService<InMemorySessionReader>());
+builder.Services.AddSingleton<InMemoryAccountStatusReader>();
+builder.Services.AddSingleton<IAccountStatusReader>(sp => sp.GetRequiredService<InMemoryAccountStatusReader>());
+builder.Services.AddScoped<ResolveSessionUserHandler>();
+builder.Services
+    .AddAuthentication(SessionAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(
+        SessionAuthenticationHandler.SchemeName, _ => { });
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
+
+// US-7.5: svaki zahtev prolazi proveru sesije pre endpointa.
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
@@ -42,7 +63,7 @@ app.MapGet("/courses", async (
 });
 
 // US-7.1: identitet se uzima samo iz sesije (claim NameIdentifier), nikad iz zahtjeva.
-// Dok US-7.5 ne uvede autentifikaciju, endpoint uvek vraća 401. Dijana
+// US-7.5: bez važeće sesije i aktivnog naloga zahtev se odbija sa 401.
 app.MapGet("/api/student/izvodjenja", async (
     ClaimsPrincipal user,
     ListStudentOfferingsHandler handler,
@@ -56,7 +77,7 @@ app.MapGet("/api/student/izvodjenja", async (
 
     var offerings = await handler.HandleAsync(studentId, cancellationToken);
     return Results.Ok(offerings);
-});
+}).RequireAuthorization();
 
 // US-7.2: obe liste prijavljenog korisnika („Predajem” i „Upisan sam”), bez duplikata.
 app.MapGet("/api/moja-izvodjenja", async (
@@ -72,6 +93,16 @@ app.MapGet("/api/moja-izvodjenja", async (
 
     var offerings = await handler.HandleAsync(userId, cancellationToken);
     return Results.Ok(offerings);
-});
+}).RequireAuthorization();
+
+// US-7.5: vraća ID prijavljenog korisnika, uzet isključivo iz sesije.
+app.MapGet("/api/ja", (ClaimsPrincipal user) =>
+        user.TryGetSessionUserId(out var userId)
+            ? Results.Ok(new { userId })
+            : Results.Unauthorized())
+    .RequireAuthorization();
 
 app.Run();
+
+// US-7.5: omogućava HTTP testove preko WebApplicationFactory<Program>.
+public partial class Program { }
