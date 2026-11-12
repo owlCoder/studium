@@ -78,13 +78,51 @@ public sealed class MaterialExternalLinkTests
     }
 
     [TestCase("example.org/predavanje")]
+    [TestCase("www.example.org")]
     [TestCase("materijali/predavanje-1")]
+    [TestCase("/materijali/predavanje-1")]
     [TestCase("https://")]
+    [TestCase("https:example.org")]
+    [TestCase("https:/example.org")]
+    [TestCase("https:///example.org")]
+    [TestCase("https://exa mple.org")]
     [TestCase("nije adresa")]
-    public void Constructor_RejectsMalformedOrRelativeUrl(string url)
+    public void Constructor_RejectsIncompleteOrMalformedUrl(string url)
     {
         Assert.That(
             () => new MaterialExternalLink(Guid.NewGuid(), Guid.NewGuid(), url),
             Throws.TypeOf<ArgumentException>().With.Property("ParamName").EqualTo("url"));
+    }
+
+    [TestCase("javascript:alert(1)")]
+    [TestCase("mailto:nastavnik@example.org")]
+    [TestCase("ftp://example.org/predavanje.pdf")]
+    [TestCase("file:///C:/materijali/predavanje.pdf")]
+    [TestCase("data:text/html,<b>x</b>")]
+    public void Constructor_RejectsNonWebScheme(string url)
+    {
+        Assert.That(
+            () => new MaterialExternalLink(Guid.NewGuid(), Guid.NewGuid(), url),
+            Throws.TypeOf<ArgumentException>()
+                .With.Property("ParamName").EqualTo("url")
+                .And.Message.Contains("http:// ili https://"));
+    }
+
+    [TestCase("https://example.org", "https")]
+    [TestCase("http://example.org", "http")]
+    [TestCase("HTTPS://Example.org/Predavanje", "https")]
+    public void Constructor_AcceptsHttpAndHttpsRegardlessOfCase(string url, string expectedScheme)
+    {
+        var link = new MaterialExternalLink(Guid.NewGuid(), Guid.NewGuid(), url);
+
+        Assert.That(link.Url.Scheme, Is.EqualTo(expectedScheme));
+    }
+
+    [Test]
+    public void Constructor_RejectedUrlExplainsExpectedFormat()
+    {
+        Assert.That(
+            () => new MaterialExternalLink(Guid.NewGuid(), Guid.NewGuid(), "www.example.org"),
+            Throws.TypeOf<ArgumentException>().With.Message.Contains("https://"));
     }
 }
