@@ -8,6 +8,9 @@ using Infrastructure.Demo;
 using Infrastructure.Security;
 using Infrastructure.Sessions;
 using Infrastructure.Time;
+using Application.Access;
+using Domain.Users;
+using Infrastructure.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,13 +19,24 @@ builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader())
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
 
+// ST-003 Aktivacija predmeta
+builder.Services.AddSingleton<ICourseStatusRepository>(_ => DemoData.CreateCourseStatusRepository());
+builder.Services.AddScoped<ActivateCourseHandler>();
+builder.Services.AddScoped<AuthorizeRequestHandler>();
+
 // ST-002 osnova: heširanje lozinki i jedinstven izvor vremena
 builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 builder.Services.AddSingleton<IClock, SystemClock>();
 
 // ST-002 Prijava: handler zavisi od portova, a ovde se biraju konkretne implementacije.
+// Demo korisnici se prave jednom (heširanje lozinki je namerno sporo), pa ih dele
+// prijava (IUserLookup) i provera ovlašćenja (IAccountReader).
+builder.Services.AddSingleton<IReadOnlyList<User>>(
+    sp => DemoData.CreateUsers(sp.GetRequiredService<IPasswordHasher>()));
 builder.Services.AddSingleton<IUserLookup>(
-    sp => DemoData.CreateUserLookup(sp.GetRequiredService<IPasswordHasher>()));
+    sp => new InMemoryUserLookup(sp.GetRequiredService<IReadOnlyList<User>>()));
+builder.Services.AddSingleton<IAccountReader>(
+    sp => new InMemoryAccountReader(sp.GetRequiredService<IReadOnlyList<User>>()));
 builder.Services.AddSingleton<LoginHandler>();
 
 // ST-002 Sesija: neprozirni nasumični token, na serveru se čuva samo njegov heš.
@@ -94,6 +108,42 @@ app.MapGet("/api/auth/session", async (
         ? Results.Json(new { error = "Sesija ne važi." },
             statusCode: StatusCodes.Status401Unauthorized)
         : Results.Ok(new { userId });
+});
+// ST-003 Aktivacija predmeta. Sme samo Administrator.
+// Tok: token -> korisnik (sesija) -> uloga (AuthorizeRequestHandler) -> slučaj upotrebe.
+app.MapPost("/courses/{id:guid}/activate", async (
+    Guid id,
+    HttpRequest request,
+    ResolveSessionHandler sessions,
+    AuthorizeRequestHandler authorization,
+    ActivateCourseHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    Guid? userId = await sessions.HandleAsync(BearerToken.Read(request), cancellationToken);
+
+    var decision = await authorization.HandleAsync(
+        userId, new[] { UserRole.Administrator }, cancellationToken);
+
+    if (decision == AccessDecision.Unauthenticated)
+    {
+        return Results.Json(new { error = "Niste prijavljeni." },
+            statusCode: StatusCodes.Status401Unauthorized);
+    }
+
+    if (decision == AccessDecision.Forbidden)
+    {
+        return Results.Json(new { error = "Nemate pravo da aktivirate predmet." },
+            statusCode: StatusCodes.Status403Forbidden);
+    }
+
+    var result = await handler.HandleAsync(id, cancellationToken);
+
+    return result switch
+    {
+        ActivateCourseResult.NotFound =>
+            Results.NotFound(new { error = "Predmet ne postoji." }),
+        _ => Results.Ok(new { id, isActive = true, result = result.ToString() })
+    };
 });
 
 app.Run();
