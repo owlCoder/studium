@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="720" viewBox="0 0 2000 720" font-family="DejaVu Sans, Verdana, Segoe UI, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5f7085"/>
+    </marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b77b8"/>
+    </marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f8a66"/>
+    </marker>
+  </defs>
+  <style>
+    .t { font-size: 14px; fill: #1f3047; text-anchor: middle; }
+    .s { font-size: 12.5px; fill: #3e5066; text-anchor: middle; }
+    .lbl { font-size: 11.5px; fill: #4c5d72; }
+    .grp { font-size: 15px; text-anchor: middle; }
+    .line { stroke: #6b7c90; stroke-width: 1.5; fill: none; marker-end: url(#a); }
+    .dash { stroke: #8b77b8; stroke-width: 1.5; fill: none; stroke-dasharray: 6 5; marker-end: url(#ap); }
+    .green { stroke: #2f8a66; stroke-width: 1.5; fill: none; marker-end: url(#ag); }
+    .uc { fill: #d9f1e6; stroke: #a7dcc4; stroke-width: 1.5; }
+    .ucp { fill: #eef8f3; stroke: #a7dcc4; stroke-width: 1.5; stroke-dasharray: 6 4; }
+    .inf { fill: #ece6f7; stroke: #cdbfe6; stroke-width: 1.5; }
+    .infp { fill: #f5f2fb; stroke: #cdbfe6; stroke-width: 1.5; stroke-dasharray: 6 4; }
+    .dom { fill: #fff2cf; stroke: #edd593; stroke-width: 1.5; }
+    .db { fill: #ece6f7; stroke: #cdbfe6; stroke-width: 1.5; }
+  </style>
+
+  <rect width="2000" height="720" fill="#f8fafc"/>
+  <text x="1000" y="44" class="t" style="font-size:30px">STUDIUM | ST-009 + ST-010 — dijagram arhitekture</text>
+
+  <!-- Akteri -->
+  <ellipse cx="170" cy="270" rx="145" ry="42" fill="#d9ebfb" stroke="#a9cdee" stroke-width="1.5"/>
+  <text x="170" y="265" class="t">Korisnici</text>
+  <text x="170" y="285" class="s">(nastavnik / student)</text>
+
+  <rect x="40" y="400" width="265" height="80" rx="14" fill="#e6f5ec" stroke="#a7dcc4" stroke-width="1.5"/>
+  <text x="172" y="428" class="t">Ostali moduli STUDIUM-a</text>
+  <text x="172" y="448" class="s">ST-002 prijava · ST-005 osoblje</text>
+  <text x="172" y="466" class="s">ST-006 upis studenata</text>
+
+  <!-- Ulazni adapteri -->
+  <rect x="400" y="190" width="235" height="170" rx="14" fill="#eef5fc" stroke="#c6dcf2" stroke-width="1.2"/>
+  <text x="517" y="214" class="grp" fill="#3a6f99">ULAZNI ADAPTERI</text>
+  <rect x="420" y="235" width="195" height="95" rx="12" fill="#d9ebfb" stroke="#a9cdee" stroke-width="1.5"/>
+  <text x="517" y="270" class="t">Api / ConsoleUi</text>
+  <text x="517" y="290" class="s">HTTP ulaz i</text>
+  <text x="517" y="307" class="s">demonstracija</text>
+
+  <!-- Application -->
+  <rect x="720" y="100" width="640" height="420" rx="16" fill="#f0f9f4" stroke="#b9e3cf" stroke-width="1.2"/>
+  <text x="1040" y="124" class="grp" fill="#2b6e52">APPLICATION | slučajevi upotrebe</text>
+
+  <rect x="750" y="140" width="260" height="70" rx="12" class="uc"/>
+  <text x="880" y="166" class="t">ST-009 Materijali</text>
+  <text x="880" y="186" class="s">kreiranje · izmena</text>
+  <text x="880" y="202" class="s">objava / povlačenje (planirano)</text>
+
+  <rect x="750" y="230" width="260" height="70" rx="12" class="uc"/>
+  <text x="880" y="256" class="t">ST-009 Prilozi i veze</text>
+  <text x="880" y="276" class="s">otpremanje · tip i veličina</text>
+  <text x="880" y="292" class="s">spoljne veze</text>
+
+  <rect x="750" y="320" width="260" height="70" rx="12" class="ucp"/>
+  <text x="880" y="346" class="t">ST-009 Pregled i preuzimanje</text>
+  <text x="880" y="366" class="s">student · samo objavljeno</text>
+  <text x="880" y="382" class="s">(planirano)</text>
+
+  <rect x="750" y="410" width="260" height="80" rx="12" class="ucp"/>
+  <text x="880" y="436" class="t">ST-010 Organizacija</text>
+  <text x="880" y="456" class="s">celine i fascikle · redosled</text>
+  <text x="880" y="472" class="s">premeštanje (planirano)</text>
+
+  <rect x="1080" y="190" width="260" height="230" rx="12" fill="#ffffff" stroke="#a7dcc4" stroke-width="1.5"/>
+  <text x="1210" y="216" class="t">PORTOVI / INTERFEJSI</text>
+  <text x="1210" y="244" class="s">IMaterialRepository</text>
+  <text x="1210" y="266" class="s">IMaterialAttachmentRepository</text>
+  <text x="1210" y="288" class="s">IAttachmentFileStorage</text>
+  <text x="1210" y="310" class="s">IOfferingStaffChecker</text>
+  <text x="1210" y="340" class="s" style="fill:#7a6aa6">provera članstva (ST-006)</text>
+  <text x="1210" y="360" class="s" style="fill:#7a6aa6">repozitorijum fascikli (ST-010)</text>
+  <text x="1210" y="380" class="s" style="fill:#7a6aa6">— planirano</text>
+
+  <!-- Infrastructure -->
+  <rect x="1440" y="100" width="530" height="330" rx="16" fill="#f6f3fb" stroke="#d9cdee" stroke-width="1.2"/>
+  <text x="1705" y="124" class="grp" fill="#6a56a0">INFRASTRUCTURE | adapteri</text>
+
+  <rect x="1465" y="140" width="250" height="60" rx="12" class="inf"/>
+  <text x="1590" y="165" class="s" style="fill:#1f3047; font-size:11px">InMemoryMaterialRepository</text>
+  <text x="1590" y="184" class="s" style="fill:#1f3047; font-size:11px">InMemoryMaterialAttachmentRepository</text>
+
+  <rect x="1465" y="230" width="250" height="60" rx="12" class="inf"/>
+  <text x="1590" y="256" class="s" style="fill:#1f3047">LocalDiskAttachmentFileStorage</text>
+  <text x="1590" y="275" class="s">(ADR-0001)</text>
+
+  <rect x="1465" y="320" width="250" height="80" rx="12" class="inf"/>
+  <text x="1590" y="346" class="s" style="fill:#1f3047">InMemoryOfferingStaffChecker</text>
+  <text x="1590" y="365" class="s">privremeno, odbija sve</text>
+  <text x="1590" y="383" class="s">adapter za ST-005 — planirano</text>
+
+  <!-- Skladišta -->
+  <g>
+    <path d="M1765,145 v60 a90,10 0 0 0 180,0 v-60" class="db"/>
+    <ellipse cx="1855" cy="145" rx="90" ry="10" class="db"/>
+    <text x="1855" y="172" class="s" style="fill:#1f3047">Skladište materijala</text>
+    <text x="1855" y="190" class="s" style="font-size:11px">sada: memorija</text>
+    <text x="1855" y="205" class="s" style="font-size:11px">kasnije: DB</text>
+  </g>
+  <g>
+    <path d="M1765,235 v60 a90,10 0 0 0 180,0 v-60" class="db"/>
+    <ellipse cx="1855" cy="235" rx="90" ry="10" class="db"/>
+    <text x="1855" y="264" class="s" style="fill:#1f3047">Datoteke priloga</text>
+    <text x="1855" y="283" class="s">lokalni disk</text>
+  </g>
+
+  <!-- Domain -->
+  <rect x="1000" y="555" width="960" height="140" rx="16" fill="#fff9ea" stroke="#f0dca4" stroke-width="1.2"/>
+  <text x="1480" y="579" class="grp" fill="#8a6a16">DOMAIN | pravila i model</text>
+  <rect x="1030" y="595" width="420" height="80" rx="12" class="dom"/>
+  <text x="1240" y="620" class="s" style="fill:#1f3047">Material • MaterialAttachment</text>
+  <text x="1240" y="639" class="s" style="fill:#1f3047">MaterialExternalLink • MaterialPublicationState</text>
+  <text x="1240" y="658" class="s" style="fill:#7a6aa6">fascikla / celina (ST-010) — planirano</text>
+  <rect x="1500" y="595" width="430" height="80" rx="12" class="dom"/>
+  <text x="1715" y="617" class="s" style="fill:#1f3047">Invarijante i politika</text>
+  <text x="1715" y="636" class="s">naziv obavezan • novo = nacrt • prilog nasleđuje pristup</text>
+  <text x="1715" y="654" class="s">fascikla nije sopstveni potomak • premeštanje</text>
+  <text x="1715" y="670" class="s">ne menja ID • neprazna fascikla se ne uklanja</text>
+  <line x1="1450" y1="635" x2="1500" y2="635" stroke="#c9ad5c" stroke-dasharray="3 3"/>
+
+  <!-- Tokovi -->
+  <line x1="315" y1="272" x2="418" y2="280" class="line"/>
+  <text x="318" y="262" class="lbl">zahtev / odgovor</text>
+
+  <line x1="615" y1="270" x2="748" y2="175" class="line"/>
+  <line x1="615" y1="280" x2="748" y2="265" class="line"/>
+  <line x1="615" y1="292" x2="748" y2="355" class="line"/>
+  <line x1="615" y1="305" x2="748" y2="450" class="line"/>
+
+  <line x1="1010" y1="175" x2="1078" y2="230" class="line"/>
+  <line x1="1010" y1="265" x2="1078" y2="275" class="line"/>
+  <line x1="1010" y1="355" x2="1078" y2="330" class="line"/>
+  <line x1="1010" y1="450" x2="1078" y2="390" class="line"/>
+  <text x="1020" y="308" class="lbl">pozivi</text>
+
+  <polyline points="880,490 880,635 1028,635" class="line"/>
+  <text x="890" y="600" class="lbl">model i pravila</text>
+
+  <polyline points="305,420 345,420 345,82 1210,82 1210,188" class="green"/>
+  <text x="560" y="74" class="lbl">identitet · osoblje izvođenja · članstvo studenta</text>
+
+  <line x1="1340" y1="235" x2="1463" y2="170" class="dash"/>
+  <line x1="1340" y1="290" x2="1463" y2="260" class="dash"/>
+  <line x1="1340" y1="320" x2="1463" y2="355" class="dash"/>
+  <text x="1350" y="372" class="lbl">implementira</text>
+
+  <line x1="1715" y1="170" x2="1763" y2="170" class="line"/>
+  <line x1="1715" y1="260" x2="1763" y2="260" class="line"/>
+  <text x="1712" y="222" class="lbl" style="font-size:10.5px">čita / upisuje</text>
+
+  <!-- Legenda -->
+  <line x1="60" y1="590" x2="105" y2="590" class="line"/>
+  <text x="115" y="594" class="lbl">poziv / tok</text>
+  <line x1="60" y1="620" x2="105" y2="620" class="dash"/>
+  <text x="115" y="624" class="lbl">implementira</text>
+  <line x1="60" y1="650" x2="105" y2="650" class="green"/>
+  <text x="115" y="654" class="lbl">zavisnost od drugih modula</text>
+  <rect x="60" y="668" width="45" height="22" rx="5" fill="#eef8f3" stroke="#a7dcc4" stroke-dasharray="5 4"/>
+  <text x="115" y="684" class="lbl">planirano (još nije implementirano)</text>
+</svg>

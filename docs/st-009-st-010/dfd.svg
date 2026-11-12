@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1150" viewBox="0 0 2000 1150" font-family="DejaVu Sans, Verdana, Segoe UI, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5f7085"/>
+    </marker>
+  </defs>
+  <style>
+    .t { font-size: 15px; fill: #1f3047; text-anchor: middle; }
+    .s { font-size: 13px; fill: #3e5066; text-anchor: middle; }
+    .lbl { font-size: 12px; fill: #4c5d72; }
+    .line { stroke: #5f7085; stroke-width: 1.6; fill: none; marker-end: url(#a); }
+    .dash { stroke: #5f7085; stroke-width: 1.5; fill: none; stroke-dasharray: 7 5; marker-end: url(#a); }
+    .plain { stroke: #5f7085; stroke-width: 1.6; fill: none; }
+    .proc { fill: #d6f1e5; stroke: #a7dcc4; stroke-width: 2; }
+    .procp { fill: #e9f7f0; stroke: #a7dcc4; stroke-width: 2; stroke-dasharray: 8 5; }
+    .ent { fill: #ddedfb; stroke: #a9cdee; stroke-width: 2; }
+    .store { fill: #fff3d1; stroke: #e2c983; stroke-width: 2; }
+    .storep { fill: #fff8e6; stroke: #e2c983; stroke-width: 2; stroke-dasharray: 8 5; }
+  </style>
+
+  <rect width="2000" height="1150" fill="#f8fafc"/>
+  <text x="1000" y="56" class="t" style="font-size:34px">STUDIUM | ST-009 + ST-010 — DFD nivo 1</text>
+
+  <!-- Aplikaciona granica -->
+  <rect x="760" y="140" width="540" height="975" rx="22" fill="#f1f9f5" stroke="#b9e3cf" stroke-width="1.5"/>
+  <text x="1030" y="170" class="t" style="font-size:17px; fill:#2b6e52">APLIKACIONA GRANICA: nastavni materijali</text>
+
+  <!-- Procesi -->
+  <ellipse cx="1050" cy="255" rx="200" ry="62" class="proc"/>
+  <text x="1050" y="238" class="t">1.0  Uređivanje materijala</text>
+  <text x="1050" y="260" class="s">ST-009: kreiraj nacrt, izmeni,</text>
+  <text x="1050" y="279" class="s">objavi / povuci</text>
+
+  <ellipse cx="1050" cy="455" rx="200" ry="62" class="proc"/>
+  <text x="1050" y="438" class="t">2.0  Prilozi i veze</text>
+  <text x="1050" y="460" class="s">ST-009: proveri tip i veličinu,</text>
+  <text x="1050" y="479" class="s">sačuvaj datoteku, pa zapis</text>
+
+  <ellipse cx="1050" cy="655" rx="200" ry="62" class="procp"/>
+  <text x="1050" y="638" class="t">3.0  Organizacija materijala</text>
+  <text x="1050" y="660" class="s">ST-010: celine i fascikle,</text>
+  <text x="1050" y="679" class="s">redosled, premeštanje</text>
+
+  <ellipse cx="1050" cy="855" rx="200" ry="62" class="procp"/>
+  <text x="1050" y="838" class="t">4.0  Pregled i preuzimanje</text>
+  <text x="1050" y="860" class="s">ST-009/010: student vidi samo</text>
+  <text x="1050" y="879" class="s">objavljeno u svom izvođenju</text>
+
+  <ellipse cx="1050" cy="1040" rx="200" ry="58" class="proc"/>
+  <text x="1050" y="1025" class="t">5.0  Odluka o pristupu</text>
+  <text x="1050" y="1047" class="s">osoblje izvođenja (ST-005) /</text>
+  <text x="1050" y="1066" class="s">članstvo studenta (ST-006)</text>
+
+  <!-- Spoljni entiteti -->
+  <rect x="40" y="395" width="260" height="110" rx="18" class="ent"/>
+  <text x="170" y="445" class="t" style="font-size:17px">Nastavnik</text>
+  <text x="170" y="468" class="t" style="font-size:17px">(nastavno osoblje)</text>
+
+  <rect x="40" y="800" width="260" height="110" rx="18" class="ent"/>
+  <text x="170" y="850" class="t" style="font-size:17px">Student</text>
+  <text x="170" y="873" class="t" style="font-size:17px">(član izvođenja)</text>
+
+  <rect x="40" y="990" width="260" height="100" rx="18" class="ent"/>
+  <text x="170" y="1028" class="t" style="font-size:17px">Ostali moduli</text>
+  <text x="170" y="1052" class="t" style="font-size:17px">STUDIUM-a</text>
+
+  <!-- Skladišta -->
+  <g>
+    <path d="M1640,212 v76 a140,13 0 0 0 280,0 v-76" class="store"/>
+    <ellipse cx="1780" cy="212" rx="140" ry="13" class="store"/>
+    <text x="1780" y="250" class="t" style="font-size:17px">D1 | Materijali</text>
+    <text x="1780" y="273" class="s">naziv, opis, izvođenje, stanje</text>
+  </g>
+  <g>
+    <path d="M1640,412 v76 a140,13 0 0 0 280,0 v-76" class="store"/>
+    <ellipse cx="1780" cy="412" rx="140" ry="13" class="store"/>
+    <text x="1780" y="450" class="t" style="font-size:17px">D2 | Prilozi i veze</text>
+    <text x="1780" y="473" class="s">izvorni naziv, tip, veličina, adresa</text>
+  </g>
+  <g>
+    <path d="M1640,540 v66 a140,13 0 0 0 280,0 v-66" class="store"/>
+    <ellipse cx="1780" cy="540" rx="140" ry="13" class="store"/>
+    <text x="1780" y="575" class="t" style="font-size:17px">D3 | Datoteke priloga</text>
+    <text x="1780" y="597" class="s">lokalni disk (ADR-0001)</text>
+  </g>
+  <g>
+    <path d="M1640,662 v76 a140,13 0 0 0 280,0 v-76" class="storep"/>
+    <ellipse cx="1780" cy="662" rx="140" ry="13" class="storep"/>
+    <text x="1780" y="700" class="t" style="font-size:17px">D4 | Celine i fascikle</text>
+    <text x="1780" y="723" class="s">nadređena, redosled (planirano)</text>
+  </g>
+
+  <!-- Nastavnik <-> 1.0 -->
+  <polyline points="300,410 400,240 848,240" class="line"/>
+  <text x="440" y="232" class="lbl">naziv, opis, objavi / povuci</text>
+  <polyline points="852,272 440,272 302,422" class="line"/>
+  <text x="450" y="290" class="lbl">ishod: nacrt / objavljen / povučen</text>
+
+  <!-- Nastavnik <-> 2.0 -->
+  <polyline points="302,440 430,440 848,440" class="line"/>
+  <text x="450" y="432" class="lbl">datoteke, adrese veza</text>
+  <polyline points="852,472 430,472 302,465" class="line"/>
+  <text x="450" y="490" class="lbl">sačuvano / odbijeno (tip, veličina)</text>
+
+  <!-- Nastavnik <-> 3.0 -->
+  <polyline points="300,485 420,640 848,640" class="line"/>
+  <text x="450" y="632" class="lbl">celine, fascikle, redosled, premeštanje</text>
+  <polyline points="852,672 440,672 300,500" class="line"/>
+  <text x="450" y="690" class="lbl">struktura / odbijeno (ciklus, neprazna fascikla)</text>
+
+  <!-- Student <-> 4.0 -->
+  <polyline points="302,840 848,840" class="line"/>
+  <text x="450" y="832" class="lbl">pregled, preuzimanje priloga</text>
+  <polyline points="852,872 302,872" class="line"/>
+  <text x="450" y="890" class="lbl">opis, dostupni prilozi, struktura</text>
+
+  <!-- Ostali moduli -> 5.0 -->
+  <polyline points="302,1040 848,1040" class="line"/>
+  <text x="400" y="1032" class="lbl">identitet (ST-002), osoblje (ST-005), članstvo (ST-006)</text>
+
+  <!-- 5.0 -> procesi -->
+  <polyline points="905,1000 905,960 795,960 795,318" class="plain" style="stroke-dasharray:7 5"/>
+  <line x1="795" y1="318" x2="895" y2="300" class="dash"/>
+  <line x1="795" y1="510" x2="895" y2="500" class="dash"/>
+  <line x1="795" y1="710" x2="895" y2="700" class="dash"/>
+  <line x1="795" y1="910" x2="895" y2="900" class="dash"/>
+  <text x="783" y="760" class="lbl" transform="rotate(-90 783 760)">dozvoli / odbij</text>
+
+  <!-- Procesi -> skladišta -->
+  <polyline points="1250,250 1638,250" class="line"/>
+  <text x="1300" y="242" class="lbl">upis nacrta, izmena, stanje objave</text>
+
+  <polyline points="1250,450 1638,450" class="line"/>
+  <text x="1300" y="442" class="lbl">metapodaci priloga, veze</text>
+
+  <polyline points="1230,485 1420,575 1638,575" class="line"/>
+  <text x="1440" y="567" class="lbl">sadržaj datoteke</text>
+  <text x="1440" y="595" class="lbl">(prvo disk, pa zapis)</text>
+
+  <polyline points="1250,665 1638,700" class="dash"/>
+  <text x="1300" y="660" class="lbl">fascikle, redosled, raspored materijala</text>
+
+  <!-- Skladišta -> 4.0 -->
+  <polyline points="1920,250 1960,250 1960,870 1252,870" class="dash"/>
+  <line x1="1920" y1="450" x2="1960" y2="450" class="plain" style="stroke-dasharray:7 5"/>
+  <line x1="1920" y1="575" x2="1960" y2="575" class="plain" style="stroke-dasharray:7 5"/>
+  <line x1="1920" y1="700" x2="1960" y2="700" class="plain" style="stroke-dasharray:7 5"/>
+  <text x="1300" y="862" class="lbl">samo objavljeni materijali, njihovi prilozi i struktura (D1–D4)</text>
+
+  <!-- Granice pristupa -->
+  <rect x="1360" y="930" width="600" height="185" rx="16" fill="#fdf3f3" stroke="#ebc0c0" stroke-width="1.5"/>
+  <text x="1380" y="960" class="lbl" style="font-size:14px; font-weight:bold; fill:#9b3b3b">Granice pristupa</text>
+  <text x="1380" y="986" class="lbl">• Nacrt i povučen materijal nisu dostupni studentima, ni direktnom adresom.</text>
+  <text x="1380" y="1008" class="lbl">• Prilog nasleđuje pravo pristupa materijala.</text>
+  <text x="1380" y="1030" class="lbl">• Neuspeo prenos ne ostavlja objavljen materijal bez datoteke.</text>
+  <text x="1380" y="1052" class="lbl">• Student bez članstva u izvođenju ne preuzima ni jedan prilog.</text>
+  <text x="1380" y="1074" class="lbl">• Fascikla ne postaje sopstveni potomak; premeštanje ne menja ID.</text>
+  <text x="1380" y="1096" class="lbl">• Skrivanje u UI nije bezbednosna kontrola.</text>
+
+  <!-- Legenda -->
+  <line x1="40" y1="160" x2="90" y2="160" class="line"/>
+  <text x="100" y="164" class="lbl">tok podataka</text>
+  <line x1="40" y1="188" x2="90" y2="188" class="dash"/>
+  <text x="100" y="192" class="lbl">planirano / provera pristupa</text>
+  <ellipse cx="65" cy="220" rx="25" ry="11" class="procp"/>
+  <text x="100" y="224" class="lbl">planiran proces ili skladište</text>
+</svg>
