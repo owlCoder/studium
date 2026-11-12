@@ -1,0 +1,42 @@
+digraph DFD {
+  rankdir=TB; nodesep=0.9; ranksep=1.0; newrank=true;
+  graph [fontname="Helvetica", fontsize=14, label="ST-034 Pregled prisustva studenta — dijagram toka podataka (DFD)\n ", labelloc=t];
+  node  [fontname="Helvetica", fontsize=12];
+  edge  [fontname="Helvetica", fontsize=10, color="#374151"];
+
+  ST [label="Student", shape=box, style="filled,bold", fillcolor="#fff7ed", color="#c2410c", width=1.6];
+  NA [label="Nastavnik", shape=box, style="filled,bold", fillcolor="#fff7ed", color="#c2410c", width=1.6];
+
+  subgraph cluster_b {
+    label="Granica pristupa — STUDIUM server (provera na svakom zahtevu)";
+    style="dashed,filled"; color="#dc2626"; fillcolor="#fafafa"; penwidth=2; fontcolor="#dc2626";
+
+    node [shape=circle, style=filled, fillcolor="#e6f4f1", color="#0f766e", penwidth=2, width=1.7, fixedsize=true];
+    P1 [label="1.\nProvera identiteta\ni pristupa"];
+    P2 [label="2.\nIzbor podobnih\ntermina"];
+    P3 [label="3.\nRačunanje\npregleda"];
+
+    node [shape=plain, style="", fixedsize=false];
+    D1 [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="6" bgcolor="#f3f4f6" color="#6b7280"><tr><td><b>D1</b></td><td>Nalozi i prijava<br/>(ST-001, ST-002)</td></tr></table>>];
+    D2 [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="6" bgcolor="#f3f4f6" color="#6b7280"><tr><td><b>D2</b></td><td>Članstvo, angažovanje, grupe<br/>(ST-005, ST-006, ST-019)</td></tr></table>>];
+    D3 [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="6" bgcolor="#f3f4f6" color="#6b7280"><tr><td><b>D3</b></td><td>Termini nastave<br/>(ST-031)</td></tr></table>>];
+    D4 [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="6" bgcolor="#f3f4f6" color="#6b7280"><tr><td><b>D4</b></td><td>Evidencija prisustva<br/>(ST-032, ST-033)</td></tr></table>>];
+  }
+
+  {rank=same; ST; NA;}
+  {rank=same; P1; P2; P3;}
+  {rank=same; D1; D2; D3; D4;}
+
+  ST -> P1 [label="zahtev:\nizvođenje"];
+  NA -> P1 [label="zahtev: izvođenje, grupa,\nperiod, vrsta nastave"];
+  P1 -> P2 [label="dozvoljen upit\n+ filteri", penwidth=1.8];
+  P2 -> P3 [label="održani\npodobni termini", penwidth=1.8];
+  D1 -> P1 [label="identitet,\nuloga"];
+  D2 -> P1 [label="članstvo /\nangažovanje"];
+  D2 -> P2 [label="ko je bio u grupi\nu vreme termina"];
+  D3 -> P2 [label="termini i stanja\n(Otkazan se izbacuje)"];
+  D4 -> P3 [label="Prisutan / Odsutan\n(bez zapisa = Neevidentirano)"];
+  P3 -> ST [label="lični pregled: termini, brojevi,\n% ili „Nema evidencije“"];
+  P3 -> NA [label="pregled grupe\npo studentu"];
+  P1 -> ST [label="✗ nedovoljno\novlašćenje", style=dashed, color="#dc2626", fontcolor="#dc2626"];
+}
