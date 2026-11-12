@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using Application.Courses;
+using Application.Enrollments;
 using Infrastructure.Demo;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
+// US-7.1: izvođenja na koja je student upisan
+builder.Services.AddSingleton<IStudentOfferingsReader>(_ => DemoData.CreateStudentOfferingsReader());
+builder.Services.AddScoped<ListStudentOfferingsHandler>();
 
 var app = builder.Build();
 
@@ -29,6 +34,23 @@ app.MapGet("/courses", async (
 {
     var courses = await handler.HandleAsync(query, cancellationToken);
     return Results.Ok(courses);
+});
+
+// US-7.1: identitet se uzima samo iz sesije (claim NameIdentifier), nikad iz zahtjeva.
+// Dok US-7.5 ne uvede autentifikaciju, endpoint uvek vraća 401. Dijana
+app.MapGet("/api/student/izvodjenja", async (
+    ClaimsPrincipal user,
+    ListStudentOfferingsHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var raw = user.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (!Guid.TryParse(raw, out var studentId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var offerings = await handler.HandleAsync(studentId, cancellationToken);
+    return Results.Ok(offerings);
 });
 
 app.Run();
