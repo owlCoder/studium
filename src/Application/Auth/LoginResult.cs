@@ -1,3 +1,5 @@
+using Application.Sessions;
+
 namespace Application.Auth;
 
 /// <summary>
@@ -18,7 +20,8 @@ public enum LoginFailure
 }
 
 /// <summary>
-/// Ishod prijave: uspeh sa identitetom ILI razlog odbijanja.
+/// Ishod prijave: uspeh sa identitetom i izdatom sesijom ILI razlog odbijanja.
+/// Odbijena prijava nikada ne nosi sesiju.
 /// </summary>
 public sealed class LoginResult
 {
@@ -26,22 +29,30 @@ public sealed class LoginResult
 
     public AuthenticatedIdentity? Identity { get; }
 
+    /// <summary>Token i rok isteka; postoji samo kad je prijava uspela.</summary>
+    public IssuedSession? Session { get; }
+
     public LoginFailure? Failure { get; }
 
-    private LoginResult(bool succeeded, AuthenticatedIdentity? identity, LoginFailure? failure)
+    private LoginResult(
+        bool succeeded,
+        AuthenticatedIdentity? identity,
+        IssuedSession? session,
+        LoginFailure? failure)
     {
         Succeeded = succeeded;
         Identity = identity;
+        Session = session;
         Failure = failure;
     }
 
-    public static LoginResult Success(AuthenticatedIdentity identity)
+    public static LoginResult Success(AuthenticatedIdentity identity, IssuedSession session)
     {
-        return new LoginResult(true, identity, null);
+        return new LoginResult(true, identity, session, null);
     }
 
     public static LoginResult Rejected(LoginFailure failure)
     {
-        return new LoginResult(false, null, failure);
+        return new LoginResult(false, null, null, failure);
     }
 }

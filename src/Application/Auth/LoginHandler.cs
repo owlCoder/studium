@@ -1,3 +1,4 @@
+using Application.Sessions;
 using Application.Users;
 using Domain.Users;
 
@@ -12,7 +13,10 @@ namespace Application.Auth;
 ///     (nalog kome aktivacija nije završena nema lozinku, pa se ponaša kao nepoznat)
 ///  3. pogrešna lozinka                      -> InvalidCredentials
 ///  4. tačna lozinka, a nalog deaktiviran    -> InvalidCredentials
-///  5. sve u redu                            -> Success
+///  5. sve u redu                            -> Success + izdata sesija
+///
+/// Sesiju izdaje <see cref="ISessionIssuer"/>, tek posle uspešne provere. Odbijena prijava
+/// ne pravi nikakav zapis o sesiji.
 /// </summary>
 public sealed class LoginHandler
 {
@@ -21,14 +25,19 @@ public sealed class LoginHandler
 
     private readonly IUserLookup _users;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ISessionIssuer _sessions;
 
     // Važeći heš istim algoritmom kao pravi nalozi, pa Verify traje isto koliko i inače.
     private readonly string _dummyPasswordHash;
 
-    public LoginHandler(IUserLookup users, IPasswordHasher passwordHasher)
+    public LoginHandler(
+        IUserLookup users,
+        IPasswordHasher passwordHasher,
+        ISessionIssuer sessions)
     {
         _users = users;
         _passwordHasher = passwordHasher;
+        _sessions = sessions;
         _dummyPasswordHash = passwordHasher.Hash(DummyPassword);
     }
 
@@ -61,6 +70,9 @@ public sealed class LoginHandler
             return LoginResult.Rejected(LoginFailure.InvalidCredentials);
         }
 
-        return LoginResult.Success(new AuthenticatedIdentity(user.Id, user.Username, user.Role));
+        var identity = new AuthenticatedIdentity(user.Id, user.Username, user.Role);
+        IssuedSession session = await _sessions.IssueAsync(user.Id, cancellationToken);
+
+        return LoginResult.Success(identity, session);
     }
 }
