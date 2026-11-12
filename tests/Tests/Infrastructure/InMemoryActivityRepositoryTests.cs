@@ -39,7 +39,7 @@ public sealed class InMemoryActivityRepositoryTests
         Assert.That(outcome.Status, Is.EqualTo(ActivityAddStatus.Added));
         Assert.That(result.Activities, Has.Count.EqualTo(1));
         Assert.That(result.Activities[0].Id, Is.EqualTo(activity.Id));
-        Assert.That(result.Activities[0].CourseId, Is.EqualTo(activity.CourseId));
+        Assert.That(result.Activities[0].ContextId, Is.EqualTo(activity.ContextId));
     }
 
     [Test]

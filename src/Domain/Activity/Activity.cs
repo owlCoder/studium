@@ -1,8 +1,9 @@
 namespace Domain.Activity;
 
 /// <summary>
-/// Aktivnost vezana za konkretan predmet. Čuva samo identifikator predmeta,
-/// tako da domen ne zavisi od načina skladištenja niti od drugih agregata.
+/// Aktivnost vezana za kontekst u kome se izvodi (danas kataloški predmet, kasnije
+/// izvođenje predmeta). Čuva samo identifikator konteksta, tako da domen ne zavisi
+/// od načina skladištenja niti od drugih agregata.
 /// Neispravni podaci se ne signaliziraju izuzetkom, već rezultatom
 /// <see cref="ActivityCreation"/>.
 /// </summary>
@@ -10,14 +11,14 @@ public sealed class Activity
 {
     private Activity(
         Guid id,
-        Guid courseId,
+        Guid contextId,
         string name,
         string description,
         DateTime startDate,
         DateTime endDate)
     {
         Id = id;
-        CourseId = courseId;
+        ContextId = contextId;
         Name = name;
         Description = description;
         StartDate = startDate;
@@ -25,7 +26,7 @@ public sealed class Activity
     }
 
     public Guid Id { get; }
-    public Guid CourseId { get; }
+    public Guid ContextId { get; }
     public string Name { get; }
     public string Description { get; }
     public DateTime StartDate { get; }
@@ -33,7 +34,7 @@ public sealed class Activity
 
     public static ActivityCreation TryCreate(
         Guid id,
-        Guid courseId,
+        Guid contextId,
         string? name,
         string? description,
         DateTime startDate,
@@ -44,9 +45,9 @@ public sealed class Activity
             return ActivityCreation.Failure("Identifikator mora biti zadat");
         }
 
-        if (courseId == Guid.Empty)
+        if (contextId == Guid.Empty)
         {
-            return ActivityCreation.Failure("Identifikator predmeta mora biti zadat");
+            return ActivityCreation.Failure("Identifikator konteksta mora biti zadat");
         }
 
         if (string.IsNullOrWhiteSpace(name))
@@ -61,7 +62,7 @@ public sealed class Activity
 
         return ActivityCreation.Success(new Activity(
             id,
-            courseId,
+            contextId,
             name,
             description ?? string.Empty,
             startDate,

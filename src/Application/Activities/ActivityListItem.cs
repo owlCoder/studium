@@ -4,7 +4,7 @@ namespace Application.Activities;
 
 public sealed record ActivityListItem(
     Guid Id,
-    Guid CourseId,
+    Guid ContextId,
     string Name,
     string Description,
     DateTime StartDate,
@@ -12,7 +12,7 @@ public sealed record ActivityListItem(
 {
     public static ActivityListItem From(Activity activity) =>
         new(activity.Id,
-            activity.CourseId,
+            activity.ContextId,
             activity.Name,
             activity.Description,
             activity.StartDate,

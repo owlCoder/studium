@@ -13,16 +13,16 @@ public sealed class ActivityTests
     public void TryCreate_AssignsProperties()
     {
         var id = Guid.NewGuid();
-        var courseId = Guid.NewGuid();
+        var contextId = Guid.NewGuid();
 
-        var creation = Activity.TryCreate(id, courseId, "Timski projekat", "Prva faza", Start, End);
+        var creation = Activity.TryCreate(id, contextId, "Timski projekat", "Prva faza", Start, End);
 
         Assert.That(creation.IsSuccess, Is.True);
         var activity = creation.Activity!;
         Assert.Multiple(() =>
         {
             Assert.That(activity.Id, Is.EqualTo(id));
-            Assert.That(activity.CourseId, Is.EqualTo(courseId));
+            Assert.That(activity.ContextId, Is.EqualTo(contextId));
             Assert.That(activity.Name, Is.EqualTo("Timski projekat"));
             Assert.That(activity.Description, Is.EqualTo("Prva faza"));
             Assert.That(activity.StartDate, Is.EqualTo(Start));
@@ -39,7 +39,7 @@ public sealed class ActivityTests
     }
 
     [Test]
-    public void TryCreate_RejectsEmptyCourseId()
+    public void TryCreate_RejectsEmptyContextId()
     {
         var creation = Activity.TryCreate(Guid.NewGuid(), Guid.Empty, "Aktivnost", "Opis", Start, End);
 
