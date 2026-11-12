@@ -36,32 +36,32 @@ public class StudentTeam
     {
         if (courseOfferingId == Guid.Empty)
         {
-            throw new ArgumentException("A course offering must be specified.", nameof(courseOfferingId));
+            Console.WriteLine("A course offering must be specified.");
         }
 
         if (projectActivityId == Guid.Empty)
         {
-            throw new ArgumentException("A project activity must be specified.", nameof(projectActivityId));
+            Console.WriteLine("A project activity must be specified.");
         }
 
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new ArgumentException("A team name cannot be empty.", nameof(name));
+            Console.WriteLine("A team name cannot be empty.");
         }
 
         if (creatorStudentId == Guid.Empty)
         {
-            throw new ArgumentException("A creator student must be specified.", nameof(creatorStudentId));
+            Console.WriteLine("A creator student must be specified.");
         }
 
         if (minSize < 1)
         {
-            throw new ArgumentException("Minimum team size must be at least 1.", nameof(minSize));
+            Console.WriteLine("Minimum team size must be at least 1.");
         }
 
         if (maxSize < minSize)
         {
-            throw new ArgumentException("Maximum team size cannot be less than minimum size.", nameof(maxSize));
+            Console.WriteLine("Maximum team size cannot be less than minimum size.");
         }
 
         return new StudentTeam
