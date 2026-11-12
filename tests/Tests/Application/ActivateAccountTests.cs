@@ -13,12 +13,12 @@ public class ActivateAccountTests
     {
         private readonly User? _user;
         public FakeUserLookup(User? user) => _user = user;
-        public Task<User?> FindByUsernameAsync(string username, CancellationToken cancellationToken) => Task.FromResult(user);
+        public Task<User?> FindByUsernameAsync(string username, CancellationToken cancellationToken) => Task.FromResult(_user);
     }
 
     private class FakePasswordHasher : IPasswordHasher
     {
-        public string Hash(string password) => "hashed" + password;
+        public string Hash(string password) => "hashed_" + password;
         public bool Verify(string password, string hash) => hash == "hashed_" + password;
     }
 
@@ -44,7 +44,7 @@ public class ActivateAccountTests
         };
 
         bool result = await handler.HandleAsync(command);
-dotnet run --project src/ConsoleUi
+
         Assert.IsTrue(result);
         Assert.IsTrue(user.IsActive);
         Assert.IsNull(user.ActivationToken);
