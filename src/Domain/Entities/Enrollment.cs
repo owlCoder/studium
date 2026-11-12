@@ -11,7 +11,7 @@ public class Enrollment
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid OfferingId { get; set; }
     public Guid StudentId { get; set; }
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; private set; } = true;
 
     public void Terminate()
     {

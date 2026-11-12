@@ -20,19 +20,17 @@ public class EnrollmentRepository : IEnrollmentRepository
     public Task<List<StudentEnrollmentDto>> GetEnrollmentsByOfferingAsync(Guid offeringId)
     {
         var enrollments = _enrollments
-            .Where(e => e.OfferingId == offeringId)
+            .Where(e => e.OfferingId == offeringId && e.IsActive)
             .Select(e => new StudentEnrollmentDto(e.Id, e.StudentId, e.IsActive))
             .ToList();
 
         return Task.FromResult(enrollments);
     }
 
-    public Task<Enrollment> GetByIdAsync(Guid enrollmentId)
+    public Task<Enrollment?> GetByIdAsync(Guid enrollmentId)
     {
-        var enrollment = _enrollments
-            .FirstOrDefault(e => e.Id == enrollmentId);
-
-        return Task.FromResult(enrollment!);
+        var enrollment = _enrollments.FirstOrDefault(e => e.Id == enrollmentId);
+        return Task.FromResult(enrollment);
     }
 
     public Task SaveChangesAsync()

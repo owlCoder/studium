@@ -8,10 +8,14 @@ using Infrastructure.Repositories;
 var builder = WebApplication.CreateBuilder(args);
 
 // Composition root: spoljašnji sloj bira implementaciju ugovora.
+builder.Services.AddControllers();
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
-builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+builder.Services.AddScoped<SearchCoursesHandler>();
+builder.Services.AddSingleton<IEnrollmentRepository>(
+    _ => new EnrollmentRepository(DemoData.CreateEnrollments()));
 builder.Services.AddScoped<EnrollmentService>();
+
 var app = builder.Build();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
@@ -40,4 +44,3 @@ app.MapGet("/courses", async (
 });
 
 app.Run();
-

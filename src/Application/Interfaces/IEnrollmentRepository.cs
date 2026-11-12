@@ -9,6 +9,6 @@ namespace Application.Interfaces;
 public interface IEnrollmentRepository
 {
     Task<List<StudentEnrollmentDto>> GetEnrollmentsByOfferingAsync(Guid offeringId);
-    Task<Enrollment> GetByIdAsync(Guid enrollmentId);
+    Task<Enrollment?> GetByIdAsync(Guid enrollmentId);
     Task SaveChangesAsync();
 }
