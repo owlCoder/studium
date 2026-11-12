@@ -140,6 +140,7 @@ builder.Services.AddScoped<AddMaterialExternalLinkHandler>();
 builder.Services.AddSingleton<IActivityRepository>(_ => DemoData.CreateActivityRepository());
 builder.Services.AddSingleton<IActivityContextReader, InMemoryActivityContextReader>();
 builder.Services.AddScoped<CreateActivityHandler>();
+builder.Services.AddScoped<ListActivitiesHandler>();
 
 var app = builder.Build();
 
@@ -242,6 +243,17 @@ app.MapPost("/Course/{contextSlug}/CreateActivity", async (
         CreateActivityStatus.Canceled => Results.StatusCode(StatusCodes.Status499ClientClosedRequest),
         _ => Results.Problem(statusCode: StatusCodes.Status500InternalServerError)
     };
+});
+
+app.MapGet("/ListActivities", async (
+    ListActivitiesHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var result = await handler.HandleAsync(cancellationToken);
+
+    return result.IsSuccess
+        ? Results.Ok(result.Activities)
+        : Results.StatusCode(StatusCodes.Status499ClientClosedRequest);
 });
 
 // ST-007: endpointi početnog pregleda (US-7.1, 7.2, 7.4, 7.5, 7.6, 7.10) su u src/Api/Home/HomeEndpoints.cs.

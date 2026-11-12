@@ -44,6 +44,7 @@ Rezultati izvršavanja i merenja: [docs/2/us-7.12-testovi-prihvatanja.md](docs/2
 ### Delimična evidencija aktivnosti predmeta (grana ST-021)
 
 - `POST /Course/{contextSlug}/CreateActivity` dodaje aktivnost kontekstu koji razrešava port `IActivityContextReader` i vraća `201 Created`. Nepostojeći kontekst daje `404`, a nevažeći naziv ili interval daje `400` bez promene stanja. Dupli identifikator aktivnosti vraća `409`.
+- `GET /ListActivities` vraća sve aktivnosti sortirane po datumu početka.
 
 Domen i memorijski adapter ne bacaju izuzetke za neispravne podatke ni za otkazane zahteve: `Activity.TryCreate` vraća `ActivityCreation`, a port `IActivityRepository` vraća `ActivityAddResult` odnosno `ActivityListResult` sa eksplicitnim statusom (`Added`, `DuplicateId`, `InvalidActivity`, `Canceled`). Otkazan zahtev se prema klijentu prijavljuje statusom `499`, a ne izuzetkom.
 
