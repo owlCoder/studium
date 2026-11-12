@@ -1,42 +1,30 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Domain.Users;
 
-/// <summary>
-/// Minimalan model korisničkog naloga potreban za prijavljivanje (ST-002).
-///
-/// Odgovornost (SRP): čuva podatke naloga i odgovara na pitanje "da li nalog sme da se koristi".
-/// Ne zna ništa o heširanju, bazi ni HTTP-u.
-///
-/// NAPOMENA: model je zajednički sa ST-001 (ime, prezime, e-pošta...) i dopunjava se dogovorom
-/// sa Jovanom. Ovde su samo polja koja prijava stvarno koristi.
-/// </summary>
 public sealed class User
 {
     public Guid Id { get; }
-
-    /// <summary>Korisničko ime onako kako je uneto (za prikaz).</summary>
     public string Username { get; }
-
     public UserRole Role { get; }
 
-    /// <summary>
-    /// Heš lozinke. <c>null</c> znači da aktivacija još nije završena, jer se prva lozinka
-    /// postavlja tek aktivacijom (ST-001/ST-002). Čista lozinka se nikada ne čuva (zahtev 4.2).
-    /// </summary>
-    public string? PasswordHash { get; }
+    // Dozvoljavamo privatni set da bi domen metoda mogla da izmeni stanje pri aktivaciji
+    public string? PasswordHash { get; private set; }
+    public bool IsActive { get; private set; }
 
-    /// <summary>Stanje naloga: Aktivan (true) ili Deaktiviran (false).</summary>
-    public bool IsActive { get; }
+    // Nova polja za aktivacioni token (opcionalna u konstruktoru zbog kompatibilnosti)
+    public string? ActivationToken { get; private set; }
+    public DateTime? TokenExpiration { get; private set; }
 
-    /// <summary>Aktivacija je završena kada postoji prva lozinka.</summary>
     public bool IsActivated => PasswordHash is not null;
 
-    public User(Guid id, string username, UserRole role, string? passwordHash, bool isActive)
+    // Konstruktor sa opcionalnim tokenima da se ne bi pokvario nijedan postojeći poziv
+    public User(
+        Guid id,
+        string username,
+        UserRole role,
+        string? passwordHash,
+        bool isActive,
+        string? activationToken = null,
+        DateTime? tokenExpiration = null)
     {
         if (id == Guid.Empty)
         {
@@ -48,32 +36,38 @@ public sealed class User
             throw new ArgumentException("Korisničko ime je obavezno.", nameof(username));
         }
 
-        if (passwordHash is not null && string.IsNullOrWhiteSpace(passwordHash))
-        {
-            throw new ArgumentException("Heš lozinke ne sme biti prazan.", nameof(passwordHash));
-        }
-
         Id = id;
         Username = username.Trim();
         Role = role;
         PasswordHash = passwordHash;
         IsActive = isActive;
+        ActivationToken = activationToken;
+        TokenExpiration = tokenExpiration;
     }
 
-    /// <summary>
-    /// Jedino mesto gde se definiše poređenje korisničkih imena: bez razlike u veličini slova
-    /// (ST-001: "Ana.Petrovic" je isto što i "ana.petrovic"). Isti oblik koristi i jedinstveni
-    /// indeks u bazi (lower(username)).
-    /// </summary>
     public static string NormalizeUsername(string username)
     {
         return username.Trim().ToLowerInvariant();
     }
 
-    /// <summary>Nalog sme da koristi zaštićene funkcije samo ako je aktiviran i aktivan.</summary>
     public bool CanUseProtectedFunctions()
     {
         return IsActivated && IsActive;
     }
-}
 
+    /// <summary>
+    /// Domen metoda za aktivaciju naloga: postavlja lozinku, aktivira nalog i poništava token.
+    /// </summary>
+    public void Activate(string passwordHash, string token)
+    {
+        if (string.IsNullOrWhiteSpace(passwordHash))
+        {
+            throw new ArgumentException("Heš lozinke je obavezan.", nameof(passwordHash));
+        }
+
+        PasswordHash = passwordHash;
+        IsActive = true;
+        ActivationToken = null;
+        TokenExpiration = null;
+    }
+}
