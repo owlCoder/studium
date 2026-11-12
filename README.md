@@ -25,6 +25,28 @@ Priloženi **demo katalog predmeta** prikazuje tok `API/ConsoleUi → Applicatio
 
 **Ograničenje:** i ovaj endpoint trenutno čita isključivo memorijske demo podatke (`DemoData.CreateCourseReader()`), bez trajne baze, autentifikacije, autorizacije, unosa/izmene/brisanja predmeta i provere jedinstvenosti. Ne tretirati ga kao završen ST-003 niti koristiti za stvarne podatke. Za integraciju potpunog ST-003 potrebni su zasebni zahtevi, validacija i testovi prema projektnoj specifikaciji.
 
+### Delimična evidencija aktivnosti predmeta (grana ST-021)
+
+- `POST /Course/{contextSlug}/CreateActivity` dodaje aktivnost kontekstu koji razrešava port `IActivityContextReader` i vraća `201 Created`. Nepostojeći kontekst daje `404`, a nevažeći naziv ili interval daje `400` bez promene stanja. Dupli identifikator aktivnosti vraća `409`.
+
+Domen i memorijski adapter ne bacaju izuzetke za neispravne podatke ni za otkazane zahteve: `Activity.TryCreate` vraća `ActivityCreation`, a port `IActivityRepository` vraća `ActivityAddResult` odnosno `ActivityListResult` sa eksplicitnim statusom (`Added`, `DuplicateId`, `InvalidActivity`, `Canceled`). Otkazan zahtev se prema klijentu prijavljuje statusom `499`, a ne izuzetkom.
+
+`contextSlug` je kratka oznaka oblika `OZNAKA-xxxxx`, gde je `OZNAKA` oznaka predmeta, a `xxxxx` poslednjih pet znakova njegovog identifikatora (bez razlike između velikih i malih slova). Isti obrazac važi i za buduće rute pojedinačne aktivnosti (`/Course/{contextSlug}/Activity/{activitySlug}`, gde je `activitySlug` oblika `NAZIV-xxxxx`).
+
+**Kontekst aktivnosti:** sloj `Domain` i `IActivityRepository` ne znaju šta oznaka predstavlja i vide samo neprozirni `ContextId`. Oznaku iz putanje razrešava isključivo `IActivityContextReader`; trenutna implementacija `InMemoryActivityContextReader` je omotač oko `ICourseReader` i vraća `ActivityContext` za kataloški predmet. Kada ST-004 uvede izvođenja predmeta, dovoljno je dodati novi adapter tog porta (npr. `OfferingActivityContextReader`) i promeniti jednu liniju registracije u `Program.cs`; ruta, rukovalac, domen i repozitorijum ostaju nepromenjeni. Port vraća `ActivityContextLookup` sa statusima `Found`, `NotFound`, `Ambiguous` i `Canceled` — bez izuzetaka.
+
+Oznaka se normalizuje: zadržavaju se slova, cifre, `-`, `_` i `.`, svaki drugi znak (razmak, `/` i sl.) zamenjuje se jednom crticom, a vodeće i završne crtice se uklanjaju. Ako oznaka nakon normalizacije ostane prazna, slug sadrži samo `xxxxx`.
+
+Primer zahteva (koristi jedan od demo predmeta iz `DemoData`; `ERS` sa identifikatorom `11111111-1111-1111-1111-111111111111` daje `ERS-11111` kao oznaku konteksta):
+
+```bash
+curl -X POST http://localhost:5000/Course/ERS-11111/CreateActivity \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Timski projekat","description":"Prva faza","startDate":"2026-03-01T08:00:00Z","endDate":"2026-03-15T23:59:00Z"}'
+```
+
+**Ograničenje:** aktivnosti se čuvaju samo u memoriji procesa preko porta `IActivityRepository` (`InMemoryActivityRepository`) i gube se pri ponovnom pokretanju. Nema trajne baze, autentifikacije, autorizacije ni provere prava nad konkretnim izvođenjem predmeta. Ovaj tok ne predstavlja završenu implementaciju ST-021 (formiranje studentskih timova) niti bilo kog drugog ST zahteva.
+
 ## Preduslovi
 
 - .NET **8 SDK** (`dotnet --version`)

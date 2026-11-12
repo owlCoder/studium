@@ -1,5 +1,7 @@
+using Application.Activities;
 using Application.Courses;
 using Domain.Courses;
+using Infrastructure.Activities;
 using Infrastructure.Courses;
 
 namespace Infrastructure.Demo;
@@ -15,5 +17,10 @@ public static class DemoData
             new Course(Guid.Parse("22222222-2222-2222-2222-222222222222"),
                 "OIB", "Osnove informacione bezbednosti")
         });
+    }
+
+    public static IActivityRepository CreateActivityRepository()
+    {
+        return new InMemoryActivityRepository();
     }
 }
