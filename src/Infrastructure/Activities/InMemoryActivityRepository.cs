@@ -7,40 +7,40 @@ namespace Infrastructure.Activities;
 /// <summary>
 /// Memorijski adapter samo za demonstraciju; podaci se gube pri ponovnom pokretanju
 /// procesa. Trajni adapter treba da implementira isti port <see cref="IActivityRepository"/>.
+/// Neuspesi se vraćaju kao status, bez izuzetaka.
 /// </summary>
 public sealed class InMemoryActivityRepository : IActivityRepository
 {
-    private readonly ConcurrentDictionary<Guid, Activity> _activities;
+    private readonly ConcurrentDictionary<Guid, Activity> _activities = new();
 
-    public InMemoryActivityRepository(IEnumerable<Activity>? activities = null)
+    public Task<ActivityAddResult> AddAsync(Activity? activity, CancellationToken cancellationToken = default)
     {
-        _activities = new ConcurrentDictionary<Guid, Activity>();
-        foreach (var activity in activities ?? Array.Empty<Activity>())
+        if (cancellationToken.IsCancellationRequested)
         {
-            if (!_activities.TryAdd(activity.Id, activity))
-            {
-                throw new ArgumentException("Lista sadrži aktivnosti sa istim identifikatorom.", nameof(activities));
-            }
-        }
-    }
-
-    public Task AddAsync(Activity activity, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(activity);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (!_activities.TryAdd(activity.Id, activity))
-        {
-            throw new InvalidOperationException("Aktivnost sa istim identifikatorom već postoji.");
+            return Task.FromResult(ActivityAddResult.Canceled());
         }
 
-        return Task.CompletedTask;
+        if (activity is null)
+        {
+            return Task.FromResult(ActivityAddResult.InvalidActivity());
+        }
+
+        var added = _activities.TryAdd(activity.Id, activity);
+
+        return Task.FromResult(added
+            ? ActivityAddResult.Added()
+            : ActivityAddResult.DuplicateId());
     }
 
-    public Task<IReadOnlyList<Activity>> ListAsync(CancellationToken cancellationToken = default)
+    public Task<ActivityListResult> ListAsync(CancellationToken cancellationToken = default)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromResult(ActivityListResult.Canceled());
+        }
+
         IReadOnlyList<Activity> snapshot = _activities.Values.ToArray();
-        return Task.FromResult(snapshot);
+
+        return Task.FromResult(ActivityListResult.Success(snapshot));
     }
 }

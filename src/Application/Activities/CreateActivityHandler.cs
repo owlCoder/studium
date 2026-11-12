@@ -8,6 +8,7 @@ namespace Application.Activities;
 /// Dodaje aktivnost postojećem predmetu. Katalog predmeta se ne menja; postojeći port
 /// <see cref="ICourseReader"/> služi samo da se predmet pronađe po oznaci oblika
 /// <c>OZNAKA-xxxxx</c> (vidi <see cref="EntitySlug"/>).
+/// Neispravni podaci i otkazan zahtev vraćaju se kao status, bez izuzetaka.
 /// </summary>
 public sealed class CreateActivityHandler
 {
@@ -40,23 +41,29 @@ public sealed class CreateActivityHandler
                 $"Oznaka predmeta \"{command.CourseSlug}\" nije jedinstvena.");
         }
 
-        Activity activity;
-        try
+        var creation = Activity.TryCreate(
+            Guid.NewGuid(),
+            matches[0].Id,
+            command.Name,
+            command.Description,
+            command.StartDate,
+            command.EndDate);
+
+        if (creation.Activity is not { } activity)
         {
-            activity = new Activity(
-                Guid.NewGuid(),
-                matches[0].Id,
-                command.Name,
-                command.Description,
-                command.StartDate,
-                command.EndDate);
-        }
-        catch (ArgumentException exception)
-        {
-            return CreateActivityResult.InvalidRequest(exception.Message);
+            return CreateActivityResult.InvalidRequest(
+                creation.Error ?? "Nevažeći podaci aktivnosti.");
         }
 
-        await _repository.AddAsync(activity, cancellationToken);
-        return CreateActivityResult.Created(ActivityListItem.From(activity));
+        var outcome = await _repository.AddAsync(activity, cancellationToken);
+
+        return outcome.Status switch
+        {
+            ActivityAddStatus.Added => CreateActivityResult.Created(ActivityListItem.From(activity)),
+            ActivityAddStatus.DuplicateId => CreateActivityResult.Conflict(
+                "Aktivnost sa istim identifikatorom već postoji."),
+            ActivityAddStatus.Canceled => CreateActivityResult.Canceled(),
+            _ => CreateActivityResult.InvalidRequest("Aktivnost nije ispravna.")
+        };
     }
 }

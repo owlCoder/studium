@@ -27,8 +27,10 @@ Priloženi **demo katalog predmeta** prikazuje tok `API/ConsoleUi → Applicatio
 
 ### Delimična evidencija aktivnosti predmeta (grana ST-021)
 
-- `POST /Course/{courseSlug}/CreateActivity` dodaje aktivnost postojećem demonstracionom predmetu i vraća `201 Created`. Nepostojeći predmet daje `404`, a nevažeći naziv ili interval daje `400` bez promene stanja.
+- `POST /Course/{courseSlug}/CreateActivity` dodaje aktivnost postojećem demonstracionom predmetu i vraća `201 Created`. Nepostojeći predmet daje `404`, a nevažeći naziv ili interval daje `400` bez promene stanja. Dupli identifikator aktivnosti vraća `409`.
 - `GET /ListActivities` vraća sve aktivnosti sortirane po datumu početka.
+
+Domen i memorijski adapter ne bacaju izuzetke za neispravne podatke ni za otkazane zahteve: `Activity.TryCreate` vraća `ActivityCreation`, a port `IActivityRepository` vraća `ActivityAddResult` odnosno `ActivityListResult` sa eksplicitnim statusom (`Added`, `DuplicateId`, `InvalidActivity`, `Canceled`). Otkazan zahtev se prema klijentu prijavljuje statusom `499`, a ne izuzetkom.
 
 `courseSlug` je kratka oznaka oblika `OZNAKA-xxxxx`, gde je `OZNAKA` oznaka predmeta, a `xxxxx` poslednjih pet znakova njegovog identifikatora (bez razlike između velikih i malih slova). Isti obrazac važi i za buduće rute pojedinačne aktivnosti (`/Course/{courseSlug}/Activity/{activitySlug}`, gde je `activitySlug` oblika `NAZIV-xxxxx`).
 

@@ -10,13 +10,15 @@ public sealed class ActivityTests
     private static readonly DateTime End = new(2026, 3, 15, 23, 59, 0, DateTimeKind.Utc);
 
     [Test]
-    public void Constructor_AssignsProperties()
+    public void TryCreate_AssignsProperties()
     {
         var id = Guid.NewGuid();
         var courseId = Guid.NewGuid();
 
-        var activity = new Activity(id, courseId, "Timski projekat", "Prva faza", Start, End);
+        var creation = Activity.TryCreate(id, courseId, "Timski projekat", "Prva faza", Start, End);
 
+        Assert.That(creation.IsSuccess, Is.True);
+        var activity = creation.Activity!;
         Assert.Multiple(() =>
         {
             Assert.That(activity.Id, Is.EqualTo(id));
@@ -29,51 +31,63 @@ public sealed class ActivityTests
     }
 
     [Test]
-    public void Constructor_RejectsEmptyId()
+    public void TryCreate_RejectsEmptyId()
     {
-        Assert.That(
-            () => new Activity(Guid.Empty, Guid.NewGuid(), "Aktivnost", "Opis", Start, End),
-            Throws.TypeOf<ArgumentException>());
+        var creation = Activity.TryCreate(Guid.Empty, Guid.NewGuid(), "Aktivnost", "Opis", Start, End);
+
+        AssertFailure(creation);
     }
 
     [Test]
-    public void Constructor_RejectsEmptyCourseId()
+    public void TryCreate_RejectsEmptyCourseId()
     {
-        Assert.That(
-            () => new Activity(Guid.NewGuid(), Guid.Empty, "Aktivnost", "Opis", Start, End),
-            Throws.TypeOf<ArgumentException>());
+        var creation = Activity.TryCreate(Guid.NewGuid(), Guid.Empty, "Aktivnost", "Opis", Start, End);
+
+        AssertFailure(creation);
     }
 
     [TestCase("")]
     [TestCase("   ")]
-    public void Constructor_RejectsBlankName(string name)
+    [TestCase(null)]
+    public void TryCreate_RejectsBlankName(string? name)
     {
-        Assert.That(
-            () => new Activity(Guid.NewGuid(), Guid.NewGuid(), name, "Opis", Start, End),
-            Throws.TypeOf<ArgumentException>());
+        var creation = Activity.TryCreate(Guid.NewGuid(), Guid.NewGuid(), name, "Opis", Start, End);
+
+        AssertFailure(creation);
     }
 
     [Test]
-    public void Constructor_RejectsEqualStartAndEnd()
+    public void TryCreate_RejectsEqualStartAndEnd()
     {
-        Assert.That(
-            () => new Activity(Guid.NewGuid(), Guid.NewGuid(), "Aktivnost", "Opis", Start, Start),
-            Throws.TypeOf<ArgumentException>());
+        var creation = Activity.TryCreate(Guid.NewGuid(), Guid.NewGuid(), "Aktivnost", "Opis", Start, Start);
+
+        AssertFailure(creation);
     }
 
     [Test]
-    public void Constructor_RejectsEndBeforeStart()
+    public void TryCreate_RejectsEndBeforeStart()
     {
-        Assert.That(
-            () => new Activity(Guid.NewGuid(), Guid.NewGuid(), "Aktivnost", "Opis", End, Start),
-            Throws.TypeOf<ArgumentException>());
+        var creation = Activity.TryCreate(Guid.NewGuid(), Guid.NewGuid(), "Aktivnost", "Opis", End, Start);
+
+        AssertFailure(creation);
     }
 
     [Test]
-    public void Constructor_UsesEmptyDescriptionWhenDescriptionIsNull()
+    public void TryCreate_UsesEmptyDescriptionWhenDescriptionIsNull()
     {
-        var activity = new Activity(Guid.NewGuid(), Guid.NewGuid(), "Aktivnost", null!, Start, End);
+        var creation = Activity.TryCreate(Guid.NewGuid(), Guid.NewGuid(), "Aktivnost", null, Start, End);
 
-        Assert.That(activity.Description, Is.Empty);
+        Assert.That(creation.IsSuccess, Is.True);
+        Assert.That(creation.Activity!.Description, Is.Empty);
+    }
+
+    private static void AssertFailure(ActivityCreation creation)
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(creation.IsSuccess, Is.False);
+            Assert.That(creation.Activity, Is.Null);
+            Assert.That(creation.Error, Is.Not.Null.And.Not.Empty);
+        });
     }
 }

@@ -68,6 +68,11 @@ app.MapPost("/Course/{courseSlug}/CreateActivity", async (
             {
                 ["activity"] = new[] { result.Error ?? "Nevažeći podaci aktivnosti." }
             }),
+        CreateActivityStatus.Conflict => Results.Problem(
+            title: "Aktivnost već postoji",
+            detail: result.Error,
+            statusCode: StatusCodes.Status409Conflict),
+        CreateActivityStatus.Canceled => Results.StatusCode(StatusCodes.Status499ClientClosedRequest),
         _ => Results.Problem(statusCode: StatusCodes.Status500InternalServerError)
     };
 });
@@ -76,8 +81,11 @@ app.MapGet("/ListActivities", async (
     ListActivitiesHandler handler,
     CancellationToken cancellationToken) =>
 {
-    var activities = await handler.HandleAsync(cancellationToken);
-    return Results.Ok(activities);
+    var result = await handler.HandleAsync(cancellationToken);
+
+    return result.IsSuccess
+        ? Results.Ok(result.Activities)
+        : Results.StatusCode(StatusCodes.Status499ClientClosedRequest);
 });
 
 app.Run();

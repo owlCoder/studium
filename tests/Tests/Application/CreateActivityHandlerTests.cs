@@ -30,18 +30,27 @@ public sealed class CreateActivityHandlerTests
         return reader;
     }
 
+    private static Mock<ICourseReader> ExistingCourseReader() =>
+        CourseReaderWith(new Course(CourseId, "ERS", "Elementi razvoja softvera"));
+
+    private static Mock<IActivityRepository> RepositoryReturning(ActivityAddResult outcome)
+    {
+        var repository = new Mock<IActivityRepository>();
+        repository.Setup(x => x.AddAsync(It.IsAny<Activity>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(outcome);
+        return repository;
+    }
+
     [Test]
     public async Task HandleAsync_CreatesActivityForExistingCourse()
     {
         Activity? stored = null;
         var repository = new Mock<IActivityRepository>();
         repository.Setup(x => x.AddAsync(It.IsAny<Activity>(), It.IsAny<CancellationToken>()))
-            .Callback<Activity, CancellationToken>((activity, _) => stored = activity)
-            .Returns(Task.CompletedTask);
+            .Callback<Activity?, CancellationToken>((activity, _) => stored = activity)
+            .ReturnsAsync(ActivityAddResult.Added());
 
-        var handler = new CreateActivityHandler(
-            repository.Object,
-            CourseReaderWith(new Course(CourseId, "ERS", "Elementi razvoja softvera")).Object);
+        var handler = new CreateActivityHandler(repository.Object, ExistingCourseReader().Object);
 
         var result = await handler.HandleAsync(Command());
 
@@ -86,9 +95,7 @@ public sealed class CreateActivityHandlerTests
     public async Task HandleAsync_ReturnsInvalidRequestWhenDomainValidationFails()
     {
         var repository = new Mock<IActivityRepository>();
-        var handler = new CreateActivityHandler(
-            repository.Object,
-            CourseReaderWith(new Course(CourseId, "ERS", "Elementi razvoja softvera")).Object);
+        var handler = new CreateActivityHandler(repository.Object, ExistingCourseReader().Object);
 
         var result = await handler.HandleAsync(Command(name: " "));
 
@@ -107,9 +114,7 @@ public sealed class CreateActivityHandlerTests
     public async Task HandleAsync_ReturnsInvalidRequestWhenIntervalIsReversed()
     {
         var repository = new Mock<IActivityRepository>();
-        var handler = new CreateActivityHandler(
-            repository.Object,
-            CourseReaderWith(new Course(CourseId, "ERS", "Elementi razvoja softvera")).Object);
+        var handler = new CreateActivityHandler(repository.Object, ExistingCourseReader().Object);
 
         var result = await handler.HandleAsync(new CreateActivityCommand(
             CourseSlug, "Aktivnost", "Opis", End, Start));
@@ -121,26 +126,52 @@ public sealed class CreateActivityHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_DoesNotSwallowRepositoryFailure()
+    public async Task HandleAsync_ReturnsConflictWhenStoreReportsDuplicateId()
     {
-        var repository = new Mock<IActivityRepository>();
-        repository.Setup(x => x.AddAsync(It.IsAny<Activity>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("Skladište nije dostupno."));
+        var repository = RepositoryReturning(ActivityAddResult.DuplicateId());
+        var handler = new CreateActivityHandler(repository.Object, ExistingCourseReader().Object);
 
-        var handler = new CreateActivityHandler(
-            repository.Object,
-            CourseReaderWith(new Course(CourseId, "ERS", "Elementi razvoja softvera")).Object);
+        var result = await handler.HandleAsync(Command());
 
-        Assert.That(
-            async () => await handler.HandleAsync(Command()),
-            Throws.TypeOf<InvalidOperationException>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(CreateActivityStatus.Conflict));
+            Assert.That(result.Activity, Is.Null);
+            Assert.That(result.Error, Is.Not.Null.And.Not.Empty);
+        });
+    }
+
+    [Test]
+    public async Task HandleAsync_ReturnsCanceledWhenStoreCancelsTheOperation()
+    {
+        var repository = RepositoryReturning(ActivityAddResult.Canceled());
+        var handler = new CreateActivityHandler(repository.Object, ExistingCourseReader().Object);
+
+        var result = await handler.HandleAsync(Command());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(CreateActivityStatus.Canceled));
+            Assert.That(result.Activity, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task HandleAsync_ReturnsInvalidRequestWhenStoreRejectsActivity()
+    {
+        var repository = RepositoryReturning(ActivityAddResult.InvalidActivity());
+        var handler = new CreateActivityHandler(repository.Object, ExistingCourseReader().Object);
+
+        var result = await handler.HandleAsync(Command());
+
+        Assert.That(result.Status, Is.EqualTo(CreateActivityStatus.InvalidRequest));
     }
 
     [Test]
     public async Task HandleAsync_ForwardsCancellationToken()
     {
-        var repository = new Mock<IActivityRepository>();
-        var reader = CourseReaderWith(new Course(CourseId, "ERS", "Elementi razvoja softvera"));
+        var repository = RepositoryReturning(ActivityAddResult.Added());
+        var reader = ExistingCourseReader();
         var handler = new CreateActivityHandler(repository.Object, reader.Object);
         using var source = new CancellationTokenSource();
 
@@ -153,10 +184,8 @@ public sealed class CreateActivityHandlerTests
     [Test]
     public async Task HandleAsync_ResolvesSlugRegardlessOfCase()
     {
-        var repository = new Mock<IActivityRepository>();
-        var handler = new CreateActivityHandler(
-            repository.Object,
-            CourseReaderWith(new Course(CourseId, "ERS", "Elementi razvoja softvera")).Object);
+        var repository = RepositoryReturning(ActivityAddResult.Added());
+        var handler = new CreateActivityHandler(repository.Object, ExistingCourseReader().Object);
 
         var result = await handler.HandleAsync(Command("ers-11111"));
 
@@ -171,9 +200,7 @@ public sealed class CreateActivityHandlerTests
     public async Task HandleAsync_DoesNotResolveRawIdentifier()
     {
         var repository = new Mock<IActivityRepository>();
-        var handler = new CreateActivityHandler(
-            repository.Object,
-            CourseReaderWith(new Course(CourseId, "ERS", "Elementi razvoja softvera")).Object);
+        var handler = new CreateActivityHandler(repository.Object, ExistingCourseReader().Object);
 
         var result = await handler.HandleAsync(Command(CourseId.ToString()));
 

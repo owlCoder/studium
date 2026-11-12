@@ -4,7 +4,9 @@ public enum CreateActivityStatus
 {
     Created,
     CourseNotFound,
-    InvalidRequest
+    InvalidRequest,
+    Conflict,
+    Canceled
 }
 
 public sealed record CreateActivityResult(
@@ -21,4 +23,11 @@ public sealed record CreateActivityResult(
 
     public static CreateActivityResult InvalidRequest(string message) =>
         new(CreateActivityStatus.InvalidRequest, Error: message);
+
+    public static CreateActivityResult Conflict(string message) =>
+        new(CreateActivityStatus.Conflict, Error: message);
+
+    public static CreateActivityResult Canceled() =>
+        new(CreateActivityStatus.Canceled,
+            Error: "Zahtev je otkazan pre čuvanja aktivnosti.");
 }
