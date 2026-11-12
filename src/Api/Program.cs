@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Application.Courses;
+using Application.Engagements;
 using Application.Enrollments;
 using Infrastructure.Demo;
 
@@ -12,6 +13,10 @@ builder.Services.AddScoped<SearchCoursesHandler>();
 // US-7.1: izvođenja na koja je student upisan
 builder.Services.AddSingleton<IStudentOfferingsReader>(_ => DemoData.CreateStudentOfferingsReader());
 builder.Services.AddScoped<ListStudentOfferingsHandler>();
+
+// US-7.2: izvođenja na kojima je korisnik angažovan, uz listu upisa iz US-7.1
+builder.Services.AddSingleton<IStaffOfferingsReader>(_ => DemoData.CreateStaffOfferingsReader());
+builder.Services.AddScoped<ListMyOfferingsHandler>();
 
 var app = builder.Build();
 
@@ -50,6 +55,22 @@ app.MapGet("/api/student/izvodjenja", async (
     }
 
     var offerings = await handler.HandleAsync(studentId, cancellationToken);
+    return Results.Ok(offerings);
+});
+
+// US-7.2: obe liste prijavljenog korisnika („Predajem” i „Upisan sam”), bez duplikata.
+app.MapGet("/api/moja-izvodjenja", async (
+    ClaimsPrincipal user,
+    ListMyOfferingsHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var raw = user.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (!Guid.TryParse(raw, out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var offerings = await handler.HandleAsync(userId, cancellationToken);
     return Results.Ok(offerings);
 });
 
