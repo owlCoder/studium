@@ -40,6 +40,49 @@ public sealed class StrukturaTests
         }
     }
 
+    private sealed class StubAuthorizer : IStudentImportAuthorizer
+    {
+        public Task EnsureCanImportAsync(Guid offeringId, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+    }
+
+    private sealed class StubOfferingGuard : IStudentOfferingGuard
+    {
+        public Task<OfferingSnapshot> EnsureExistsAsync(Guid offeringId, CancellationToken cancellationToken = default)
+            => Task.FromResult(new OfferingSnapshot(
+                offeringId, Guid.NewGuid(), Guid.NewGuid(), OfferingState.Aktivno, false));
+    }
+
+    private sealed class StubParser : IStudentListParser
+    {
+        public ParsedStudentList Parse(string csvText)
+            => new(
+                new[] { new ParsedStudentRow(2, "stub.user", "Stub", "User", string.Empty) },
+                Array.Empty<string>());
+    }
+
+    private sealed class StubClassifier : IImportRowClassifier
+    {
+        public Task<IReadOnlyList<ImportRowResult>> ClassifyAsync(
+            IReadOnlyList<ParsedStudentRow> rows, Guid offeringId, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<ImportRowResult>>(
+                rows.Select(r => new ImportRowResult(r.RowNumber, r.Username, RowStatus.Ispravan, string.Empty))
+                    .ToList());
+    }
+
+    private sealed class StubFileReader : IStudentListFileReader
+    {
+        public Task<string> ReadAsync(Stream stream, CancellationToken cancellationToken = default)
+            => Task.FromResult("ignored");
+    }
+
+    private sealed class StubRowProcessor : IImportRowProcessor
+    {
+        public Task<RowWriteResult> ProcessAsync(
+            ParsedStudentRow row, Guid offeringId, DateTimeOffset enrolledAt, CancellationToken cancellationToken = default)
+            => Task.FromResult(new RowWriteResult(RowWriteOutcome.Written, true));
+    }
+
     [Test]
     public async Task Novo_Pravilo_Se_Dodaje_Bez_Izmene_Klasifikatora()
     {
@@ -95,6 +138,38 @@ public sealed class StrukturaTests
         Assert.That(results.Single().Status, Is.EqualTo(RowStatus.Greska));
         Assert.That(results.Single().Reason, Is.EqualTo("Nepotvrdjena e-posta."));
         Assert.That(fixture.Accounts.LookupCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Handleri_Prihvataju_Zamenske_Portove()
+    {
+        var fixture = new StudentImportFixture();
+        using var stream = new MemoryStream(new byte[] { 1, 2, 3 });
+
+        var previewHandler = new PreviewStudentImportHandler(
+            new StubAuthorizer(),
+            new StubOfferingGuard(),
+            new StubParser(),
+            new StubClassifier(),
+            new StubFileReader());
+
+        var preview = await previewHandler.HandleAsync(fixture.OfferingId, stream);
+        Assert.That(preview.CorrectCount, Is.EqualTo(1));
+
+        stream.Position = 0;
+        var confirmHandler = new ConfirmStudentImportHandler(
+            new StubAuthorizer(),
+            new StubOfferingGuard(),
+            new StubParser(),
+            new StubClassifier(),
+            new StubRowProcessor(),
+            fixture.UnitOfWork,
+            fixture.Clock,
+            new StubFileReader());
+
+        var confirmation = await confirmHandler.HandleAsync(fixture.OfferingId, stream);
+        Assert.That(confirmation.CreatedAccountCount, Is.EqualTo(1));
+        Assert.That(confirmation.CreatedMembershipCount, Is.EqualTo(1));
     }
 
     private sealed class ReadThenAddThenReadRule : IAccountAwareRule
@@ -212,5 +287,121 @@ public sealed class StrukturaTests
         Assert.That(document.Delimiter, Is.EqualTo(';'));
         Assert.That(document.Header.Cells, Is.EqualTo(new[] { "a", "b" }));
         Assert.That(document.DataRows.Single().Cells, Is.EqualTo(new[] { "1", "2" }));
+    }
+}
+
+[TestFixture]
+public sealed class PrazniRedoviTests
+{
+    /// <summary>Празни редови се прескачу без промене физичких бројева осталих редова.</summary>
+    [Test]
+    public void Prazan_Red_Se_Preskace_A_Brojevi_Ostaju_Fizicki()
+    {
+        const string csv =
+            "firstname,lastname,username\n" +
+            "Ana,Anić,ana.anic\n" +
+            "\n" +
+            "Marko,Marković,marko.markovic\n";
+
+        var document = new CsvReader().Read(csv);
+
+        Assert.That(document.Rows, Has.Count.EqualTo(3));          // заглавље + 2 реда
+        Assert.That(document.Rows.Select(r => r.Number), Is.EqualTo(new[] { 1, 2, 4 }));
+    }
+}
+
+[TestFixture]
+public sealed class PredlogZbiroviTests
+{
+    /// <summary>Само заглавље даје празан предлог, не грешку.</summary>
+    [Test]
+    public async Task Datoteka_Sa_Samo_Zaglavljem_Ima_Nula_Redova()
+    {
+        var fixture = new StudentImportFixture();
+
+        var preview = await fixture.PreviewFor(fixture.AdminId, AccountRoles.Administrator)
+            .HandleAsync(fixture.OfferingId, "firstname,lastname,username\n");
+
+        Assert.That(preview.Rows, Is.Empty);
+        Assert.That(preview.TotalCount, Is.Zero);
+        Assert.That(preview.CorrectCount, Is.Zero);
+    }
+}
+
+[TestFixture]
+public sealed class BrojUpitaTests
+{
+    /// <summary>Класификација чита налог једном по корисничком имену.</summary>
+    [Test]
+    public async Task Predlog_Pita_Nalog_Jednom_Po_Korisnickom_Imenu()
+    {
+        var fixture = new StudentImportFixture();
+
+        var preview = await fixture.PreviewFor(fixture.AdminId, AccountRoles.Administrator)
+            .HandleAsync(fixture.OfferingId, StudentImportFixture.SpecExample);
+
+        var distinctUsernames = preview.Rows
+            .Select(r => r.Username)
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+
+        Assert.That(fixture.Accounts.LookupCount, Is.EqualTo(distinctUsernames));
+        Assert.That(fixture.Accounts.LookupCount, Is.LessThan(preview.TotalCount));
+    }
+}
+
+[TestFixture]
+public sealed class ZbiroviNaIzboruTests
+{
+    private const string Csv =
+        "firstname,lastname,username\n" +
+        "Ana,Anić,ana.anic\n" +      // ред 2 — исправан
+        "Ana,Anić,ana.anic\n" +      // ред 3 — дупликат
+        "Bez,,bez.ime\n";            // ред 4 — грешка
+
+    /// <summary>Бројачи потврде обухватају само означене редове.</summary>
+    [Test]
+    public async Task Zbirovi_Obuhvataju_Samo_Oznacene_Redove()
+    {
+        var fixture = new StudentImportFixture();
+
+        var result = await fixture.ConfirmFor(fixture.AdminId, AccountRoles.Administrator)
+            .HandleAsync(fixture.OfferingId, Csv, new[] { 2 });
+
+        Assert.That(result.CreatedMembershipCount, Is.EqualTo(1));
+        Assert.That(result.DuplicateCount, Is.Zero);
+        Assert.That(result.ErrorCount, Is.Zero);
+    }
+
+    [Test]
+    public async Task Prazan_Izbor_Ne_Menja_Evidenciju()
+    {
+        var fixture = new StudentImportFixture();
+
+        var result = await fixture.ConfirmFor(fixture.AdminId, AccountRoles.Administrator)
+            .HandleAsync(fixture.OfferingId, Csv, Array.Empty<int>());
+
+        Assert.That(result.CreatedMembershipCount, Is.Zero);
+        Assert.That(result.CreatedAccountCount, Is.Zero);
+        Assert.That(result.DuplicateCount, Is.Zero);
+        Assert.That(result.ErrorCount, Is.Zero);
+        Assert.That(fixture.Enrollments.Count, Is.Zero);
+        Assert.That(fixture.Activations.ActivationRequested, Is.Empty);
+        Assert.That(await fixture.Accounts.FindByUsernameAsync("ana.anic"), Is.Null);
+    }
+
+    /// <summary>Без избора се обрађују сви редови, па збир мора да покрије целу датотеку.</summary>
+    [Test]
+    public async Task Bez_Izbora_Zbir_Pokriva_Sve_Redove()
+    {
+        var fixture = new StudentImportFixture();
+
+        var result = await fixture.ConfirmFor(fixture.AdminId, AccountRoles.Administrator)
+            .HandleAsync(fixture.OfferingId, Csv);
+
+        Assert.That(result.CreatedMembershipCount, Is.EqualTo(1));
+        Assert.That(result.DuplicateCount, Is.EqualTo(1));
+        Assert.That(result.ErrorCount, Is.EqualTo(1));
     }
 }
