@@ -3,10 +3,7 @@ using Application.Identity;
 
 namespace Infrastructure.Identity;
 
-/// <summary>
-/// US-7.5: PRIVREMENI memorijski adapter za stanje naloga, dok se ne integriše ST-001.
-/// Nalog je aktivan samo ako je izričito aktiviran; nepoznat nalog se tretira kao neaktivan.
-/// </summary>
+
 public sealed class InMemoryAccountStatusReader : IAccountStatusReader
 {
     private readonly ConcurrentDictionary<Guid, bool> _isActiveByUser = new();
