@@ -40,7 +40,10 @@ builder.Services.AddScoped<ChangePasswordHandler>();
 
 // ST-002 Sesija: neprozirni nasumični token, na serveru se čuva samo njegov heš.
 builder.Services.AddSingleton(new SessionSettings(TimeSpan.FromHours(8)));
-builder.Services.AddSingleton<ISessionStore, InMemorySessionStore>();
+builder.Services.AddSingleton<InMemorySessionStore>();
+builder.Services.AddSingleton<ISessionStore>(sp => new RevocationAwareSessionStore(
+    sp.GetRequiredService<InMemorySessionStore>(),
+    sp.GetRequiredService<InMemorySessionRevoker>()));
 builder.Services.AddSingleton<ISessionTokenProvider, SecureSessionTokenProvider>();
 builder.Services.AddSingleton<ISessionIssuer, SessionIssuer>();
 builder.Services.AddSingleton<ResolveSessionHandler>();

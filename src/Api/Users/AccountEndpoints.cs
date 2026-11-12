@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using Application.Sessions;
 using Application.Users;
 
 namespace Api.Users;
@@ -7,33 +7,37 @@ public static class AccountEndpoints
 {
     public static IEndpointRouteBuilder MapAccountEndpoints(this IEndpointRouteBuilder app)
     {
-        // Odjava: poništava sesiju prijavljenog korisnika.
+        // Odjava: poništava sesije prijavljenog korisnika.
         app.MapPost("/api/auth/logout", async (
-            ClaimsPrincipal principal,
+            HttpRequest request,
+            ResolveSessionHandler sessions,
             LogoutHandler handler,
             CancellationToken cancellationToken) =>
         {
-            if (!TryGetUserId(principal, out var userId))
+            Guid? userId = await sessions.HandleAsync(BearerToken.Read(request), cancellationToken);
+            if (userId is null)
                 return Unauthenticated();
 
-            await handler.HandleAsync(userId, cancellationToken);
+            await handler.HandleAsync(userId.Value, cancellationToken);
             return Results.NoContent();
         });
 
         // Promena SOPSTVENE lozinke: traži tačnu postojeću lozinku.
         app.MapPost("/api/auth/change-password", async (
-            ChangePasswordRequest request,
-            ClaimsPrincipal principal,
+            ChangePasswordRequest body,
+            HttpRequest request,
+            ResolveSessionHandler sessions,
             ChangePasswordHandler handler,
             CancellationToken cancellationToken) =>
         {
-            if (!TryGetUserId(principal, out var userId))
+            Guid? userId = await sessions.HandleAsync(BearerToken.Read(request), cancellationToken);
+            if (userId is null)
                 return Unauthenticated();
 
             var result = await handler.HandleAsync(
-                userId,
-                request.CurrentPassword ?? string.Empty,
-                request.NewPassword ?? string.Empty,
+                userId.Value,
+                body.CurrentPassword ?? string.Empty,
+                body.NewPassword ?? string.Empty,
                 cancellationToken);
 
             return result switch
@@ -48,12 +52,6 @@ public static class AccountEndpoints
         });
 
         return app;
-    }
-
-    private static bool TryGetUserId(ClaimsPrincipal principal, out Guid userId)
-    {
-        var value = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-        return Guid.TryParse(value, out userId) && userId != Guid.Empty;
     }
 
     private static IResult Unauthenticated()
