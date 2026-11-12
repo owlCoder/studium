@@ -3,7 +3,8 @@ namespace Application.Materials;
 /// <summary>
 /// Pravila za priloge nastavnog materijala (ST-009, US-05): dozvoljene ekstenzije
 /// datoteka i maksimalna veličina jednog priloga. Vrednosti se zadaju konfiguracijom
-/// u spoljnom sloju (<c>Api</c>). Provera konkretne datoteke nije deo ove klase.
+/// u spoljnom sloju (<c>Api</c>). Klasa proverava naziv i veličinu konkretne datoteke,
+/// a slučaj upotrebe otpremanja odlučuje šta se dešava sa odbijenom datotekom.
 /// </summary>
 public sealed class AttachmentUploadPolicy
 {
@@ -37,7 +38,56 @@ public sealed class AttachmentUploadPolicy
 
         AllowedExtensions = normalized;
         MaxSizeInBytes = maxSizeInBytes;
+        AllowedExtensionsDisplay = string.Join(", ", normalized.Order(StringComparer.Ordinal));
+        MaxSizeDisplay = FormatSize(maxSizeInBytes);
     }
+
+    /// <summary>
+    /// Dozvoljene ekstenzije za prikaz korisniku, azbučno i odvojene zarezom
+    /// (npr. <c>.docx, .pdf, .zip</c>).
+    /// </summary>
+    public string AllowedExtensionsDisplay { get; }
+
+    /// <summary>
+    /// Maksimalna veličina za prikaz korisniku (npr. <c>20 MB</c>), gde je 1 MB = 1024 × 1024 bajtova.
+    /// </summary>
+    public string MaxSizeDisplay { get; }
+
+    private static string FormatSize(long bytes)
+    {
+        const long kilobyte = 1024;
+        const long megabyte = kilobyte * 1024;
+
+        if (bytes >= megabyte)
+            return OneDecimalRoundedDown(bytes, megabyte) + " MB";
+        if (bytes >= kilobyte)
+            return OneDecimalRoundedDown(bytes, kilobyte) + " KB";
+        return bytes.ToString(System.Globalization.CultureInfo.InvariantCulture) + " B";
+    }
+
+    // Zaokružuje se naniže, da prikazana granica nikad ne bude veća od stvarne.
+    private static string OneDecimalRoundedDown(long bytes, long unit) =>
+        (Math.Floor(bytes * 10.0 / unit) / 10).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Da li je tip datoteke dozvoljen, prema ekstenziji iz izvornog naziva
+    /// (bez obzira na velika i mala slova). Proverava se samo poslednja ekstenzija,
+    /// pa se npr. <c>skripta.pdf.exe</c> odbija. Naziv bez ekstenzije nije dozvoljen.
+    /// </summary>
+    public bool IsAllowedFileName(string? fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+            return false;
+
+        var extension = Path.GetExtension(fileName.Trim());
+        return extension.Length > 1 && AllowedExtensions.Contains(extension.ToLowerInvariant());
+    }
+
+    /// <summary>
+    /// Da li veličina u bajtovima ne prelazi dozvoljeni maksimum (granica je uključena).
+    /// </summary>
+    public bool IsWithinMaxSize(long sizeInBytes) =>
+        sizeInBytes >= 0 && sizeInBytes <= MaxSizeInBytes;
 
     private static string NormalizeExtension(string? extension)
     {
