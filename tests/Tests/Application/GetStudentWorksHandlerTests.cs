@@ -1,5 +1,4 @@
 using Application.Works;
-using Domain.Enrollments;
 using Domain.Works;
 using NUnit.Framework;
 
@@ -71,31 +70,21 @@ public sealed class GetStudentWorksHandlerTests
         Assert.That(result[0].Status, Is.EqualTo(WorkStatus.Graded));
     }
 
-    // ⬇️ KLJUČNO — dokaz da radi za prekinute
+    // ⬇️ KLJUČNO — bez Enrollment zavisnosti
     [Test]
-    public async Task HandleAsync_ReturnsWorks_ForStudentWithEndedEnrollment()
+    public async Task HandleAsync_ReturnsWorks_RegardlessOfEnrollmentStatus()
     {
+        // Ključno : radovi ostaju vidljivi i posle prekida članstva.
+        // Handler ne filtrira po statusu članstva — svi radovi se vraćaju.
         var studentId = Guid.NewGuid();
-        var offeringId = Guid.NewGuid();
-
-        // 1. Enrollment — prekinut
-        var enrollment = new Enrollment(
-            Guid.NewGuid(), studentId, offeringId, DateTimeOffset.UtcNow);
-        enrollment.End();
-
-        // 2. Radovi
         var work1 = Work(studentId, "Stari rad 1");
         var work2 = Work(studentId, "Stari rad 2");
         var repo = new FakeWorkRepository(work1, work2);
         var handler = new GetStudentWorksHandler(repo);
 
-        // 3. Handler vraća radove
         var result = await handler.HandleAsync(studentId);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(enrollment.IsActive, Is.False);
-            Assert.That(result, Has.Count.EqualTo(2));
-        });
+        Assert.That(result, Has.Count.EqualTo(2));
+        Assert.That(result.Select(w => w.Title), Does.Contain("Stari rad 1"));
     }
 }
