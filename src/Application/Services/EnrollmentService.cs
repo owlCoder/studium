@@ -3,41 +3,54 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Application.DTOs;
 using Application.Interfaces;
-using Domain.Entities;
 
 namespace Application.Services;
+
+public enum EnrollmentOperationResult
+{
+    Success,
+    NotFound,
+    Forbidden
+}
 
 public class EnrollmentService
 {
     private readonly IEnrollmentRepository _repository;
+    private readonly IOfferingAccessReader _access;
 
-    public EnrollmentService(IEnrollmentRepository repository)
+    public EnrollmentService(IEnrollmentRepository repository, IOfferingAccessReader access)
     {
         _repository = repository;
+        _access = access;
     }
 
-    public async Task<List<StudentEnrollmentDto>> SearchAsync(Guid offeringId)
+    /// <returns>null ako nastavnik nema pravo nad izvođenjem.</returns>
+    public async Task<List<StudentEnrollmentDto>?> SearchAsync(Guid offeringId, Guid teacherId)
     {
+        if (!await _access.IsTeacherOfOfferingAsync(teacherId, offeringId))
+        {
+            return null;
+        }
+
         return await _repository.GetEnrollmentsByOfferingAsync(offeringId);
     }
 
-    public async Task<bool> TerminateAsync(Guid offeringId, Guid enrollmentId, Guid teacherId)
+    public async Task<EnrollmentOperationResult> TerminateAsync(Guid offeringId, Guid enrollmentId, Guid teacherId)
     {
-        var enrollment = await _repository.GetByIdAsync(enrollmentId);
-
-        if (enrollment == null || enrollment.OfferingId != offeringId)
+        if (!await _access.IsTeacherOfOfferingAsync(teacherId, offeringId))
         {
-            return false;
+            return EnrollmentOperationResult.Forbidden;
         }
 
-        if (teacherId == Guid.Empty)
+        var enrollment = await _repository.GetByIdAsync(enrollmentId);
+        if (enrollment == null || enrollment.OfferingId != offeringId)
         {
-            return false;
+            return EnrollmentOperationResult.NotFound;
         }
 
         enrollment.Terminate();
         await _repository.SaveChangesAsync();
 
-        return true;
+        return EnrollmentOperationResult.Success;
     }
 }

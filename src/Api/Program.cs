@@ -14,7 +14,9 @@ builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
 builder.Services.AddSingleton<IEnrollmentRepository>(
     _ => new EnrollmentRepository(DemoData.CreateEnrollments()));
+builder.Services.AddSingleton<IOfferingAccessReader>(_ => DemoData.CreateOfferingAccessReader());
 builder.Services.AddScoped<EnrollmentService>();
+// Authentication scheme: konfiguriše vlasnik auth zadatka.
 
 var app = builder.Build();
 
@@ -44,3 +46,6 @@ app.MapGet("/courses", async (
 });
 
 app.Run();
+
+// Omogućava WebApplicationFactory<Program> u integracionim testovima.
+public partial class Program { }
