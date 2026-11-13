@@ -73,6 +73,15 @@ public sealed class ActivityTests
     }
 
     [Test]
+    public void TryCreate_TrimsName()
+    {
+        var creation = Activity.TryCreate(Guid.NewGuid(), Guid.NewGuid(), "  Timski projekat  ", "Opis", Start, End);
+
+        Assert.That(creation.IsSuccess, Is.True);
+        Assert.That(creation.Activity!.Name, Is.EqualTo("Timski projekat"));
+    }
+
+    [Test]
     public void TryCreate_UsesEmptyDescriptionWhenDescriptionIsNull()
     {
         var creation = Activity.TryCreate(Guid.NewGuid(), Guid.NewGuid(), "Aktivnost", null, Start, End);

@@ -1,7 +1,9 @@
 using Application.Activities;
+using Application.Courses;
 using Domain.Courses;
 using Infrastructure.Activities;
 using Infrastructure.Courses;
+using Moq;
 using NUnit.Framework;
 
 namespace Tests.Infrastructure;
@@ -71,6 +73,24 @@ public sealed class InMemoryActivityContextReaderTests
         {
             Assert.That(lookup.Status, Is.EqualTo(ActivityContextStatus.Ambiguous));
             Assert.That(lookup.Context, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task ResolveAsync_ReturnsCanceledWhenReaderThrows()
+    {
+        var courseReader = new Mock<ICourseReader>();
+        courseReader.Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+        var reader = new InMemoryActivityContextReader(courseReader.Object);
+
+        var lookup = await reader.ResolveAsync("ERS-11111");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(lookup.Status, Is.EqualTo(ActivityContextStatus.Canceled));
+            Assert.That(lookup.Context, Is.Null);
+            Assert.That(lookup.Error, Is.Not.Null.And.Not.Empty);
         });
     }
 
