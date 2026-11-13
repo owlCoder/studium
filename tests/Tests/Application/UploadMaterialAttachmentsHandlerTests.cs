@@ -78,12 +78,13 @@ public sealed class UploadMaterialAttachmentsHandlerTests
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.Multiple(() =>
         {
-            Assert.That(result![0].OriginalFileName, Is.EqualTo("skripta.pdf"));
-            Assert.That(result[0].ContentType, Is.EqualTo("application/pdf"));
-            Assert.That(result[0].SizeInBytes, Is.EqualTo(Encoding.UTF8.GetByteCount("sadrzaj")));
+            Assert.That(result![0].Saved, Is.True);
+            Assert.That(result[0].Attachment!.OriginalFileName, Is.EqualTo("skripta.pdf"));
+            Assert.That(result[0].Attachment!.ContentType, Is.EqualTo("application/pdf"));
+            Assert.That(result[0].Attachment!.SizeInBytes, Is.EqualTo(Encoding.UTF8.GetByteCount("sadrzaj")));
         });
         var stored = await _attachments.ListByMaterialAsync(_material.Id);
-        Assert.That(stored.Select(a => a.Id), Is.EquivalentTo(new[] { result![0].Id }));
+        Assert.That(stored.Select(a => a.Id), Is.EquivalentTo(new[] { result![0].Attachment!.Id }));
         Assert.That(StoredFiles(), Has.Length.EqualTo(1));
     }
 
@@ -101,7 +102,7 @@ public sealed class UploadMaterialAttachmentsHandlerTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result!.Select(a => a.OriginalFileName),
             Is.EqualTo(new[] { "1-uvod.pdf", "2-vezbe.docx", "3-slika.png" }));
-        Assert.That(result!.Select(a => a.SizeInBytes), Is.EqualTo(new long[] { 1, 2, 3 }));
+        Assert.That(result!.Select(a => a.Attachment!.SizeInBytes), Is.EqualTo(new long[] { 1, 2, 3 }));
         Assert.That(await _attachments.ListByMaterialAsync(_material.Id), Has.Count.EqualTo(3));
         Assert.That(StoredFiles(), Has.Length.EqualTo(3));
     }
@@ -114,7 +115,7 @@ public sealed class UploadMaterialAttachmentsHandlerTests
 
         var result = await handler.HandleAsync(Command(TeacherId, File("a.txt", "tekst priloga", "text/plain")));
 
-        var stored = (await _attachments.ListByMaterialAsync(_material.Id)).Single(a => a.Id == result![0].Id);
+        var stored = (await _attachments.ListByMaterialAsync(_material.Id)).Single(a => a.Id == result![0].Attachment!.Id);
         await using var stream = await storage.OpenReadAsync(stored.StorageKey);
         using var reader = new StreamReader(stream!);
         Assert.That(await reader.ReadToEndAsync(), Is.EqualTo("tekst priloga"));
@@ -131,7 +132,7 @@ public sealed class UploadMaterialAttachmentsHandlerTests
         var result = await handler.HandleAsync(Command(TeacherId, File("granica.pdf", "0123456789")));
 
         Assert.That(result, Has.Count.EqualTo(1));
-        Assert.That(result![0].SizeInBytes, Is.EqualTo(10));
+        Assert.That(result![0].Attachment!.SizeInBytes, Is.EqualTo(10));
     }
 
     [Test]
@@ -143,7 +144,7 @@ public sealed class UploadMaterialAttachmentsHandlerTests
             TeacherId, File("isti.pdf", "prva"), File("isti.pdf", "druga")));
 
         Assert.That(result, Has.Count.EqualTo(2));
-        Assert.That(result![0].Id, Is.Not.EqualTo(result[1].Id));
+        Assert.That(result![0].Attachment!.Id, Is.Not.EqualTo(result[1].Attachment!.Id));
     }
 
     // Negativno ponašanje: pristup
@@ -271,8 +272,9 @@ public sealed class UploadMaterialAttachmentsHandlerTests
         Assert.That(await _attachments.ListByMaterialAsync(_material.Id), Is.Empty);
     }
 
+    // US-06, tačka 4: od dve datoteke druga ne uspe, prijavljena je samo prva.
     [Test]
-    public async Task HandleAsync_StorageFailsOnSecondFile_FirstStaysSavedAndErrorIsReported()
+    public async Task HandleAsync_StorageFailsOnSecondFile_OnlyFirstIsReportedAsSaved()
     {
         var real = new LocalDiskAttachmentFileStorage(_root);
         var storage = new Mock<IAttachmentFileStorage>();
@@ -283,12 +285,22 @@ public sealed class UploadMaterialAttachmentsHandlerTests
                 ++calls == 1 ? real.SaveAsync(stream, ct) : throw new IOException("Disk je pun."));
         var handler = CreateHandler(storage.Object);
 
-        Assert.That(
-            () => handler.HandleAsync(Command(TeacherId, File("prva.pdf", "1"), File("druga.pdf", "2"))),
-            Throws.TypeOf<IOException>());
+        var result = await handler.HandleAsync(
+            Command(TeacherId, File("prva.pdf", "1"), File("druga.pdf", "2")));
 
         var stored = await _attachments.ListByMaterialAsync(_material.Id);
-        Assert.That(stored.Select(a => a.OriginalFileName), Is.EqualTo(new[] { "prva.pdf" }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result!.Select(r => r.OriginalFileName), Is.EqualTo(new[] { "prva.pdf", "druga.pdf" }));
+            Assert.That(result!.Select(r => r.Saved), Is.EqualTo(new[] { true, false }));
+            Assert.That(result![0].Message, Is.EqualTo("Datoteka 'prva.pdf' je sačuvana."));
+            Assert.That(result[1].Message,
+                Is.EqualTo("Datoteka 'druga.pdf' nije sačuvana: greška pri čuvanju. Pokušajte ponovo."));
+            Assert.That(result[1].Attachment, Is.Null);
+            Assert.That(stored.Select(a => a.OriginalFileName), Is.EqualTo(new[] { "prva.pdf" }));
+            Assert.That(stored.Single().Id, Is.EqualTo(result[0].Attachment!.Id));
+            Assert.That(StoredFiles(), Has.Length.EqualTo(1));
+        });
     }
 
     [Test]

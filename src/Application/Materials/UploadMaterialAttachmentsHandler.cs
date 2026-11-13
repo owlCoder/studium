@@ -9,9 +9,10 @@ namespace Application.Materials;
 ///    pa ako je bilo koja neispravna, ne čuva se nijedna;
 /// 4. datoteke se čuvaju redom preko <see cref="AttachFileToMaterialHandler"/> (US-06),
 ///    koji vezuje prilog tek posle uspešnog čuvanja i meri stvarnu veličinu.
-/// Ako čuvanje neke datoteke ipak ne uspe u koraku 4, greška se prosleđuje za tu datoteku,
-/// a prethodno sačuvane datoteke ostaju priložene. Detaljan izveštaj po datoteci
-/// (sačuvano / nije sačuvano) je deo US-06 i nije u ovom koraku.
+/// Rezultat po datoteci (US-06): za svaku poslatu datoteku vraća se sačuvano / nije sačuvano,
+/// redom kojim su poslate. Ako čuvanje neke datoteke ne uspe u koraku 4, ta datoteka se
+/// prijavljuje kao nesačuvana, prethodno sačuvane ostaju priložene i prijavljene kao sačuvane,
+/// a otpremanje se nastavlja sa sledećom datotekom. Otkazivanje zahteva prekida otpremanje.
 /// </summary>
 public sealed class UploadMaterialAttachmentsHandler
 {
@@ -42,14 +43,15 @@ public sealed class UploadMaterialAttachmentsHandler
     }
 
     /// <returns>
-    /// Sačuvani prilozi, redom kojim su datoteke poslate, ili <c>null</c> ako materijal ne postoji.
+    /// Rezultat za svaku poslatu datoteku (sačuvano / nije sačuvano), redom kojim su datoteke
+    /// poslate, ili <c>null</c> ako materijal ne postoji (tada se ne čuva nijedna datoteka).
     /// </returns>
     /// <exception cref="MaterialAccessDeniedException">
     /// Korisnik nije zadat ili ne pripada nastavnom osoblju izvođenja materijala.
     /// </exception>
     /// <exception cref="ArgumentException">Nije poslata nijedna datoteka ili datoteka nema naziv/tip.</exception>
     /// <exception cref="AttachmentRejectedException">Datoteka nedozvoljenog tipa ili prevelika datoteka.</exception>
-    public async Task<IReadOnlyList<UploadedAttachment>?> HandleAsync(
+    public async Task<IReadOnlyList<AttachmentUploadResult>?> HandleAsync(
         UploadMaterialAttachmentsCommand command,
         CancellationToken cancellationToken = default)
     {
@@ -79,28 +81,60 @@ public sealed class UploadMaterialAttachmentsHandler
             ValidateBeforeSaving(file);
         }
 
-        var savedIds = new List<Guid>(command.Files.Count);
+        var results = new List<AttachmentUploadResult>(command.Files.Count);
         foreach (var file in command.Files)
         {
-            await using var content = file.OpenReadStream();
-
-            var id = await _attachFile.HandleAsync(
-                new AttachFileToMaterialCommand(material.Id, file.FileName, file.ContentType, content),
-                cancellationToken);
-
-            if (id is null)
-                return null; // Materijal je u međuvremenu uklonjen.
-
-            savedIds.Add(id.Value);
+            results.Add(await SaveOneAsync(material.Id, file, cancellationToken));
         }
 
-        var stored = (await _attachments.ListByMaterialAsync(material.Id, cancellationToken))
-            .ToDictionary(a => a.Id);
+        return results;
+    }
 
-        return savedIds
-            .Select(id => stored[id])
-            .Select(a => new UploadedAttachment(a.Id, a.OriginalFileName, a.ContentType, a.SizeInBytes))
-            .ToArray();
+    // US-06: ishod jedne datoteke ne utiče na ostale; svaka dobija sopstveni rezultat.
+    private async Task<AttachmentUploadResult> SaveOneAsync(
+        Guid materialId,
+        UploadedFile file,
+        CancellationToken cancellationToken)
+    {
+        var name = file.FileName.Trim();
+
+        try
+        {
+            Guid? id;
+            await using (var content = file.OpenReadStream())
+            {
+                id = await _attachFile.HandleAsync(
+                    new AttachFileToMaterialCommand(materialId, file.FileName, file.ContentType, content),
+                    cancellationToken);
+            }
+
+            if (id is null)
+            {
+                return AttachmentUploadResult.Failure(
+                    name, $"Datoteka '{name}' nije sačuvana: materijal više ne postoji.");
+            }
+
+            var attachment = (await _attachments.ListByMaterialAsync(materialId, cancellationToken))
+                .Single(a => a.Id == id.Value);
+
+            return AttachmentUploadResult.Success(new UploadedAttachment(
+                attachment.Id, attachment.OriginalFileName, attachment.ContentType, attachment.SizeInBytes));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (AttachmentRejectedException ex)
+        {
+            // US-05: stvarna veličina je prešla maksimum tek pri čitanju sadržaja.
+            return AttachmentUploadResult.Failure(name, ex.Message);
+        }
+        catch (Exception)
+        {
+            // Tekst izuzetka (npr. putanje na disku) se ne prikazuje korisniku.
+            return AttachmentUploadResult.Failure(
+                name, $"Datoteka '{name}' nije sačuvana: greška pri čuvanju. Pokušajte ponovo.");
+        }
     }
 
     // Provera pre čuvanja bilo koje datoteke, da odbijena datoteka ne ostavi ostale delimično sačuvane.
