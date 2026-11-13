@@ -64,6 +64,7 @@ var uploadForm = new UploadAttachmentsForm(
         attachmentPolicy,
         new AttachFileToMaterialHandler(materials, attachments, attachmentStorage, attachmentPolicy)),
     attachments,
+    attachmentPolicy,
     Console.In,
     Console.Out);
 await uploadForm.RunAsync(demoTeacherId, demoMaterial.Id);

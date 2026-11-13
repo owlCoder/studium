@@ -59,17 +59,19 @@ public sealed class UploadAttachmentsFormTests
         string userInput,
         Guid? userId = null,
         Guid? materialId = null,
-        IAttachmentFileStorage? storage = null)
+        IAttachmentFileStorage? storage = null,
+        AttachmentUploadPolicy? policy = null)
     {
         storage ??= new LocalDiskAttachmentFileStorage(_storageDir);
+        policy ??= Policy;
         var handler = new UploadMaterialAttachmentsHandler(
             _materials,
             _attachments,
             new InMemoryOfferingStaffChecker([(TeacherId, _material.CourseOfferingId)]),
-            Policy,
-            new AttachFileToMaterialHandler(_materials, _attachments, storage, Policy));
+            policy,
+            new AttachFileToMaterialHandler(_materials, _attachments, storage, policy));
         var output = new StringWriter();
-        var form = new UploadAttachmentsForm(handler, _attachments, new StringReader(userInput), output);
+        var form = new UploadAttachmentsForm(handler, _attachments, policy, new StringReader(userInput), output);
 
         var results = await form.RunAsync(userId ?? TeacherId, materialId ?? _material.Id);
         return (results, output.ToString());
@@ -214,18 +216,91 @@ public sealed class UploadAttachmentsFormTests
 
     // Negativno ponašanje
 
+    // US-05 (provera na klijentu, dogovoreno sa US-04): nedozvoljena datoteka se odbija
+    // već pri unosu, kao nepostojeća putanja, a ostale izabrane datoteke se šalju.
     [Test]
-    public async Task RunAsync_UnsupportedType_NothingIsSavedAndMessageIsShown()
+    public async Task RunAsync_UnsupportedType_IsRejectedAtInputAndOtherFilesAreSent()
     {
         var pdf = CreateSourceFile("dobra.pdf", "x");
         var exe = CreateSourceFile("program.exe", "y");
 
         var (results, output) = await RunFormAsync($"{pdf}\n{exe}\n\n");
 
-        Assert.That(results, Is.Null);
-        Assert.That(output, Does.Contain("Datoteka 'program.exe' nije priložena: tip datoteke nije dozvoljen."));
-        Assert.That(output, Does.Not.Contain("Prilozi materijala"));
-        Assert.That(await _attachments.ListByMaterialAsync(_material.Id), Is.Empty);
+        var stored = await _attachments.ListByMaterialAsync(_material.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(results!.Select(r => r.OriginalFileName), Is.EqualTo(new[] { "dobra.pdf" }));
+            Assert.That(output, Does.Contain(
+                "Datoteka 'program.exe' nije priložena: tip datoteke nije dozvoljen. " +
+                "Dozvoljeni tipovi: .docx, .jpeg, .jpg, .pdf, .png, .pptx, .txt, .xlsx, .zip."));
+            Assert.That(output, Does.Not.Contain("- program.exe"));
+            Assert.That(stored.Single().OriginalFileName, Is.EqualTo("dobra.pdf"));
+        });
+    }
+
+    [Test]
+    public async Task RunAsync_RulesAreShownBeforeFirstFileIsRequested()
+    {
+        var (_, output) = await RunFormAsync("\n");
+
+        var rules = output.IndexOf(
+            "Dozvoljeni tipovi: .docx, .jpeg, .jpg, .pdf, .png, .pptx, .txt, .xlsx, .zip", StringComparison.Ordinal);
+        var maxSize = output.IndexOf("Najveća veličina jedne datoteke: 20 MB", StringComparison.Ordinal);
+        var firstPrompt = output.IndexOf("Datoteka 1:", StringComparison.Ordinal);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(rules, Is.GreaterThanOrEqualTo(0));
+            Assert.That(maxSize, Is.GreaterThan(rules));
+            Assert.That(firstPrompt, Is.GreaterThan(maxSize));
+        });
+    }
+
+    [Test]
+    public async Task RunAsync_TooLargeFile_IsRejectedAtInputAndNothingIsSent()
+    {
+        var small = new AttachmentUploadPolicy(new[] { ".pdf" }, 1024);
+        var tooLarge = CreateSourceFile("velika.pdf", new string('a', 1025));
+        var storage = new Mock<IAttachmentFileStorage>(MockBehavior.Strict);
+
+        var (results, output) = await RunFormAsync($"{tooLarge}\n\n", storage: storage.Object, policy: small);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(results, Is.Null);
+            Assert.That(output, Does.Contain("Datoteka 'velika.pdf' nije priložena: veća je od dozvoljenih 1 KB."));
+            Assert.That(output, Does.Contain("Nije izabrana nijedna datoteka. Ništa nije poslato."));
+        });
+        storage.VerifyNoOtherCalls();
+    }
+
+    [Test]
+    public async Task RunAsync_FileExactlyAtLimit_IsSent()
+    {
+        var small = new AttachmentUploadPolicy(new[] { ".pdf" }, 1024);
+        var atLimit = CreateSourceFile("tacno.pdf", new string('a', 1024));
+
+        var (results, _) = await RunFormAsync($"{atLimit}\n\n", policy: small);
+
+        Assert.That(results!.Single().Saved, Is.True);
+    }
+
+    [Test]
+    public async Task RunAsync_OnlyRejectedFiles_NothingIsSent()
+    {
+        var exe = CreateSourceFile("program.exe", "y");
+        var storage = new Mock<IAttachmentFileStorage>(MockBehavior.Strict);
+
+        var (results, output) = await RunFormAsync($"{exe}\n\n", storage: storage.Object);
+
+        var stored = await _attachments.ListByMaterialAsync(_material.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(results, Is.Null);
+            Assert.That(output, Does.Contain("Nije izabrana nijedna datoteka. Ništa nije poslato."));
+            Assert.That(stored, Is.Empty);
+        });
+        storage.VerifyNoOtherCalls();
     }
 
     [Test]
@@ -287,13 +362,15 @@ public sealed class UploadAttachmentsFormTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(() => new UploadAttachmentsForm(null!, _attachments, TextReader.Null, TextWriter.Null),
+            Assert.That(() => new UploadAttachmentsForm(null!, _attachments, Policy, TextReader.Null, TextWriter.Null),
                 Throws.TypeOf<ArgumentNullException>());
-            Assert.That(() => new UploadAttachmentsForm(handler, null!, TextReader.Null, TextWriter.Null),
+            Assert.That(() => new UploadAttachmentsForm(handler, null!, Policy, TextReader.Null, TextWriter.Null),
                 Throws.TypeOf<ArgumentNullException>());
-            Assert.That(() => new UploadAttachmentsForm(handler, _attachments, null!, TextWriter.Null),
+            Assert.That(() => new UploadAttachmentsForm(handler, _attachments, null!, TextReader.Null, TextWriter.Null),
                 Throws.TypeOf<ArgumentNullException>());
-            Assert.That(() => new UploadAttachmentsForm(handler, _attachments, TextReader.Null, null!),
+            Assert.That(() => new UploadAttachmentsForm(handler, _attachments, Policy, null!, TextWriter.Null),
+                Throws.TypeOf<ArgumentNullException>());
+            Assert.That(() => new UploadAttachmentsForm(handler, _attachments, Policy, TextReader.Null, null!),
                 Throws.TypeOf<ArgumentNullException>());
         });
     }

@@ -179,4 +179,30 @@ public sealed class AttachmentUploadPolicyTests
 
         Assert.That(policy.MaxSizeDisplay, Is.EqualTo(expected));
     }
+
+    // Isti tekst poruke koriste provera na serveru i provera na klijentu.
+
+    [Test]
+    public void DescribeRejection_UnsupportedType_NamesFileAndListsAllowedTypes()
+    {
+        Assert.That(
+            AgreedPolicy().DescribeRejection(AttachmentRejectionReason.UnsupportedType, " program.exe "),
+            Is.EqualTo("Datoteka 'program.exe' nije priložena: tip datoteke nije dozvoljen. " +
+                       "Dozvoljeni tipovi: .docx, .jpeg, .jpg, .pdf, .png, .pptx, .txt, .xlsx, .zip."));
+    }
+
+    [Test]
+    public void DescribeRejection_TooLarge_NamesFileAndReadableLimit()
+    {
+        Assert.That(
+            AgreedPolicy().DescribeRejection(AttachmentRejectionReason.TooLarge, "velika.pdf"),
+            Is.EqualTo("Datoteka 'velika.pdf' nije priložena: veća je od dozvoljenih 20 MB."));
+    }
+
+    [Test]
+    public void DescribeRejection_UnknownReason_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => AgreedPolicy().DescribeRejection((AttachmentRejectionReason)99, "a.pdf"));
+    }
 }
