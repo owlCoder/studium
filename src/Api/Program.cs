@@ -1,16 +1,18 @@
-using Api;
+﻿using Api;
+using Api.Users;
+using Application.Access;
 using Application.Auth;
 using Application.Courses;
 using Application.Sessions;
 using Application.Time;
 using Application.Users;
+using Domain.Users;
+using Infrastructure.Auth;
 using Infrastructure.Demo;
 using Infrastructure.Security;
 using Infrastructure.Sessions;
 using Infrastructure.Time;
-using Application.Access;
-using Domain.Users;
-using Infrastructure.Auth;
+using Infrastructure.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,18 +32,33 @@ builder.Services.AddSingleton<IClock, SystemClock>();
 
 // ST-002 Prijava: handler zavisi od portova, a ovde se biraju konkretne implementacije.
 // Demo korisnici se prave jednom (heširanje lozinki je namerno sporo), pa ih dele
-// prijava (IUserLookup) i provera ovlašćenja (IAccountReader).
+// prijava (IUserLookup), promena lozinke (IPasswordAccountRepository) i provera
+// ovlašćenja (IAccountReader).
 builder.Services.AddSingleton<IReadOnlyList<User>>(
     sp => DemoData.CreateUsers(sp.GetRequiredService<IPasswordHasher>()));
+builder.Services.AddSingleton(
+    sp => new InMemoryUserStore(sp.GetRequiredService<IReadOnlyList<User>>()));
 builder.Services.AddSingleton<IUserLookup>(
-    sp => new InMemoryUserLookup(sp.GetRequiredService<IReadOnlyList<User>>()));
+    sp => sp.GetRequiredService<InMemoryUserStore>());
 builder.Services.AddSingleton<IAccountReader>(
     sp => new InMemoryAccountReader(sp.GetRequiredService<IReadOnlyList<User>>()));
 builder.Services.AddSingleton<LoginHandler>();
 
+// Odjava i promena sopstvene lozinke
+builder.Services.AddSingleton<IPasswordAccountRepository>(
+    sp => sp.GetRequiredService<InMemoryUserStore>());
+builder.Services.AddSingleton<InMemorySessionRevoker>();
+builder.Services.AddSingleton<ISessionRevoker>(
+    sp => sp.GetRequiredService<InMemorySessionRevoker>());
+builder.Services.AddScoped<LogoutHandler>();
+builder.Services.AddScoped<ChangePasswordHandler>();
+
 // ST-002 Sesija: neprozirni nasumični token, na serveru se čuva samo njegov heš.
 builder.Services.AddSingleton(new SessionSettings(TimeSpan.FromHours(8)));
-builder.Services.AddSingleton<ISessionStore, InMemorySessionStore>();
+builder.Services.AddSingleton<InMemorySessionStore>();
+builder.Services.AddSingleton<ISessionStore>(sp => new RevocationAwareSessionStore(
+    sp.GetRequiredService<InMemorySessionStore>(),
+    sp.GetRequiredService<InMemorySessionRevoker>()));
 builder.Services.AddSingleton<ISessionTokenProvider, SecureSessionTokenProvider>();
 builder.Services.AddSingleton<ISessionIssuer, SessionIssuer>();
 builder.Services.AddSingleton<ResolveSessionHandler>();
@@ -94,6 +111,9 @@ app.MapPost("/api/auth/login", async (
             statusCode: StatusCodes.Status401Unauthorized)
     };
 });
+
+// Odjava i promena sopstvene lozinke
+app.MapAccountEndpoints();
 
 // ST-002 Sesija: proverava token iz zaglavlja "Authorization: Bearer ...".
 // Dijagnostički endpoint za proveru sesije;
@@ -156,3 +176,6 @@ public sealed record LoginResponse(
     string Token,
     DateTimeOffset ExpiresAt,
     AuthenticatedIdentity Identity);
+
+/// <summary>Omogućava integracionim testovima da pokrenu aplikaciju.</summary>
+public partial class Program { }

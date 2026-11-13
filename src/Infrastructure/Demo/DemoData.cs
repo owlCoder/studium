@@ -1,4 +1,4 @@
-using Application.Courses;
+﻿using Application.Courses;
 using Application.Auth;
 using Application.Users;
 using Domain.Courses;
