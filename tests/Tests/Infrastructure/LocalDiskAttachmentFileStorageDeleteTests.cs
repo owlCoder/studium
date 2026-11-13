@@ -37,10 +37,11 @@ public sealed class LocalDiskAttachmentFileStorageDeleteTests
 
         var deleted = await storage.DeleteAsync(key);
 
-        Assert.Multiple(async () =>
+        var reopened = await storage.OpenReadAsync(key);
+        Assert.Multiple(() =>
         {
             Assert.That(deleted, Is.True);
-            Assert.That(await storage.OpenReadAsync(key), Is.Null);
+            Assert.That(reopened, Is.Null);
             Assert.That(Directory.GetFiles(_root), Is.Empty);
         });
     }

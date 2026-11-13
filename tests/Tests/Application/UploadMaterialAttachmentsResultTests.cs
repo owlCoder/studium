@@ -129,11 +129,12 @@ public sealed class UploadMaterialAttachmentsResultTests
 
         var result = await handler.HandleAsync(Command(File("a.pdf", "1"), File("b.pdf", "2")));
 
-        Assert.Multiple(async () =>
+        var stored = await _attachments.ListByMaterialAsync(_material.Id);
+        Assert.Multiple(() =>
         {
             Assert.That(result!.Select(r => r.Saved), Is.EqualTo(new[] { false, false }));
             Assert.That(result!.All(r => r.Attachment is null), Is.True);
-            Assert.That(await _attachments.ListByMaterialAsync(_material.Id), Is.Empty);
+            Assert.That(stored, Is.Empty);
             Assert.That(StoredFiles(), Is.Empty);
         });
     }
@@ -156,11 +157,11 @@ public sealed class UploadMaterialAttachmentsResultTests
 
         var result = await handler.HandleAsync(Command(File("prva.pdf", "1"), File("druga.pdf", "2")));
 
-        Assert.Multiple(async () =>
+        var stored = await _attachments.ListByMaterialAsync(_material.Id);
+        Assert.Multiple(() =>
         {
             Assert.That(result!.Select(r => r.Saved), Is.EqualTo(new[] { true, false }));
-            Assert.That((await _attachments.ListByMaterialAsync(_material.Id)).Select(a => a.OriginalFileName),
-                Is.EqualTo(new[] { "prva.pdf" }));
+            Assert.That(stored.Select(a => a.OriginalFileName), Is.EqualTo(new[] { "prva.pdf" }));
             Assert.That(StoredFiles(), Has.Length.EqualTo(1));
         });
     }
@@ -202,12 +203,13 @@ public sealed class UploadMaterialAttachmentsResultTests
 
         var result = await handler.HandleAsync(Command(File("mala.pdf", "1"), lying));
 
-        Assert.Multiple(async () =>
+        var stored = await _attachments.ListByMaterialAsync(_material.Id);
+        Assert.Multiple(() =>
         {
             Assert.That(result!.Select(r => r.Saved), Is.EqualTo(new[] { true, false }));
             Assert.That(result![1].Message,
                 Is.EqualTo("Datoteka 'velika.pdf' nije priložena: veća je od dozvoljenih 10 B."));
-            Assert.That(await _attachments.ListByMaterialAsync(_material.Id), Has.Count.EqualTo(1));
+            Assert.That(stored, Has.Count.EqualTo(1));
             Assert.That(StoredFiles(), Has.Length.EqualTo(1));
         });
     }
