@@ -9,5 +9,6 @@ namespace Domain.Enums;
 public enum ContributionStatus
 {
     Podnet,
-    VracenNaDopunu
+    VracenNaDopunu,
+    Potvrdjen
 }

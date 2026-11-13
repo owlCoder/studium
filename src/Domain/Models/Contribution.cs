@@ -9,47 +9,66 @@ namespace Domain.Models;
 
 public class Contribution
 {
-    public int Id { get; set; } = 0;
+    public Guid Id { get; } = 1;
     public int IdTask { get; set; } = 0;
     public int AuthorId { get; private set; } = 0;
     public int PhaseId { get; set; } = 0;
     public ContributionStatus Status { get; private set; } = ContributionStatus.Podnet;
     public DateTime CreatedAt { get; set; } = DateTime.Now;
-    public DateTime LastChangedAt { get; set; } = DateTime.Now;
+    public DateTime ChangedAt { get; set; } = DateTime.Now;
 
     private readonly List<ContributionRevision> _revisions = new();
     public IReadOnlyList<ContributionRevision> Revisions => _revisions;
 
     public ContributionRevision CurrentRevision => _revisions.Last();
 
-    public Contribution(int id, int idTask, int authorId, int phaseId, string description, IEnumerable<Evidence> evidenceItems)
+    public Contribution(int idTask, int authorId, int phaseId, string description, IEnumerable<Evidence> evidenceItems)
     {
-        Id = id;
+        Id = Guid.NewGuid();
         IdTask = idTask;
         AuthorId = authorId;
         PhaseId = phaseId;
         Status = ContributionStatus.Podnet;
         CreatedAt = DateTime.Now;
-        LastChangedAt = CreatedAt;
+        ChangedAt = CreatedAt;
 
         _revisions.Add(new ContributionRevision(1, 1, authorId, description, evidenceItems));
     }
 
-    public bool ReturnForSupplement(string reviewerNote, out string error)
+    private bool IsInStatus(ContributionStatus expected, string message, out string error)
     {
-        if(Status != ContributionStatus.Podnet)
-        {
-            error = "Samo podnet doprinos može biti vraćen na dopunu!";
-            return false;
-        }
+        bool matches = Status == expected;
+        error = matches ? string.Empty : message;
+        return matches;
+    }
 
-        if (!CurrentRevision.SetReviewerNote(reviewerNote, out error))
-        {
-            return false;
-        }
+    private void ChangeStatus(ContributionStatus newStatus)
+    {
+        Status = newStatus;
+        ChangedAt = DateTime.Now;
+    }
 
-        Status = ContributionStatus.VracenNaDopunu;
-        LastChangedAt = DateTime.Now;
+    public bool Confirm(int reviewerId, string reviewerNote, out string error)
+    {
+        if (!IsInStatus(ContributionStatus.Podnet, "Samo podnet doprinos može biti potvrđen!", out error))
+            return false;
+
+        if (!CurrentRevision.SetReviewerNote(reviewerId, reviewerNote, out error))
+            return false;
+
+        ChangeStatus(ContributionStatus.Potvrdjen);
+        return true;
+    }
+
+    public bool ReturnForSupplement(int reviewerId, string reviewerNote, out string error)
+    {
+        if (!IsInStatus(ContributionStatus.Podnet, "Samo podnet doprinos može biti vraćen na dopunu!", out error))
+            return false;
+
+        if (!CurrentRevision.SetReviewerNote(reviewerId, reviewerNote, out error))
+            return false;
+
+        ChangeStatus(ContributionStatus.VracenNaDopunu);
         return true;
     }
 
@@ -77,7 +96,7 @@ public class Contribution
 
         _revisions.Add(revision);
         Status = ContributionStatus.Podnet;
-        LastChangedAt = DateTime.Now;
+        ChangedAt = DateTime.Now;
         return true;
     }
 }

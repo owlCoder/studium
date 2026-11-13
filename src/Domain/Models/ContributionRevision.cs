@@ -9,19 +9,21 @@ namespace Domain.Models;
 
 public class ContributionRevision
 {
-    public int Id { get; private set; } = 0;
+    public Guid Id { get; } = 1;
     public int RevisionNumber { get; private set; } = 0;
     public int AuthorId { get; private set; } = 0;
     public string Description { get; private set; } = string.Empty;
     public DateTime CreatedAt { get; private set; } = DateTime.Now;
     public string ReviewerNote { get; private set; } = string.Empty;
+    public int? ChangedBy { get; private set; }
+    public DateTime? ChangedAt { get; private set; }
 
     private readonly List<Evidence> _evidenceItems = new();
     public IReadOnlyList<Evidence> EvidenceItems => _evidenceItems;
 
-    public ContributionRevision(int id, int revisionNumber, int authorId, string description, IEnumerable<Evidence> evidenceItems)
+    public ContributionRevision(int revisionNumber, int authorId, string description, IEnumerable<Evidence> evidenceItems)
     {
-        Id = id;
+        Id = Guid.NewGuid();
         RevisionNumber = revisionNumber;
         AuthorId = authorId;
         Description = description ?? string.Empty;
@@ -45,7 +47,13 @@ public class ContributionRevision
         return true;
     }
 
-    public bool SetReviewerNote(string note, out string error)
+    public void MarkReviewed(int reviewerId)
+    {
+        ChangedBy = reviewerId;
+        ChangedAt = DateTime.Now;
+    }
+
+    public bool SetReviewerNote(int reviewerId, string note, out string error)
     {
         if(string.IsNullOrWhiteSpace(note))
         {
@@ -54,6 +62,7 @@ public class ContributionRevision
         }
 
         ReviewerNote = note;
+        MarkReviewed(reviewerId);
         error = string.Empty;
         return true;
     }
