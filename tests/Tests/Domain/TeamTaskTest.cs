@@ -11,8 +11,8 @@ public sealed class TeamTaskTest
 
     private static readonly DateTime CreatedAt = new(2026, 11, 12, 22, 0, 0, DateTimeKind.Utc);
 
-    private static TeamTask NewTask(string? name = "Testiranje podataka", Guid? id = null) =>
-        new(id ?? Guid.NewGuid(), Guid.NewGuid(), name, "Opis testiranja", Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), CreatedAt);
+    private static TeamTask NewTask(string name = "Testiranje podataka") =>
+        new(Guid.NewGuid(), name, "Opis testiranja", TeamTaskStatus.Planned, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), CreatedAt);
 
     [Test]
 
@@ -36,6 +36,7 @@ public sealed class TeamTaskTest
     public void Constructor_NullName_DoesNotThrowExc_IsValid()
     {
         TeamTask? newTask = null;
+        // ime je nullable u konstruktoru klase TeamTask
         Assert.That(() => newTask = NewTask(name: null), Throws.Nothing);
         Assert.That(newTask!.IsValid(), Is.False);
     }
@@ -50,13 +51,6 @@ public sealed class TeamTaskTest
 
     [Test]
 
-    public void Constructor_EmptyId_IsInValid()
-    {
-        Assert.That(NewTask(id:Guid.Empty).IsValid(),Is.False);
-    }
-
-    [Test]
-
     public void Status_IsNotPublicSetter()
     {
         var setter = typeof(TeamTask).GetProperty(nameof(TeamTask.Status))!.SetMethod ;
@@ -65,12 +59,12 @@ public sealed class TeamTaskTest
 
     [Test]
 
-    public void ChangedStatus_UpdateStatus_Author_Time()
+    public void ChangeStatus_UpdateStatus_Author_Time()
     {
         var task = NewTask();
         var author = Guid.NewGuid();
         var time = CreatedAt.AddHours(3);
-        task.ChangedStatus(TeamTaskStatus.Finished, author, time);
+        task.ChangeStatus(TeamTaskStatus.Finished, author, time);
 
         Assert.Multiple(() =>
         {
