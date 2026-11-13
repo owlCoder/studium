@@ -48,6 +48,7 @@ public class ContributionQueries
     {
         ContributionStatus.Podnet => "Podnet",
         ContributionStatus.VracenNaDopunu => "Vraćen na dopunu",
+        ContributionStatus.Potvrdjen => "Potvrđen",
         _ => status.ToString()
     };
 
