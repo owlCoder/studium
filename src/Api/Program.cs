@@ -110,7 +110,8 @@ app.MapPost("/offerings/{offeringId:guid}/materials", async (
 // ST-009 (US-04): otpremanje jedne ili više datoteka u materijal (multipart/form-data).
 // Redosled: 401 bez identiteta -> 404 ako materijal ne postoji -> 403 ako korisnik nije
 // nastavno osoblje izvođenja materijala (ST-005) -> 400 za neispravne ili odbijene
-// datoteke (US-05; tada se ne čuva nijedna) -> 201 sa listom sačuvanih priloga.
+// datoteke (US-05; tada se ne čuva nijedna) -> rezultat po datoteci (US-06):
+// 201 ako su sve datoteke sačuvane, 200 ako bar jedna nije (telo kaže koja).
 // Dok ST-002 ne doda autentifikaciju, svaki zahtev dobija 401.
 // Antiforgery je isključen jer način autentifikacije (ST-002) još nije izabran;
 // ako se izabere autentifikacija kolačićem, zaštitu treba uključiti.
@@ -133,13 +134,17 @@ app.MapPost("/materials/{materialId:guid}/attachments", async (
 
     try
     {
-        var attachments = await handler.HandleAsync(
+        var results = await handler.HandleAsync(
             new UploadMaterialAttachmentsCommand(userId, materialId, uploaded),
             cancellationToken);
 
-        return attachments is null
-            ? Results.NotFound()
-            : Results.Created((string?)null, attachments);
+        if (results is null)
+            return Results.NotFound();
+
+        // US-06: telo uvek sadrži rezultat po datoteci (sačuvano / nije sačuvano).
+        return results.All(r => r.Saved)
+            ? Results.Created((string?)null, results)
+            : Results.Ok(results);
     }
     catch (MaterialAccessDeniedException ex)
     {
