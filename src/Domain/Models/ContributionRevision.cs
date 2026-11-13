@@ -9,7 +9,7 @@ namespace Domain.Models;
 
 public class ContributionRevision
 {
-    public Guid Id { get; } = 1;
+    public Guid Id { get; } = Guid.Empty;
     public int RevisionNumber { get; private set; } = 0;
     public int AuthorId { get; private set; } = 0;
     public string Description { get; private set; } = string.Empty;

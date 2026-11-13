@@ -9,7 +9,7 @@ namespace Domain.Models;
 
 public class Contribution
 {
-    public Guid Id { get; } = 1;
+    public Guid Id { get; } = Guid.Empty;
     public int IdTask { get; set; } = 0;
     public int AuthorId { get; private set; } = 0;
     public int PhaseId { get; set; } = 0;
@@ -32,7 +32,7 @@ public class Contribution
         CreatedAt = DateTime.Now;
         ChangedAt = CreatedAt;
 
-        _revisions.Add(new ContributionRevision(1, 1, authorId, description, evidenceItems));
+        _revisions.Add(new ContributionRevision(1, authorId, description, evidenceItems));
     }
 
     private bool IsInStatus(ContributionStatus expected, string message, out string error)
@@ -87,7 +87,7 @@ public class Contribution
         }
 
         int next = _revisions.Count + 1;
-        ContributionRevision revision = new ContributionRevision(next, next, editorId, newDescription, evidenceItems);
+        ContributionRevision revision = new ContributionRevision(next, editorId, newDescription, evidenceItems);
 
         if (!revision.IsValid(out error))
         {

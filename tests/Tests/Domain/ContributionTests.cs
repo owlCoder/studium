@@ -18,13 +18,13 @@ public sealed class ContributionTests
 
     private static Contribution MakeSubmitted()
     {
-        return new Contribution(1, AuthorId, 5, 7, "Prvi opis", new List<Evidence>());
+        return new Contribution(7, AuthorId, 5, "Prvi opis", new List<Evidence>());
     }
 
     private static Contribution MakeReturned()
     {
         var contribution = MakeSubmitted();
-        contribution.ReturnForSupplement("Dodaj dokaz", out _);
+        contribution.ReturnForSupplement(99, "Dodaj dokaz", out _);
         return contribution;
     }
 
@@ -58,7 +58,7 @@ public sealed class ContributionTests
     {
         var contribution = MakeSubmitted();
 
-        var result = contribution.ReturnForSupplement("Dodaj dokaz", out var error);
+        var result = contribution.ReturnForSupplement(99, "Dodaj dokaz", out var error);
 
         Assert.Multiple(() =>
         {
@@ -74,7 +74,7 @@ public sealed class ContributionTests
     {
         var contribution = MakeSubmitted();
 
-        var result = contribution.ReturnForSupplement("", out var error);
+        var result = contribution.ReturnForSupplement(99, "", out var error);
 
         Assert.Multiple(() =>
         {
@@ -89,7 +89,7 @@ public sealed class ContributionTests
     {
         var contribution = MakeReturned();
 
-        var result = contribution.ReturnForSupplement("Opet", out var error);
+        var result = contribution.ReturnForSupplement(99, "Opet", out var error);
 
         Assert.Multiple(() =>
         {
@@ -184,9 +184,9 @@ public sealed class ContributionTests
     {
         var contribution = MakeSubmitted();
 
-        contribution.ReturnForSupplement("Prva napomena", out _);
+        contribution.ReturnForSupplement(99, "Prva napomena", out _);
         contribution.Supplement(AuthorId, "Drugi opis", new List<Evidence>(), out _);
-        contribution.ReturnForSupplement("Druga napomena", out _);
+        contribution.ReturnForSupplement(99, "Druga napomena", out _);
         contribution.Supplement(AuthorId, "Treci opis", new List<Evidence>(), out _);
 
         Assert.Multiple(() =>

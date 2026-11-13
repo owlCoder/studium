@@ -13,7 +13,7 @@ public sealed class ContributionRevisionTests
 {
     private static ContributionRevision Make(string? description)
     {
-        return new ContributionRevision(1, 1, 10, description!, new List<Evidence>());
+        return new ContributionRevision(1, 10, description!, new List<Evidence>());
     }
 
     [Test]
@@ -51,7 +51,7 @@ public sealed class ContributionRevisionTests
     {
         var revision = Make("Opis");
 
-        var result = revision.SetReviewerNote("Dodaj link ka commit-u", out var error);
+        var result = revision.SetReviewerNote(99, "Dodaj link ka commit-u", out var error);
 
         Assert.Multiple(() =>
         {
@@ -68,7 +68,7 @@ public sealed class ContributionRevisionTests
     {
         var revision = Make("OOpis");
 
-        var result = revision.SetReviewerNote(note!, out var error);
+        var result = revision.SetReviewerNote(99, note!, out var error);
 
         Assert.Multiple(() =>
         {
