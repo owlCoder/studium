@@ -1,3 +1,6 @@
+using Api;
+using Application.Contributions;
+using Infrastructure.Contributions;
 using Application.Courses;
 using Infrastructure.Demo;
 
@@ -8,7 +11,12 @@ builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader())
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
 
+builder.Services.AddSingleton<IContributionReader>(_ => DemoContributions.Create());
+builder.Services.AddSingleton<ContributionQueries>();
+
 var app = builder.Build();
+
+app.MapContributionEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
