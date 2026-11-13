@@ -12,4 +12,7 @@
     <ProjectReference Include="../../src/Application/Application.csproj" />
     <ProjectReference Include="../../src/Infrastructure/Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ConsoleUi\ConsoleUi.csproj" />
+  </ItemGroup>
 </Project>
