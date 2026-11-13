@@ -45,6 +45,14 @@ dotnet run --project src/Api
 
 Poslednje dve komande pokreću alternativne ulaze; nisu potrebne istovremeno. API ispisuje adresu u terminalu. Proveriti `GET /health` i demonstracioni `GET /demo/courses`.
 
+## KT1 scenario (ST-031 i ST-032)
+
+```bash
+dotnet run --project src/ConsoleUi
+```
+
+Komanda pokreće scenario kontrolne tačke: odbijen termin koji se završava pre početka, kreiranje termina, označavanje kao Održan, spisak podobnih studenata, unos prisustva i prikaz da student bez unosa ostaje `Neevidentirano` (ne `Odsutan`), kao i odbijanje unosa na otkazan termin.
+
 ## Kako nastaviti
 
 1. Pročitati [specifikaciju i mapiranje zahteva](docs/requirements/README.md) i odabrati dodeljeni zahtev ST-xxx.
