@@ -1,27 +1,22 @@
-
 using Domain.Enums;
 namespace Domain.Models;
 
 public sealed class TeamTask
 {
     public Guid Id { get; } 
-
     public Guid TeamID { get; }
     public string Name { get; set; } = String.Empty;
     public string Description { get; set; } = String.Empty;
-    public TeamTaskStatus Status { get; private set; }
-
+    public TeamTaskStatus Status { get; set; }
     public Guid PhaseId { get; set; }
     public Guid ResponsibleMemberId { get; set; }
     public Guid LastChangedBy { get; set; }
     public DateTime LastChangedAt { get; set; }
 
-    public TeamTask(Guid id, Guid teamId, string name, string desc, Guid phase, Guid respMemb, Guid lcby, DateTime lcat)
+    public TeamTask(Guid teamId, string name, string desc, TeamTaskStatus status, Guid phase, Guid respMemb, Guid lcby, DateTime lcat)
     {
-
-    
-
-        Id = id;
+        // generisanje unique id za interni id klase umesto prosledjivanja kroz parametre konstruktora
+        Id = Guid.NewGuid();
         TeamID = teamId;
         Name = name?.Trim() ?? string.Empty; 
         Description = desc?.Trim() ?? string.Empty;
@@ -43,10 +38,29 @@ public sealed class TeamTask
         return true;
     }
 
-    public void ChangedStatus(TeamTaskStatus status, Guid lcby, DateTime lcat)
+    public void ChangeStatus(TeamTaskStatus status, Guid lcby, DateTime lcat)
     {
         Status = status;
         LastChangedBy = lcby;
         LastChangedAt = lcat;
     }
+
+    public void UpdateAll(  string? newName, 
+                            string? newDesc, 
+                            TeamTaskStatus? newStatus,
+                            Guid? newPhase, 
+                            Guid? newRespMemb, 
+                            Guid lcby, 
+                            DateTime lcat)
+    {
+        Name = newName?.Trim() ?? Name;
+        Description = newDesc?.Trim() ?? Description;
+        Status = newStatus ?? Status;
+        PhaseId = newPhase ?? PhaseId;
+        ResponsibleMemberId = newRespMemb ?? ResponsibleMemberId;
+        LastChangedBy = lcby;
+        LastChangedAt = lcat;
+    }
+
+    // delete: application layer
 }
