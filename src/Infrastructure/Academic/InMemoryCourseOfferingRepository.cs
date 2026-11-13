@@ -6,6 +6,7 @@ namespace Infrastructure.Academic;
 public sealed class InMemoryCourseOfferingRepository : ICourseOfferingRepository
 {
     private readonly List<CourseOffering> _offerings = new();
+    private readonly object _lock = new();
 
     public Task<bool> ExistsAsync(Guid courseId, Guid academicYearId, CancellationToken cancellationToken = default)
     {
@@ -23,5 +24,20 @@ public sealed class InMemoryCourseOfferingRepository : ICourseOfferingRepository
     {
         _offerings.Add(offering);
         return Task.CompletedTask;
+    }
+
+    public Task<bool> TryAddAsync(CourseOffering offering, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            if (_offerings.Any(o => o.CourseId == offering.CourseId
+                                 && o.AcademicYearId == offering.AcademicYearId))
+            {
+                return Task.FromResult(false);
+            }
+
+            _offerings.Add(offering);
+            return Task.FromResult(true);
+        }
     }
 }
