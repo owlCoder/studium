@@ -17,17 +17,34 @@ public class GetPrimenljiviRokQueryHandler : IRequestHandler<GetPrimenljiviRokQu
 
     public async Task<DateTime> Handle(GetPrimenljiviRokQuery request, CancellationToken cancellationToken)
     {
-        // 1. Dobavljamo zadatak da bismo znali zajednički rok
+        // 1. Autorizacija na nivou resursa
+        if (request.JeNastavnik)
+        {
+            var imaPravo = await _repository.DaLiNastavnikImaPravoNadZadatkomAsync(
+                request.AkterId, request.ZadatakId, cancellationToken);
+
+            if (!imaPravo)
+            {
+                throw new UnauthorizedAccessException("Nastavnik nema pravo pristupa ovom zadatku.");
+            }
+        }
+        else
+        {
+            if (request.AkterId != request.StudentId)
+            {
+                throw new UnauthorizedAccessException("Student nema pravo da vidi rok drugog studenta.");
+            }
+        }
+
+        // 2. Dobavljamo zadatak da bismo znali zajednički rok
         var zadatak = await _repository.GetZadatakAsync(request.ZadatakId, cancellationToken);
         if (zadatak == null)
         {
             throw new ArgumentException($"Zadatak sa ID {request.ZadatakId} nije pronađen.");
         }
 
-        // 2. Proveravamo da li student ima specifičan/produžen rok za ovaj zadatak
+        // 3. Proveravamo specifičan rok studenta
         var studentRok = await _repository.GetStudentRokAsync(request.StudentId, request.ZadatakId, cancellationToken);
-
-        // 3. Ako ima, domen rešava šta ima prednost. Ako nema, vraćamo zajednički rok.
         if (studentRok != null)
         {
             return studentRok.IzracunajPrimenljiviRok(zadatak.ZajednickiRok);

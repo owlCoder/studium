@@ -12,8 +12,8 @@ namespace Studium.Tests.Application.ST015;
 [TestFixture]
 public class GetPrimenljiviRokQueryHandlerTests
 {
-    private Mock<IRokoviRepository> _repositoryMock;
-    private GetPrimenljiviRokQueryHandler _handler;
+    private Mock<IRokoviRepository> _repositoryMock = null!;
+    private GetPrimenljiviRokQueryHandler _handler = null!;
 
     [SetUp]
     public void SetUp()
@@ -23,72 +23,71 @@ public class GetPrimenljiviRokQueryHandlerTests
     }
 
     [Test]
-    public async Task Handle_KadaStudentImaPojedinacniRok_VracaPojedinacniRok()
+    public async Task Handle_StudentNemaProduzenRok_VracaZajednickiRok()
     {
-        // Arrange
-        var studentId = Guid.NewGuid();
         var zadatakId = Guid.NewGuid();
-        var zajednickiRok = new DateTime(2026, 11, 10);
-        var pojedinacniRok = new DateTime(2026, 11, 15);
-
-        var zadatak = new Zadatak(zadatakId, zajednickiRok);
-        
-        var studentRok = new StudentZadatakRok(studentId, zadatakId);
-        studentRok.PostaviPojedinacniRok(pojedinacniRok);
-
-        _repositoryMock.Setup(r => r.GetZadatakAsync(zadatakId, It.IsAny<CancellationToken>()))
-                       .ReturnsAsync(zadatak);
-        _repositoryMock.Setup(r => r.GetStudentRokAsync(studentId, zadatakId, It.IsAny<CancellationToken>()))
-                       .ReturnsAsync(studentRok);
-
-        var query = new GetPrimenljiviRokQuery(studentId, zadatakId);
-
-        // Act
-        var rezultat = await _handler.Handle(query, CancellationToken.None);
-
-        // Assert
-        Assert.That(rezultat, Is.EqualTo(pojedinacniRok));
-    }
-
-    [Test]
-    public async Task Handle_KadaStudentNemaSvojZapis_VracaZajednickiRok()
-    {
-        // Arrange
         var studentId = Guid.NewGuid();
-        var zadatakId = Guid.NewGuid();
-        var zajednickiRok = new DateTime(2026, 11, 10);
+        var zajednickiRok = DateTime.UtcNow.AddDays(7);
 
         var zadatak = new Zadatak(zadatakId, zajednickiRok);
 
-        _repositoryMock.Setup(r => r.GetZadatakAsync(zadatakId, It.IsAny<CancellationToken>()))
-                       .ReturnsAsync(zadatak);
-        
-        // Vraćamo null jer student nema poseban rok
-        _repositoryMock.Setup(r => r.GetStudentRokAsync(studentId, zadatakId, It.IsAny<CancellationToken>()))
-                       .ReturnsAsync((StudentZadatakRok?)null); 
+        _repositoryMock
+            .Setup(r => r.GetZadatakAsync(zadatakId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(zadatak);
 
-        var query = new GetPrimenljiviRokQuery(studentId, zadatakId);
+        _repositoryMock
+            .Setup(r => r.GetStudentRokAsync(studentId, zadatakId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StudentZadatakRok?)null);
 
-        // Act
+        var query = new GetPrimenljiviRokQuery(studentId, zadatakId, studentId, false);
         var rezultat = await _handler.Handle(query, CancellationToken.None);
 
-        // Assert
         Assert.That(rezultat, Is.EqualTo(zajednickiRok));
     }
 
     [Test]
-    public void Handle_KadaZadatakNePostoji_BacaArgumentException()
+    public void Handle_ZadatakNePostoji_BacaArgumentException()
     {
-        // Arrange
-        var studentId = Guid.NewGuid();
         var zadatakId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
 
-        _repositoryMock.Setup(r => r.GetZadatakAsync(zadatakId, It.IsAny<CancellationToken>()))
-                       .ReturnsAsync((Zadatak?)null);
+        _repositoryMock
+            .Setup(r => r.GetZadatakAsync(zadatakId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Zadatak?)null);
 
-        var query = new GetPrimenljiviRokQuery(studentId, zadatakId);
+        var query = new GetPrimenljiviRokQuery(studentId, zadatakId, studentId, false);
 
-        // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(() => _handler.Handle(query, CancellationToken.None));
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _handler.Handle(query, CancellationToken.None));
+    }
+
+    [Test]
+    public void Handle_DrugiStudentPokusavaPristup_BacaUnauthorizedAccessException()
+    {
+        var zadatakId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        var drugiStudentId = Guid.NewGuid();
+
+        var query = new GetPrimenljiviRokQuery(studentId, zadatakId, drugiStudentId, false);
+
+        Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
+            await _handler.Handle(query, CancellationToken.None));
+    }
+
+    [Test]
+    public void Handle_NeovlascenNastavnikPokusavaPristup_BacaUnauthorizedAccessException()
+    {
+        var zadatakId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+        var neovlascenNastavnikId = Guid.NewGuid();
+
+        _repositoryMock
+            .Setup(r => r.DaLiNastavnikImaPravoNadZadatkomAsync(neovlascenNastavnikId, zadatakId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var query = new GetPrimenljiviRokQuery(studentId, zadatakId, neovlascenNastavnikId, true);
+
+        Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
+            await _handler.Handle(query, CancellationToken.None));
     }
 }
