@@ -111,11 +111,19 @@ Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslo
 - Testovi: 10 NUnit testova (uspešni i odbijeni slučajevi)
 - Dijagrami: docs/st-005-saradnici-arhitektura.png, docs/st-005-saradnici-dfd.png
 
+
 ### Poslovni scenario koji je započet
 Odgovorni nastavnik dodaje nastavnika ili asistenta na svom izvođenju i pregleda spisak
 saradnika. Ovlašćenje se proverava nad konkretnim izvođenjem; nalog mora biti aktivan, a
 uloga naloga mora odgovarati odgovornosti; završeno ili arhivirano izvođenje ne prima
 izmene; ponovljen zahtev ne pravi duplikat.
+
+### Trenutno stanje (važno)
+Trenutno stanje je delimičan in-memory tok (Application i Infrastructure sloj).
+Nije povezano sa Api/ConsoleUi niti sa autentifikovanim identitetom; korisnici su
+privremeno InMemoryUserDirectory. Testovi su sekvencijalni; atomarnost i
+konkurentni testovi su planirani za KT2. Integracija je planirana za KT2
+
 
 ### Granica pristupa
 Ovlašćenje se proverava u Application sloju pri svakoj operaciji
