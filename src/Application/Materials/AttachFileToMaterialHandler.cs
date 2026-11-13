@@ -104,11 +104,7 @@ public sealed class AttachFileToMaterialHandler
     private AttachmentRejectedException Rejected(AttachmentRejectionReason reason, string fileName)
     {
         var name = fileName.Trim();
-        var message = reason == AttachmentRejectionReason.UnsupportedType
-            ? $"Datoteka '{name}' nije priložena: tip datoteke nije dozvoljen. " +
-              $"Dozvoljeni tipovi: {_policy.AllowedExtensionsDisplay}."
-            : $"Datoteka '{name}' nije priložena: veća je od dozvoljenih {_policy.MaxSizeDisplay}.";
-        return new AttachmentRejectedException(reason, name, message);
+        return new AttachmentRejectedException(reason, name, _policy.DescribeRejection(reason, name));
     }
 
     private async Task TryDeleteStoredContentAsync(string storageKey)

@@ -53,6 +53,24 @@ public sealed class AttachmentUploadPolicy
     /// </summary>
     public string MaxSizeDisplay { get; }
 
+    /// <summary>
+    /// Poruka za korisnika kada je datoteka odbijena (US-05, tačka 3). Isti tekst koriste
+    /// provera na serveru i provera na klijentu, da korisnik uvek dobije istu poruku.
+    /// </summary>
+    public string DescribeRejection(AttachmentRejectionReason reason, string fileName)
+    {
+        var name = fileName?.Trim() ?? string.Empty;
+        return reason switch
+        {
+            AttachmentRejectionReason.UnsupportedType =>
+                $"Datoteka '{name}' nije priložena: tip datoteke nije dozvoljen. " +
+                $"Dozvoljeni tipovi: {AllowedExtensionsDisplay}.",
+            AttachmentRejectionReason.TooLarge =>
+                $"Datoteka '{name}' nije priložena: veća je od dozvoljenih {MaxSizeDisplay}.",
+            _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "Nepoznat razlog odbijanja."),
+        };
+    }
+
     private static string FormatSize(long bytes)
     {
         const long kilobyte = 1024;

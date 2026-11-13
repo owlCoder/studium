@@ -40,6 +40,8 @@ Dozvoljene su samo datoteke sa sledećim ekstenzijama (lista dozvoljenih; sve os
   - `Datoteka 'program.exe' nije priložena: tip datoteke nije dozvoljen. Dozvoljeni tipovi: .docx, .jpeg, .jpg, .pdf, .png, .pptx, .txt, .xlsx, .zip.`
   - `Datoteka 'velika.pdf' nije priložena: veća je od dozvoljenih 20 MB.`
 - Prikazana maksimalna veličina zaokružuje se naniže, tako da poruka nikad ne navodi veću granicu od stvarne.
+- Tekst poruke daje `AttachmentUploadPolicy.DescribeRejection`, pa server i klijent prikazuju istu poruku.
+- **Provera na klijentu:** konzolna forma za otpremanje (`UploadAttachmentsForm`, US-04) pre izbora prikazuje dozvoljene tipove i maksimalnu veličinu, a datoteku koja ih ne zadovoljava odbija već pri unosu; ostale izabrane datoteke se šalju (dogovoreno sa US-04). Provera na klijentu služi korisniku i nije bezbednosna kontrola — server uvek ponovo proverava.
 
 ## Posledice
 
@@ -54,7 +56,7 @@ Dozvoljene su samo datoteke sa sledećim ekstenzijama (lista dozvoljenih; sve os
 - **Pogođeni zahtevi:** ST-009 (US-05; povezano sa US-04 i US-06)
 - **Promena javnih ugovora i zavisnosti:** nova klasa `AttachmentUploadPolicy`, novi `AttachmentRejectedException` i `AttachmentRejectionReason`; konstruktor `AttachFileToMaterialHandler` dobija parametar `AttachmentUploadPolicy`. Portovi skladišta i repozitorijuma nisu menjani.
 - **Uticaj na čuvanje i migraciju podataka:** nema migracija; nova sekcija `MaterialAttachments` u `src/Api/appsettings.json`.
-- **Testovi koji proveravaju odluku:** `tests/Tests/Application/AttachmentUploadPolicyTests.cs`, `tests/Tests/Application/AttachFileToMaterialHandlerTests.cs`.
+- **Testovi koji proveravaju odluku:** `tests/Tests/Application/AttachmentUploadPolicyTests.cs`, `tests/Tests/Application/AttachFileToMaterialHandlerTests.cs`, `tests/Tests/ConsoleUi/UploadAttachmentsFormTests.cs`.
 
 ## Razmotrene alternative
 
@@ -67,4 +69,4 @@ Dozvoljene su samo datoteke sa sledećim ekstenzijama (lista dozvoljenih; sve os
 
 - Da li je prazna datoteka (0 B) dozvoljena? Za sada se prihvata.
 - Da li proveravati i MIME tip (`ContentType`)? Za sada se ne proverava.
-- Provera na klijentu i prikaz pravila pre izbora datoteke čekaju komponentu za otpremanje (US-04).
+- Budući klijenti (npr. veb forma) treba da prikažu ista pravila i koriste isti tekst poruke.

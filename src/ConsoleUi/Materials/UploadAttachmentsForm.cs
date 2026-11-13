@@ -6,8 +6,10 @@ namespace ConsoleUi.Materials;
 /// <summary>
 /// Konzolna forma za izbor i slanje datoteka u materijal, sa prikazom liste priloga (ST-009, US-04).
 /// Nastavnik unosi putanje do datoteka, po jednu u redu; prazan red završava izbor.
-/// Forma je samo prezentacija: pravo pristupa (ST-005), tip i veličinu (US-05) i
-/// rezultat po datoteci (US-06) i dalje određuje <see cref="UploadMaterialAttachmentsHandler"/>.
+/// Pre izbora forma prikazuje dozvoljene tipove i maksimalnu veličinu, a datoteku koja
+/// ih ne zadovoljava odbija već pri unosu (US-05, provera na klijentu).
+/// Provera na klijentu nije bezbednosna kontrola: pravo pristupa (ST-005), tip i veličinu
+/// (US-05) i rezultat po datoteci (US-06) i dalje određuje <see cref="UploadMaterialAttachmentsHandler"/>.
 /// </summary>
 public sealed class UploadAttachmentsForm
 {
@@ -30,22 +32,26 @@ public sealed class UploadAttachmentsForm
 
     private readonly UploadMaterialAttachmentsHandler _handler;
     private readonly IMaterialAttachmentRepository _attachments;
+    private readonly AttachmentUploadPolicy _policy;
     private readonly TextReader _input;
     private readonly TextWriter _output;
 
     public UploadAttachmentsForm(
         UploadMaterialAttachmentsHandler handler,
         IMaterialAttachmentRepository attachments,
+        AttachmentUploadPolicy policy,
         TextReader input,
         TextWriter output)
     {
         ArgumentNullException.ThrowIfNull(handler);
         ArgumentNullException.ThrowIfNull(attachments);
+        ArgumentNullException.ThrowIfNull(policy);
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(output);
 
         _handler = handler;
         _attachments = attachments;
+        _policy = policy;
         _input = input;
         _output = output;
     }
@@ -60,6 +66,9 @@ public sealed class UploadAttachmentsForm
         CancellationToken cancellationToken = default)
     {
         _output.WriteLine("Otpremanje priloga");
+        // US-05: nastavnik unapred vidi koje datoteke sme da priloži.
+        _output.WriteLine($"Dozvoljeni tipovi: {_policy.AllowedExtensionsDisplay}");
+        _output.WriteLine($"Najveća veličina jedne datoteke: {_policy.MaxSizeDisplay}");
         _output.WriteLine("Unesite putanju do datoteke, po jednu u redu. Prazan red završava izbor.");
 
         var paths = new List<string>();
@@ -82,6 +91,15 @@ public sealed class UploadAttachmentsForm
             if (!File.Exists(path))
             {
                 _output.WriteLine($"Datoteka '{path}' ne postoji.");
+                continue;
+            }
+
+            // US-05, provera na klijentu: odbijena datoteka se ne dodaje u izbor,
+            // a poruka je ista kao kada je odbije server.
+            var rejection = CheckAgainstPolicy(path);
+            if (rejection is not null)
+            {
+                _output.WriteLine(rejection);
                 continue;
             }
 
@@ -164,6 +182,19 @@ public sealed class UploadAttachmentsForm
             _output.WriteLine(
                 $"  - {attachment.OriginalFileName} ({attachment.ContentType}, {FormatSize(attachment.SizeInBytes)})");
         }
+    }
+
+    private string? CheckAgainstPolicy(string path)
+    {
+        var fileName = Path.GetFileName(path);
+
+        if (!_policy.IsAllowedFileName(fileName))
+            return _policy.DescribeRejection(AttachmentRejectionReason.UnsupportedType, fileName);
+
+        if (!_policy.IsWithinMaxSize(new FileInfo(path).Length))
+            return _policy.DescribeRejection(AttachmentRejectionReason.TooLarge, fileName);
+
+        return null;
     }
 
     // Putanja kopirana iz Windows Explorer-a ("Copy as path") stiže pod navodnicima.
