@@ -1,15 +1,18 @@
+using Api;
 using Application;
 using Application.Courses;
 using Application.Groups;
 using Application.ContentAudience;
 using Infrastructure;
 using Infrastructure.Demo;
+using Infrastructure.Groups;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -28,14 +31,40 @@ builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
 
 builder.Services.AddSingleton<IGroupMembershipRepository, InMemoryGroupMembershipRepository>();
-builder.Services.AddSingleton<IGroupLookup, DemoGroupLookup>();
-builder.Services.AddSingleton<IStudentLookup, DemoStudentLookup>();
+
+/* ---------- ST-019: provere postojanja grupe i statusa studenta ----------
+ * Okruzenje se odlucuje pri razresavanju servisa (IHostEnvironment), a ne pri registraciji,
+ * pa ishod uvek prati stvarno okruzenje domacina.
+ *
+ *  - IGroupLookup: stvarna provera nad portom IGroupRepository (nema "uvek true").
+ *  - IGroupRepository: demo grupe se ucitavaju samo u Development/Testing; u ostalim
+ *    okruzenjima je prazan, pa nijedna grupa "ne postoji" dok se ne poveze pravi izvor.
+ *  - IStudentLookup: u ovom repozitorijumu ne postoji pravi izvor korisnika/studenata (to je
+ *    posao drugog zahteva), pa je u Development/Testing demo spisak poznatih studenata, a u
+ *    ostalim okruzenjima provera odbija sve (fail-closed) dok se ne poveze pravi port.
+ * ------------------------------------------------------------------------- */
+builder.Services.AddSingleton<IGroupRepository>(sp =>
+    new InMemoryGroupRepository(
+        DemoAdapterPolicy.IsAllowed(sp.GetRequiredService<IHostEnvironment>())
+            ? DemoData.CreateGroups()
+            : Array.Empty<Domain.Entities.Group>()));
+
+builder.Services.AddSingleton<IGroupLookup, RepositoryGroupLookup>();
+
+builder.Services.AddSingleton<IStudentLookup>(sp =>
+{
+    if (DemoAdapterPolicy.IsAllowed(sp.GetRequiredService<IHostEnvironment>()))
+    {
+        return new DemoStudentLookup();
+    }
+
+    return new UnavailableStudentLookup();
+});
+/* -------------------------------------------------------------------------- */
 
 builder.Services.AddScoped<AddStudentToGroupHandler>();
 builder.Services.AddScoped<RemoveStudentFromGroupHandler>();
 builder.Services.AddScoped<ListStudentGroupsHandler>();
-
-builder.Services.AddSingleton<IGroupRepository>(_ => new InMemoryGroupRepository(DemoData.CreateGroups()));
 
 builder.Services.AddScoped<Application.Content.IContentReader, Infrastructure.Content.DummyContentReader>();
 builder.Services.AddScoped<Application.Groups.IStudentGroupReader, Infrastructure.Groups.DummyStudentGroupReader>();
@@ -86,13 +115,28 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+/* ---------- Postojece rute (ugovor iz main grane; ne menjati uz ST-019/ST-020) ---------- */
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
-app.MapGet("/demo/courses", async (ICourseReader reader, CancellationToken ct) =>
+// Javno dostupan demonstracioni endpoint, bez autentifikacije:
+// ne predstavlja funkcionalnost ST-003 i ne koristiti ga za stvarne podatke.
+app.MapGet("/demo/courses", async (
+    ListCoursesHandler handler,
+    CancellationToken cancellationToken) =>
 {
-    var courses = await reader.ListAsync(ct);
+    var courses = await handler.HandleAsync(cancellationToken);
     return Results.Ok(courses);
 });
+
+app.MapGet("/courses", async (
+    string? query,
+    SearchCoursesHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var courses = await handler.HandleAsync(query, cancellationToken);
+    return Results.Ok(courses);
+});
+/* ------------------------------------------------------------------------------------- */
 
 app.MapGet("/api/courses/{courseId}/content", async (
     Guid courseId,
@@ -136,15 +180,6 @@ bool IsUserOwnerOfGroup(
            Guid.TryParse(allowedGroupClaim.Value, out var allowedId) &&
            allowedId == groupId;
 }
-
-app.MapGet("/courses", async (
-    string? query,
-    SearchCoursesHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    var courses = await handler.HandleAsync(query, cancellationToken);
-    return Results.Ok(courses);
-});
 
 app.MapPost("/groups/{groupId}/students", async (
     Guid groupId,
@@ -247,9 +282,9 @@ if (app.Environment.IsDevelopment())
             await handler.Handle(command, ct);
             return Results.Ok();
         }
-        catch (ArgumentException ex)         { return Results.BadRequest(ex.Message); }                      // 400
-        catch (KeyNotFoundException ex)      { return Results.NotFound(ex.Message); }                        // 404
-        catch (UnauthorizedAccessException)  { return Results.StatusCode(StatusCodes.Status403Forbidden); } // 403
+        catch (ArgumentException ex) { return Results.BadRequest(ex.Message); }                      // 400
+        catch (KeyNotFoundException ex) { return Results.NotFound(ex.Message); }                        // 404
+        catch (UnauthorizedAccessException) { return Results.StatusCode(StatusCodes.Status403Forbidden); } // 403
         catch (InvalidOperationException ex) { return Results.Conflict(ex.Message); }                        // 409
     })
     .RequireAuthorization();
@@ -257,20 +292,6 @@ if (app.Environment.IsDevelopment())
 /* ---------------------------------------------------------------- */
 
 app.Run();
-
-public class DemoGroupLookup : IGroupLookup
-{
-    public Task<bool> ExistsAsync(Guid groupId, CancellationToken cancellationToken)
-        => Task.FromResult(true);
-    public Task<Domain.Entities.Group?> GetByIdAsync(Guid groupId, CancellationToken cancellationToken)
-        => Task.FromResult<Domain.Entities.Group?>(null);
-}
-
-public class DemoStudentLookup : IStudentLookup
-{
-    public Task<bool> IsActiveAsync(Guid studentId, CancellationToken cancellationToken)
-        => Task.FromResult(true);
-}
 
 public record MinimalApiAddStudentRequest(Guid StudentId, DateTime StartDate);
 public record MinimalApiRemoveStudentRequest(DateTime EndDate);

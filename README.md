@@ -25,6 +25,14 @@ Priloženi **demo katalog predmeta** prikazuje tok `API/ConsoleUi → Applicatio
 
 **Ograničenje:** i ovaj endpoint trenutno čita isključivo memorijske demo podatke (`DemoData.CreateCourseReader()`), bez trajne baze, autentifikacije, autorizacije, unosa/izmene/brisanja predmeta i provere jedinstvenosti. Ne tretirati ga kao završen ST-003 niti koristiti za stvarne podatke. Za integraciju potpunog ST-003 potrebni su zasebni zahtevi, validacija i testovi prema projektnoj specifikaciji.
 
+### Demo adapteri i okruženja (ST-019)
+
+Demonstracioni adapteri smeju da rade **samo u okruženjima `Development` i `Testing`** (odluku donosi `Api/DemoAdapterPolicy.cs`). U svim ostalim okruženjima (npr. `Production`, `Staging`) važi sledeće:
+
+- `IGroupLookup` je stvarna provera nad `IGroupRepository` (`RepositoryGroupLookup`); grupa postoji samo ako je repozitorijum vrati. Demo grupe se učitavaju samo u `Development`/`Testing`, pa je repozitorijum u ostalim okruženjima prazan.
+- `IStudentLookup` nema stvarni izvor u ovom repozitorijumu, pa `UnavailableStudentLookup` **odbija sve** (student se ne potvrđuje kao aktivan) dok se ne poveže stvarni port. Dodavanje u grupu tada vraća `409`.
+- U `Development`/`Testing` `DemoStudentLookup` poznaje samo unapred zadate studente. Poznati demo identifikatori su u `Infrastructure/Demo/DemoData.cs`: grupe `LecturesGroupId` (`aaaaaaaa-…`) i `ExercisesGroupId` (`bbbbbbbb-…`), aktivan student `ActiveStudentId` (`cccccccc-…`) i neaktivan student `InactiveStudentId` (`dddddddd-…`). Nepoznata grupa daje `404`, nepoznat ili neaktivan student `409`.
+
 ## Preduslovi
 
 - .NET **8 SDK** (`dotnet --version`)
