@@ -8,7 +8,8 @@ Console.WriteLine("STUDIUM | Demonstracija čitanja kataloga (nije ST-003)");
 var handler = new ListCoursesHandler(DemoData.CreateCourseReader());
 var courses = await handler.HandleAsync();
 
-foreach (var course in courses)
+foreach (var course in courses) { 
     Console.WriteLine($"{course.Code} — {course.Name}");
+}
 
 Console.WriteLine("Sledeći korak: implementirati dodeljene zahteve iz specifikacije.");
