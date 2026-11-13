@@ -45,5 +45,28 @@ var editForm = new EditMaterialDetailsForm(
     Console.Out);
 await editForm.RunAsync(demoMaterial.Id);
 
+// ST-009, US-04: izbor i slanje datoteka u materijal, sa prikazom liste priloga.
+// Sintetički nastavnik je angažovan na izvođenju demonstracionog materijala samo za ovu
+// demonstraciju. Prilozi se čuvaju u privremenom direktorijumu, a podaci o njima u memoriji.
+// Pravila tipa i veličine su ista kao u src/Api/appsettings.json (ADR-0002).
+Console.WriteLine();
+var attachments = new InMemoryMaterialAttachmentRepository();
+var attachmentStorage = new LocalDiskAttachmentFileStorage(
+    Path.Combine(Path.GetTempPath(), "studium-consoleui-attachments"));
+var attachmentPolicy = new AttachmentUploadPolicy(
+    [".pdf", ".docx", ".pptx", ".xlsx", ".txt", ".png", ".jpg", ".jpeg", ".zip"],
+    20L * 1024 * 1024);
+var uploadForm = new UploadAttachmentsForm(
+    new UploadMaterialAttachmentsHandler(
+        materials,
+        attachments,
+        new InMemoryOfferingStaffChecker([(demoTeacherId, demoMaterial.CourseOfferingId)]),
+        attachmentPolicy,
+        new AttachFileToMaterialHandler(materials, attachments, attachmentStorage, attachmentPolicy)),
+    attachments,
+    Console.In,
+    Console.Out);
+await uploadForm.RunAsync(demoTeacherId, demoMaterial.Id);
+
 Console.WriteLine();
 Console.WriteLine("Sledeći korak: implementirati dodeljene zahteve iz specifikacije.");
