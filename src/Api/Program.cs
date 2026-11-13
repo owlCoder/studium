@@ -1,5 +1,6 @@
 using Application.Courses;
 using Infrastructure.Demo;
+using Studium.Application.ST015.Queries;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,7 +9,19 @@ builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader())
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
 
+// Registracija kontrolera, MediatR-a i autentifikacije za ST-015
+builder.Services.AddControllers();
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(GetPrimenljiviRokQuery).Assembly));
+
+builder.Services.AddAuthentication("Cookies")
+    .AddCookie("Cookies");
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
@@ -31,4 +44,8 @@ app.MapGet("/courses", async (
     return Results.Ok(courses);
 });
 
+app.MapControllers();
+
 app.Run();
+
+public partial class Program { }
