@@ -2,8 +2,7 @@ using MediatR;
 using Studium.Domain.ST015.Repositories;
 
 namespace Studium.Application.ST015.Commands;
-
-public sealed class ExtendIndividualDeadlineCommandHandler(IRokoviRepository _repository)
+public sealed class ExtendIndividualDeadlineCommandHandler(IRokoviRepository _repository) 
     : IRequestHandler<ExtendIndividualDeadlineCommand, bool>
 {
     public async Task<bool> Handle(ExtendIndividualDeadlineCommand request, CancellationToken ct)
