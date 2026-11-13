@@ -95,9 +95,10 @@ public sealed class AttachFileToMaterialHandlerTests
         Assert.ThrowsAsync<IOException>(() => handler.HandleAsync(new AttachFileToMaterialCommand(
             _material.Id, "skripta.pdf", "application/pdf", new FailingStream())));
 
-        Assert.Multiple(async () =>
+        var stored = await _attachments.ListByMaterialAsync(_material.Id);
+        Assert.Multiple(() =>
         {
-            Assert.That(await _attachments.ListByMaterialAsync(_material.Id), Is.Empty);
+            Assert.That(stored, Is.Empty);
             Assert.That(Directory.GetFiles(_root), Is.Empty);
         });
     }
@@ -112,10 +113,11 @@ public sealed class AttachFileToMaterialHandlerTests
         var id = await handler.HandleAsync(new AttachFileToMaterialCommand(
             unknownMaterialId, "skripta.pdf", "application/pdf", Content("sadrzaj")));
 
-        Assert.Multiple(async () =>
+        var stored = await _attachments.ListByMaterialAsync(unknownMaterialId);
+        Assert.Multiple(() =>
         {
             Assert.That(id, Is.Null);
-            Assert.That(await _attachments.ListByMaterialAsync(unknownMaterialId), Is.Empty);
+            Assert.That(stored, Is.Empty);
         });
         storage.VerifyNoOtherCalls();
     }
@@ -188,10 +190,11 @@ public sealed class AttachFileToMaterialHandlerTests
             new AttachFileToMaterialCommand(_material.Id, "skripta.pdf", "application/pdf", Content("sadrzaj")),
             cts.Token));
 
-        Assert.Multiple(async () =>
+        var stored = await _attachments.ListByMaterialAsync(_material.Id);
+        Assert.Multiple(() =>
         {
             Assert.That(storage.Saved, Is.True, "Datoteka je morala biti sačuvana pre otkazivanja.");
-            Assert.That(await _attachments.ListByMaterialAsync(_material.Id), Is.Empty);
+            Assert.That(stored, Is.Empty);
             Assert.That(Directory.GetFiles(_root), Is.Empty);
         });
     }
