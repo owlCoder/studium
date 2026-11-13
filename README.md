@@ -69,3 +69,43 @@ Poslednje dve komande pokreću alternativne ulaze; nisu potrebne istovremeno. AP
 - [ADR šablon](docs/templates/adr.md)
 
 Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslovnih zahteva; primeri u repozitorijumu služe isključivo za početnu organizaciju koda.
+
+## Pokretanje
+
+1. Kloniraj repozitorijum i otvori solution u Visual Studiju.
+2. Instaliraj .NET 8 SDK (`dotnet --list-sdks` treba da prikaže liniju koja počinje sa `8.0.`).
+3. Desni klik na projekat `ConsoleUi`, pa **Set as Startup Project**.
+4. Pokreni sa **Ctrl+F5**.
+
+Očekivani ispis polaznog demoa: naslov "STUDIUM | Demonstracija čitanja kataloga"
+i spisak predmeta (ERS, OIB). Program se završava sa kodom 0.
+
+Testovi: **Test → Run All Tests** (NUnit, projekat `Tests`).
+
+## Struktura rješenja
+
+| Projekat | Uloga |
+|---|---|
+| `Domain` | Entiteti i pravila koja važe uvijek (validacija u konstruktoru) |
+| `Application` | Servisi i interfejsi, provjera ovlašćenja |
+| `Infrastructure` | Repozitorijumi i čuvanje podataka |
+| `ConsoleUi` | Izvršni projekat, konzolni meniji |
+| `Api` | Rezervisano za API sloj |
+| `Tests` | NUnit testovi |
+
+Svaka funkcionalna cjelina ima svoj folder u Domain, Application i Infrastructure
+(npr. `Courses`). Novi kod ide u isti obrazac.
+
+## Rad u Git-u
+
+- Grane: `feature/st-XXX-opis-tim-5`, svaka osoba radi u svojoj grani.
+- Ne commit-ovati direktno u `main`; za svaku izmjenu otvara se Pull Request.
+- Prije rada: `git pull`.
+- Ne commit-ovati lozinke ni `.env` fajlove.
+
+## Tim 5: ST-004 i ST-005
+
+Akademske godine i izvođenja predmeta (ST-004), te nastavnici i saradnici na
+predmetu (ST-005). Plan, demo scenario, pravila i zavisnosti od drugih timova:
+[docs/5/plan.md](docs/5/plan.md).
+Dijagrami: [arhitektura](docs/5/arhitektura.png), [DFD](docs/5/dfd.png).
