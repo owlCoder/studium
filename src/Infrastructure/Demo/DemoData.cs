@@ -10,23 +10,31 @@ namespace Infrastructure.Demo;
 
 public static class DemoData
 {
+    private static readonly Course[] DemoCourses =
+     {
+        new Course(Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            "ERS", "Elementi razvoja softvera"),
+        new Course(Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            "OIB", "Osnove informacione bezbednosti"),
+        new Course(Guid.Parse("33333333-3333-3333-3333-333333333333"),
+            "BP", "Baze podataka", isActive: false)
+    };
+
     public static ICourseReader CreateCourseReader()
     {
-        return new InMemoryCourseReader(new[]
-        {
-            new Course(Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                "ERS", "Elementi razvoja softvera"),
-            new Course(Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                "OIB", "Osnove informacione bezbednosti")
-        });
+        return new InMemoryCourseReader(DemoCourses);
+    }
+
+    public static ICourseStatusRepository CreateCourseStatusRepository()
+    {
+        return new InMemoryCourseStatusRepository(DemoCourses);
     }
 
     /// <summary>
-    /// Sintetički demo korisnici (ST-002). Izdvojeni da bi prijava i promena lozinke
-    /// mogle da dele isti skup naloga. Lozinka je izmišljena i važi samo za demonstraciju;
-    /// ne koristiti je za stvarne naloge.
+    /// Sintetički demo korisnici za ručno isprobavanje prijave i ovlašćenja (ST-002, ST-003).
+    /// Lozinka je izmišljena i važi samo za demonstraciju; ne koristiti je za stvarne naloge.
     /// </summary>
-    public static IReadOnlyList<User> CreateDemoUsers(IPasswordHasher passwordHasher)
+    public static IReadOnlyList<User> CreateUsers(IPasswordHasher passwordHasher)
     {
         const string demoPassword = "Demo-Lozinka-1";
 
@@ -42,15 +50,16 @@ public static class DemoData
 
             // Aktivacija nije završena (nema lozinku): novi.nalog
             new User(Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc"), "novi.nalog",
-                UserRole.Assistant, passwordHash: null, isActive: true)
+                UserRole.Assistant, passwordHash: null, isActive: true),
+
+            // NOVO: aktivan administrator, za ST-003 (aktivacija predmeta)
+            new User(Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd"), "admin",
+                UserRole.Administrator, passwordHasher.Hash(demoPassword), isActive: true)
         };
     }
 
-    /// <summary>
-    /// Demo korisnici za ručno isprobavanje prijave (ST-002).
-    /// </summary>
     public static IUserLookup CreateUserLookup(IPasswordHasher passwordHasher)
     {
-        return new InMemoryUserLookup(CreateDemoUsers(passwordHasher));
+        return new InMemoryUserLookup(CreateUsers(passwordHasher));
     }
 }
