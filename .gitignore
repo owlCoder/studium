@@ -20,3 +20,5 @@
 !.env.example
 secrets.json
 appsettings.Development.local.json
+
+**/Properties/launchSettings.json
