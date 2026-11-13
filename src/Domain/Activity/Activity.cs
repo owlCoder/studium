@@ -63,7 +63,7 @@ public sealed class Activity
         return ActivityCreation.Success(new Activity(
             id,
             contextId,
-            name,
+            name.Trim(),
             description ?? string.Empty,
             startDate,
             endDate));
