@@ -31,19 +31,26 @@ public sealed class InMemoryActivityContextReader : IActivityContextReader
             return ActivityContextLookup.Canceled();
         }
 
-        var courses = await _courseReader.ListAsync(cancellationToken);
-        var matches = courses
-            .Where(course => EntitySlug.Matches(contextSlug, course.Code, course.Id))
-            .ToList();
-
-        return matches.Count switch
+        try
         {
-            0 => ActivityContextLookup.NotFound(
-                $"Kontekst \"{contextSlug}\" nije pronađen."),
-            > 1 => ActivityContextLookup.Ambiguous(
-                $"Oznaka \"{contextSlug}\" nije jedinstvena."),
-            _ => ActivityContextLookup.Found(ToContext(matches[0]))
-        };
+            var courses = await _courseReader.ListAsync(cancellationToken);
+            var matches = courses
+                .Where(course => EntitySlug.Matches(contextSlug, course.Code, course.Id))
+                .ToList();
+
+            return matches.Count switch
+            {
+                0 => ActivityContextLookup.NotFound(
+                    $"Kontekst \"{contextSlug}\" nije pronađen."),
+                > 1 => ActivityContextLookup.Ambiguous(
+                    $"Oznaka \"{contextSlug}\" nije jedinstvena."),
+                _ => ActivityContextLookup.Found(ToContext(matches[0]))
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            return ActivityContextLookup.Canceled();
+        }
     }
 
     private static ActivityContext ToContext(Course course) =>
