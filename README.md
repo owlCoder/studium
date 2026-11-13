@@ -69,3 +69,96 @@ Poslednje dve komande pokreću alternativne ulaze; nisu potrebne istovremeno. AP
 - [ADR šablon](docs/templates/adr.md)
 
 Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslovnih zahteva; primeri u repozitorijumu služe isključivo za početnu organizaciju koda.
+
+## ST-004: stanje i plan
+
+### Urađeno
+- Domain: AcademicYear, CourseOffering, OfferingState (validacije, stanja samo unapred)
+- Application: handleri za kreiranje akademske godine i izvođenja
+- Infrastructure: memorijski repozitorijumi; provera i upis su atomarni (TryAddAsync pod lock-om)
+- Testovi: 8 NUnit testova, uključujući test sa 20 paralelnih pokušaja
+- Dijagrami: docs/st-004-arhitektura.png, docs/st-004-dfd.png
+
+### Poslovna pravila
+- Početak godine pre kraja; oznaka godine jedinstvena (bez razlike u veličini slova)
+- Par (predmet, godina) jedinstven; deaktiviran predmet nema novo izvođenje
+- Stanja: U pripremi → Aktivno → Završeno
+
+### Ograničenja (delimična implementacija)
+- Ovo nije kompletan ST-004: nema provere uloge Administrator, Api/ConsoleUi ulaza ni trajne baze.
+- Svojstvo IsArchived postoji, ali logika arhiviranja (ST-091) nije implementirana.
+- `lock` važi samo unutar jednog procesa; trajna baza mora garantovati jedinstvenost unique ograničenjem
+  nad parom (CourseId, AcademicYearId) i nad oznakom godine.
+
+### Preostalo do KT2
+- Handler za promenu stanja i pregled izvođenja
+- Provera uloge Administrator (zavisi od ST-001/002)
+- Povezivanje sa Api/ConsoleUi
+- Više negativnih testova, ažuriranje dijagrama i README
+
+### Zavisnosti
+- ST-001/002: korisnici i uloge
+- ST-003: Course, ICourseReader
+- ST-005, ST-006: koriste CourseOffering.Id
+
+
+## ST-005: Saradnici na predmetu
+
+### Šta je urađeno (KT1)
+- Domain: TeachingAssignment, Responsibility (angažovanje se ne briše, nego se označava kao uklonjeno)
+- Application: AddCollaboratorHandler, ListStaffHandler, ITeachingStaffQueries, interfejsi repozitorijuma i korisnika
+- Infrastructure: InMemory repozitorijum angažovanja, privremeni InMemoryUserDirectory
+- Testovi: 10 NUnit testova (uspešni i odbijeni slučajevi)
+- Dijagrami: docs/st-005-saradnici-arhitektura.png, docs/st-005-saradnici-dfd.png
+
+
+### Poslovni scenario koji je započet
+Odgovorni nastavnik dodaje nastavnika ili asistenta na svom izvođenju i pregleda spisak
+saradnika. Ovlašćenje se proverava nad konkretnim izvođenjem; nalog mora biti aktivan, a
+uloga naloga mora odgovarati odgovornosti; završeno ili arhivirano izvođenje ne prima
+izmene; ponovljen zahtev ne pravi duplikat.
+
+### Trenutno stanje (važno)
+Trenutno stanje je delimičan in-memory tok (Application i Infrastructure sloj).
+Nije povezano sa Api/ConsoleUi niti sa autentifikovanim identitetom; korisnici su
+privremeno InMemoryUserDirectory. Testovi su sekvencijalni; atomarnost i
+konkurentni testovi su planirani za KT2. Integracija je planirana za KT2
+
+
+### Granica pristupa
+Ovlašćenje se proverava u Application sloju pri svakoj operaciji
+(AddCollaboratorHandler i ListStaffHandler preko ITeachingStaffQueries), a ne u
+korisničkom interfejsu.
+
+### Preostali rad (KT2)
+- Uklanjanje saradnika (soft delete, autorstvo ranijih zapisa ostaje)
+- Atomarnost provere i upisa (konkurentni testovi)
+- Povezivanje sa pravim korisnicima (ST-001/002) umesto privremenog IUserDirectory
+- Povezivanje sa Api/ConsoleUi, ažuriranje dijagrama i README
+
+### Zavisnosti od drugih delova
+- ST-004 (izvođenja): ICourseOfferingRepository, stanje izvođenja
+- ST-001/002 (korisnici, prijava): uloga i aktivnost naloga (IUserDirectory)
+- ST-005 odgovorni nastavnik (SD): dodela odgovornog nastavnika; u testovima je simulirana
+- Ostali delovi (ST-006, ST-008, ST-009, ST-011) koriste ITeachingStaffQueries za proveru prava
+
+## ST-004: akademske godine (grana `feature/st-004-akademske-godine-tim-5`)
+
+Delimična in-memory/demonstraciona implementacija.
+
+**Urađeno (KT1)**
+- Application: `ListAcademicYearsHandler` (pregled i pretraga po oznaci), `UpdateAcademicYearCommand` i `UpdateAcademicYearHandler` (izmena); `IAcademicYearRepository` proširen metodama `ListAsync` i `TryUpdateAsync`
+- Infrastructure: `ListAsync` i atomarni `TryUpdateAsync` u `InMemoryAcademicYearRepository`
+- ConsoleUi: demo scenario `AcademicYearsDemo` (kreiranje, lista, pretraga, izmena i odbijeni unosi)
+- Testovi: 10 NUnit testova u `AcademicYearsHandlersTests`
+- Dijagrami: `docs/5/st004-akademske-godine-arhitektura.png`, `docs/5/st004-akademske-godine-dfd.png` (izvori u `.drawio`)
+
+**Poslovna pravila**
+- Oznaka je obavezna, bez razmaka na krajevima i jedinstvena bez razlike u veličini slova
+- Početak godine prethodi završetku
+- Izmena zadržava isti Id
+- Odbijena operacija ne menja postojeće podatke
+
+**Pokretanje demoa:** `dotnet run --project src/ConsoleUi`
+
+**Preostalo:** provera uloge Administratora, trajno skladište, veza sa izvođenjima.
