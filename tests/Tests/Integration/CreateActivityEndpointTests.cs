@@ -10,7 +10,6 @@ namespace Tests.Integration;
 [TestFixture]
 public sealed class CreateActivityEndpointTests
 {
-    private const string CreatedLocation = "/ListActivities";
     private static readonly Guid ExistingContextId = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private const string ExistingCourseSlug = "ERS-11111";
     private const string MissingCourseSlug = "XXX-33333";
@@ -62,7 +61,7 @@ public sealed class CreateActivityEndpointTests
             ValidBody());
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-        Assert.That(response.Headers.Location?.OriginalString, Is.EqualTo(CreatedLocation));
+        Assert.That(response.Headers.Location, Is.Null);
 
         var created = await response.Content.ReadFromJsonAsync<ActivityResponse>();
         Assert.That(created, Is.Not.Null);

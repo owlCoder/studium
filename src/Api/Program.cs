@@ -223,7 +223,9 @@ app.MapPost("/Course/{contextSlug}/CreateActivity", async (
 
     return result.Status switch
     {
-        CreateActivityStatus.Created => Results.Created("/ListActivities", result.Activity),
+        CreateActivityStatus.Created => Results.Json(
+            result.Activity,
+            statusCode: StatusCodes.Status201Created),
         CreateActivityStatus.ContextNotFound => Results.Problem(
             title: "Predmet ili izvođenje nije pronađeno",
             detail: result.Error,
