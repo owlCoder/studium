@@ -1,14 +1,6 @@
 using System.Text;
-using Application.Courses;
-using Infrastructure.Demo;
+using ConsoleUi;
 
 Console.OutputEncoding = Encoding.UTF8;
-Console.WriteLine("STUDIUM | Demonstracija čitanja kataloga (nije ST-003)");
 
-var handler = new ListCoursesHandler(DemoData.CreateCourseReader());
-var courses = await handler.HandleAsync();
-
-foreach (var course in courses)
-    Console.WriteLine($"{course.Code} — {course.Name}");
-
-Console.WriteLine("Sledeći korak: implementirati dodeljene zahteve iz specifikacije.");
+return await ConsoleApp.RunAsync(args, Console.In, Console.Out);
