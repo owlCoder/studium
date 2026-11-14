@@ -22,14 +22,14 @@ public static class DemoContributions
         var c3 = new Contribution(3, 103, 10, 2,
             "Radio na prikazu.",
             Array.Empty<Evidence>());
-        c3.ReturnForSupplement("Dopuni opis konkretnim zadacima.", out _);
+        c3.ReturnForSupplement(1010, "Dopuni opis konkretnim zadacima.", out _);
         c3.Supplement(10, "Radio na prikazu liste i detalja doprinosa.",
             new[] { new Evidence { Id = 3, Link = "https://example.com/dokaz" } }, out _);
         reader.Add(c3);
 
         // 4) Vracen na dopunu, jos nije dopunjen
         var c4 = new Contribution(4, 104, 10, 2, "Testovi.", Array.Empty<Evidence>());
-        c4.ReturnForSupplement("Priloži dokaz.", out _);
+        c4.ReturnForSupplement(1010, "Priloži dokaz.", out _);
         reader.Add(c4);
 
         return reader;

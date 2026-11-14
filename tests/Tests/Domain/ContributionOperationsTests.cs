@@ -48,7 +48,7 @@ public class ContributionOperationsTests
     {
         var contribution = CreateContribution();
 
-        contribution.ReturnForSupplement(  "Dopuniti opis", out _);
+        contribution.ReturnForSupplement(1010,  "Dopuniti opis", out _);
 
         bool result = operations.UpdateContribution( contribution,
                                                      10,
@@ -65,7 +65,7 @@ public class ContributionOperationsTests
     {
         var contribution = CreateContribution();
 
-        contribution.ReturnForSupplement( "Potrebna dopuna", out _);
+        contribution.ReturnForSupplement(1010, "Potrebna dopuna", out _);
 
         bool result = operations.UpdateContribution(  contribution,
                                                       99,
@@ -96,7 +96,7 @@ public class ContributionOperationsTests
         var contribution = CreateContribution();
         var list = new List<Contribution> { contribution };
 
-        contribution.ReturnForSupplement( "Potrebna dopuna", out _);
+        contribution.ReturnForSupplement(1010, "Potrebna dopuna", out _);
 
         bool result = operations.DeleteContribution( list,
                                                      contribution,
@@ -113,7 +113,7 @@ public class ContributionOperationsTests
         var contribution = CreateContribution();
         var list = new List<Contribution> { contribution };
 
-        contribution.ReturnForSupplement( "Potrebna dopuna", out _);
+        contribution.ReturnForSupplement(1010, "Potrebna dopuna", out _);
 
         bool result = operations.DeleteContribution( list,
                                                      contribution,
@@ -130,7 +130,7 @@ public class ContributionOperationsTests
         var contribution = CreateContribution();
         var list = new List<Contribution>();
 
-        contribution.ReturnForSupplement( "Potrebna dopuna", out _);
+        contribution.ReturnForSupplement(1010, "Potrebna dopuna", out _);
 
         bool result = operations.DeleteContribution( list,
                                                      contribution,

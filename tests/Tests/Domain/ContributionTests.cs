@@ -18,7 +18,7 @@ public sealed class ContributionTests
 
     private static Contribution MakeSubmitted()
     {
-        return new Contribution(7, AuthorId, 5, "Prvi opis", new List<Evidence>());
+        return new Contribution(1, 7, AuthorId, 5, "Prvi opis", new List<Evidence>());
     }
 
     private static Contribution MakeReturned()
@@ -104,7 +104,7 @@ public sealed class ContributionTests
     {
         var contribution = MakeReturned();
 
-        var result = contribution.Supplement(AuthorId, "Dopunjenm opis", new List<Evidence>(), out var error);
+        var result = contribution.Supplement(AuthorId, "Dopunjen opis", new List<Evidence>(), out var error);
 
         Assert.Multiple(() =>
         {

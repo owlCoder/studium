@@ -22,7 +22,7 @@ public class ContributionQueries
             : _reader.GetByAuthor(viewer.UserId);
 
         return items
-            .OrderByDescending(c => c.LastChangedAt)
+            .OrderByDescending(c => c.ChangedAt)
             .Select(ToSummary)
             .ToList();
     }
@@ -53,7 +53,7 @@ public class ContributionQueries
     };
 
     private static ContributionSummaryDto ToSummary(Contribution c) =>
-        new(c.Id, c.IdTask, c.AuthorId, c.PhaseId, StatusText(c.Status), c.CreatedAt, c.LastChangedAt);
+        new(c.Id, c.IdTask, c.AuthorId, c.PhaseId, StatusText(c.Status), c.CreatedAt, c.ChangedAt);
 
     private static EvidenceDto ToEvidence(Evidence e) =>
         new(e.Id, e.IsLink ? "Veza" : "Datoteka", e.IsLink ? e.Link : e.FilePath, e.AddedAt);
@@ -63,7 +63,7 @@ public class ContributionQueries
             r.EvidenceItems.Select(ToEvidence).ToList());
 
     private static ContributionDetailsDto ToDetails(Contribution c) =>
-        new(c.Id, c.IdTask, c.AuthorId, c.PhaseId, StatusText(c.Status), c.CreatedAt, c.LastChangedAt,
+        new(c.Id, c.IdTask, c.AuthorId, c.PhaseId, StatusText(c.Status), c.CreatedAt, c.ChangedAt,
             ToRevision(c.CurrentRevision),
             c.Revisions.Select(ToRevision).ToList());
 }

@@ -9,7 +9,7 @@ namespace Domain.Models;
 
 public class ContributionRevision
 {
-    public Guid Id { get; } = Guid.Empty;
+    public int Id { get; private set; } = 0;
     public int RevisionNumber { get; private set; } = 0;
     public int AuthorId { get; private set; } = 0;
     public string Description { get; private set; } = string.Empty;
@@ -21,9 +21,9 @@ public class ContributionRevision
     private readonly List<Evidence> _evidenceItems = new();
     public IReadOnlyList<Evidence> EvidenceItems => _evidenceItems;
 
-    public ContributionRevision(int revisionNumber, int authorId, string description, IEnumerable<Evidence> evidenceItems)
+    public ContributionRevision(int id, int revisionNumber, int authorId, string description, IEnumerable<Evidence> evidenceItems)
     {
-        Id = Guid.NewGuid();
+        Id = id;
         RevisionNumber = revisionNumber;
         AuthorId = authorId;
         Description = description ?? string.Empty;

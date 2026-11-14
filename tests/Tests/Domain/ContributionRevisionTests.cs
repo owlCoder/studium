@@ -13,7 +13,7 @@ public sealed class ContributionRevisionTests
 {
     private static ContributionRevision Make(string? description)
     {
-        return new ContributionRevision(1, 10, description!, new List<Evidence>());
+        return new ContributionRevision(1, 1, 10, description!, new List<Evidence>());
     }
 
     [Test]

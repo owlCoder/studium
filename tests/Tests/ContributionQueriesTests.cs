@@ -125,7 +125,7 @@ public class ContributionQueriesTests
     public void TryGetDetails_PosleDopune_CuvaRanijuVerziju()
     {
         var c = Make(1, 10, "Prvi opis");
-        c.ReturnForSupplement("Dopuni opis", out _);
+        c.ReturnForSupplement(1010, "Dopuni opis", out _);
         c.Supplement(10, "Drugi opis", Array.Empty<Evidence>(), out _);
         _store.Add(c);
 
@@ -142,7 +142,7 @@ public class ContributionQueriesTests
     public void TryGetDetails_VracenNaDopunu_PrikazujeStanje()
     {
         var c = Make(1, 10);
-        c.ReturnForSupplement("Dopuni", out _);
+        c.ReturnForSupplement(1010, "Dopuni", out _);
         _store.Add(c);
 
         _queries.TryGetDetails(new Viewer(10, ViewerRole.Student), 1, out var dto, out _);
