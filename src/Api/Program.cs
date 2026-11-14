@@ -1,4 +1,4 @@
-using Application.Courses;
+﻿using Application.Courses;
 using Application.Groups;
 using Infrastructure;
 using Infrastructure.Demo;
@@ -12,14 +12,23 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Composition root: spoljasnji sloj bira implementaciju ugovora.
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
 builder.Services.AddScoped<Application.Courses.GetSubmissionHandler>();
 
 builder.Services.AddSingleton<IGroupMembershipRepository, InMemoryGroupMembershipRepository>();
-builder.Services.AddSingleton<IGroupLookup, DemoGroupLookup>();
-builder.Services.AddSingleton<IStudentLookup, DemoStudentLookup>();
+if (DemoAdapterPolicy.AllowDemoAdapters(builder.Environment))
+{
+    builder.Services.AddSingleton<IGroupLookup, DemoGroupLookup>();
+    builder.Services.AddSingleton<IStudentLookup, DemoStudentLookup>();
+}
+else
+{
+    builder.Services.AddSingleton<IGroupLookup, UnavailableGroupLookup>();
+    builder.Services.AddSingleton<IStudentLookup, UnavailableStudentLookup>();
+}
 
 builder.Services.AddScoped<AddStudentToGroupHandler>();
 builder.Services.AddScoped<RemoveStudentFromGroupHandler>();
@@ -50,7 +59,26 @@ var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+// Javno dostupan demonstracioni endpoint, bez autentifikacije:
+// ne predstavlja funkcionalnost ST-003 i ne koristiti ga za stvarne podatke.
+app.MapGet("/demo/courses", async (
+    ListCoursesHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var courses = await handler.HandleAsync(cancellationToken);
+    return Results.Ok(courses);
+});
+
+app.MapGet("/courses", async (
+    string? query,
+    SearchCoursesHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var courses = await handler.HandleAsync(query, cancellationToken);
+    return Results.Ok(courses);
+});
 
 bool IsUserOwnerOfGroup(System.Security.Claims.ClaimsPrincipal user, Guid groupId)
 {
@@ -164,15 +192,41 @@ app.Run();
 
 public class DemoGroupLookup : IGroupLookup
 {
-    public Task<bool> ExistsAsync(Guid groupId, CancellationToken cancellationToken) => Task.FromResult(true);
+    private static readonly HashSet<Guid> KnownDemoGroups =
+    [
+        Guid.Parse("11111111-1111-1111-1111-111111111111")
+    ];
+
+    public Task<bool> ExistsAsync(Guid groupId, CancellationToken cancellationToken)
+        => Task.FromResult(KnownDemoGroups.Contains(groupId));
 }
 
 public class DemoStudentLookup : IStudentLookup
 {
-    public Task<bool> IsActiveAsync(Guid studentId, CancellationToken cancellationToken) => Task.FromResult(true);
+    private static readonly HashSet<Guid> KnownActiveStudents =
+    [
+        Guid.Parse("22222222-2222-2222-2222-222222222222")
+    ];
+
+    public Task<bool> IsActiveAsync(Guid studentId, CancellationToken cancellationToken)
+        => Task.FromResult(KnownActiveStudents.Contains(studentId));
+}
+
+public class UnavailableGroupLookup : IGroupLookup
+{
+    public Task<bool> ExistsAsync(Guid groupId, CancellationToken cancellationToken)
+        => Task.FromResult(false);
+}
+
+public class UnavailableStudentLookup : IStudentLookup
+{
+    public Task<bool> IsActiveAsync(Guid studentId, CancellationToken cancellationToken)
+        => Task.FromResult(false);
 }
 
 public record AddStudentRequest(Guid StudentId, DateTime StartDate);
 public record RemoveStudentRequest(DateTime EndDate);
 
 public partial class Program { }
+
+public static class DemoAdapterPolicy { public static bool AllowDemoAdapters(Microsoft.Extensions.Hosting.IHostEnvironment env) => Microsoft.Extensions.Hosting.HostEnvironmentEnvExtensions.IsDevelopment(env) || Microsoft.Extensions.Hosting.HostEnvironmentEnvExtensions.IsEnvironment(env, "Testing"); }
