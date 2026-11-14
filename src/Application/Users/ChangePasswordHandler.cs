@@ -1,4 +1,6 @@
-﻿namespace Application.Users;
+﻿using Application.Sessions;
+
+namespace Application.Users;
 
 public sealed class ChangePasswordHandler
 {
@@ -7,22 +9,30 @@ public sealed class ChangePasswordHandler
 
     private readonly IPasswordAccountRepository _accounts;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ISessionRevoker _sessionRevoker;
+    private readonly ISessionTokenProvider _tokens;
 
     public ChangePasswordHandler(
         IPasswordAccountRepository accounts,
-        IPasswordHasher passwordHasher)
+        IPasswordHasher passwordHasher,
+        ISessionRevoker sessionRevoker,
+        ISessionTokenProvider tokens)
     {
         _accounts = accounts;
         _passwordHasher = passwordHasher;
+        _sessionRevoker = sessionRevoker;
+        _tokens = tokens;
     }
 
+    /// <param name="currentToken">Token sesije sa koje se lozinka menja; ta sesija ostaje važeća.</param>
     public async Task<ChangePasswordResult> HandleAsync(
         Guid authenticatedUserId,
+        string currentToken,
         string currentPassword,
         string newPassword,
         CancellationToken cancellationToken = default)
     {
-        if (authenticatedUserId == Guid.Empty)
+        if (authenticatedUserId == Guid.Empty || string.IsNullOrWhiteSpace(currentToken))
             return ChangePasswordResult.AccountNotFound;
 
         if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < MinPasswordLength)
@@ -51,6 +61,12 @@ public sealed class ChangePasswordHandler
         await _accounts.UpdatePasswordHashAsync(
             authenticatedUserId,
             _passwordHasher.Hash(newPassword),
+            cancellationToken);
+
+        // Posle promene lozinke prestaju da važe sve ostale sesije korisnika.
+        await _sessionRevoker.RevokeOtherSessionsAsync(
+            authenticatedUserId,
+            _tokens.Hash(currentToken),
             cancellationToken);
 
         return ChangePasswordResult.Success;

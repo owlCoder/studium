@@ -4,9 +4,10 @@ using Domain.Sessions;
 namespace Infrastructure.Users;
 
 /// <summary>
-/// Dekorator nad <see cref="ISessionStore"/>: sesija izdata pre poslednje odjave korisnika
-/// smatra se poništenom, pa je skladište ne vraća. Tako ResolveSessionHandler odbija staru
-/// sesiju pri svakom zahtevu, bez izmene postojećeg skladišta sesija.
+/// Dekorator nad <see cref="ISessionStore"/>: sesija koja je poništena odjavom, ili je
+/// izdata pre poslednje promene lozinke (a nije sesija sa koje je lozinka promenjena),
+/// smatra se nepostojećom. Tako ResolveSessionHandler odbija takvu sesiju pri svakom
+/// zahtevu, bez izmene postojećeg skladišta sesija.
 /// </summary>
 public sealed class RevocationAwareSessionStore : ISessionStore
 {
@@ -27,7 +28,8 @@ public sealed class RevocationAwareSessionStore : ISessionStore
     {
         var session = await _inner.FindByTokenHashAsync(tokenHash, cancellationToken);
 
-        if (session is null || _revoker.IsRevoked(session.UserId, session.CreatedAt))
+        if (session is null
+            || _revoker.IsRevoked(session.TokenHash, session.UserId, session.CreatedAt))
             return null;
 
         return session;

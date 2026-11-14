@@ -60,6 +60,13 @@ public sealed class AccountFlowTests
         return request;
     }
 
+    private async Task<HttpStatusCode> SessionStatusAsync(string token)
+        => (await _client.SendAsync(Get("/api/auth/session", token))).StatusCode;
+
+    private async Task<HttpStatusCode> ChangePasswordAsync(string token, string current, string next)
+        => (await _client.SendAsync(Post("/api/auth/change-password", token,
+            new { currentPassword = current, newPassword = next }))).StatusCode;
+
     [Test]
     public async Task ChangePassword_WithoutToken_Returns401()
     {
@@ -82,9 +89,8 @@ public sealed class AccountFlowTests
     {
         var token = await LoginAndGetTokenAsync();
 
-        var change = await _client.SendAsync(Post("/api/auth/change-password", token,
-            new { currentPassword = DemoPassword, newPassword = NewPassword }));
-        Assert.That(change.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        Assert.That(await ChangePasswordAsync(token, DemoPassword, NewPassword),
+            Is.EqualTo(HttpStatusCode.NoContent));
 
         var withOld = await LoginAsync(DemoPassword);
         var withNew = await LoginAsync(NewPassword);
@@ -98,9 +104,8 @@ public sealed class AccountFlowTests
     {
         var token = await LoginAndGetTokenAsync();
 
-        var change = await _client.SendAsync(Post("/api/auth/change-password", token,
-            new { currentPassword = "Pogresna-Lozinka-9", newPassword = NewPassword }));
-        Assert.That(change.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(await ChangePasswordAsync(token, "Pogresna-Lozinka-9", NewPassword),
+            Is.EqualTo(HttpStatusCode.BadRequest));
 
         var stillOld = await LoginAsync(DemoPassword);
         Assert.That(stillOld.StatusCode, Is.EqualTo(HttpStatusCode.OK));
@@ -110,19 +115,87 @@ public sealed class AccountFlowTests
     public async Task Login_ThenLogout_OldSessionIsRejected()
     {
         var token = await LoginAndGetTokenAsync();
-
-        var before = await _client.SendAsync(Get("/api/auth/session", token));
-        Assert.That(before.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(await SessionStatusAsync(token), Is.EqualTo(HttpStatusCode.OK));
 
         var logout = await _client.SendAsync(Post("/api/auth/logout", token));
         Assert.That(logout.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
 
-        var session = await _client.SendAsync(Get("/api/auth/session", token));
-        var change = await _client.SendAsync(Post("/api/auth/change-password", token,
-            new { currentPassword = DemoPassword, newPassword = NewPassword }));
+        Assert.That(await SessionStatusAsync(token), Is.EqualTo(HttpStatusCode.Unauthorized));
+        Assert.That(await ChangePasswordAsync(token, DemoPassword, NewPassword),
+            Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
 
-        Assert.That(session.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
-        Assert.That(change.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    [Test]
+    public async Task Logout_OnOneDevice_DoesNotAffectTheOtherDevice()
+    {
+        var phone = await LoginAndGetTokenAsync();
+        var laptop = await LoginAndGetTokenAsync();
+
+        var logout = await _client.SendAsync(Post("/api/auth/logout", phone));
+        Assert.That(logout.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+
+        Assert.That(await SessionStatusAsync(phone), Is.EqualTo(HttpStatusCode.Unauthorized));
+        Assert.That(await SessionStatusAsync(laptop), Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    [Test]
+    public async Task Logout_TwiceWithTheSameToken_SecondAttemptIsRejected()
+    {
+        var token = await LoginAndGetTokenAsync();
+
+        var first = await _client.SendAsync(Post("/api/auth/logout", token));
+        var second = await _client.SendAsync(Post("/api/auth/logout", token));
+
+        Assert.That(first.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        Assert.That(second.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task ChangePassword_RevokesTheOtherDevice_AndKeepsTheCurrentOne()
+    {
+        var phone = await LoginAndGetTokenAsync();
+        var laptop = await LoginAndGetTokenAsync();
+
+        Assert.That(await ChangePasswordAsync(phone, DemoPassword, NewPassword),
+            Is.EqualTo(HttpStatusCode.NoContent));
+
+        // Token izdat pre promene lozinke, sa drugog uređaja, više ne važi.
+        Assert.That(await SessionStatusAsync(laptop), Is.EqualTo(HttpStatusCode.Unauthorized));
+        Assert.That(await ChangePasswordAsync(laptop, NewPassword, "Treca-Lozinka-3"),
+            Is.EqualTo(HttpStatusCode.Unauthorized));
+
+        // Sesija sa koje je lozinka promenjena ostaje važeća.
+        Assert.That(await SessionStatusAsync(phone), Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    [Test]
+    public async Task ChangePassword_WithWrongCurrentPassword_DoesNotRevokeTheOtherDevice()
+    {
+        var phone = await LoginAndGetTokenAsync();
+        var laptop = await LoginAndGetTokenAsync();
+
+        Assert.That(await ChangePasswordAsync(phone, "Pogresna-Lozinka-9", NewPassword),
+            Is.EqualTo(HttpStatusCode.BadRequest));
+
+        Assert.That(await SessionStatusAsync(phone), Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(await SessionStatusAsync(laptop), Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    [Test]
+    public async Task ChangePassword_ThenLoginAgain_NewSessionIsAccepted()
+    {
+        var oldToken = await LoginAndGetTokenAsync();
+        var current = await LoginAndGetTokenAsync();
+
+        await ChangePasswordAsync(current, DemoPassword, NewPassword);
+
+        // Mala pauza, da nova sesija sigurno nastane posle trenutka promene lozinke.
+        await Task.Delay(50);
+
+        var newToken = await LoginAndGetTokenAsync(NewPassword);
+
+        Assert.That(await SessionStatusAsync(newToken), Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(await SessionStatusAsync(oldToken), Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
     [Test]
@@ -131,14 +204,9 @@ public sealed class AccountFlowTests
         var oldToken = await LoginAndGetTokenAsync();
         await _client.SendAsync(Post("/api/auth/logout", oldToken));
 
-        // Mala pauza, da nova sesija sigurno nastane posle trenutka odjave.
-        await Task.Delay(50);
-
         var newToken = await LoginAndGetTokenAsync();
-        var session = await _client.SendAsync(Get("/api/auth/session", newToken));
-        var oldSession = await _client.SendAsync(Get("/api/auth/session", oldToken));
 
-        Assert.That(session.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        Assert.That(oldSession.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        Assert.That(await SessionStatusAsync(newToken), Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(await SessionStatusAsync(oldToken), Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 }
