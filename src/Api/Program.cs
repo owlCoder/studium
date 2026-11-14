@@ -1,6 +1,9 @@
 using System.Security.Claims;
 using Api.Identity;
 using Application.Courses;
+using Application.Dashboard;
+using Domain.Dashboard;
+using Infrastructure.Dashboard;
 using Application.Engagements;
 using Application.Enrollments;
 using Application.Identity;
@@ -14,6 +17,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
+// US-7.6: registar podržanih funkcija (ST-007)
+builder.Services.AddSingleton<FeatureRegistry>(_ => SupportedFeatures.CreateRegistry());
+builder.Services.AddScoped<FilterSupportedActivitiesHandler>();
 // US-7.1: izvođenja na koja je student upisan
 builder.Services.AddSingleton<IStudentOfferingsReader>(_ => DemoData.CreateStudentOfferingsReader());
 builder.Services.AddScoped<ListStudentOfferingsHandler>();
@@ -101,6 +107,18 @@ app.MapGet("/api/ja", (ClaimsPrincipal user) =>
             ? Results.Ok(new { userId })
             : Results.Unauthorized())
     .RequireAuthorization();
+
+// US-7.6: lista podržanih vrsta aktivnosti i funkcionalnih oblasti
+app.MapGet("/features", (FeatureRegistry registry) => Results.Ok(new
+{
+    activityTypes = registry.SupportedActivityTypes
+        .Select(type => new { code = type.Code, area = type.Area.ToString() }),
+    areas = registry.AvailableAreas.Select(area => area.ToString())
+}));
+
+// US-7.6: provera da li je vrsta aktivnosti podržana
+app.MapGet("/features/activity-types/{activityType}", (string activityType, FeatureRegistry registry) =>
+    Results.Ok(new { activityType, supported = registry.IsActivitySupported(activityType) }));
 
 app.Run();
 
