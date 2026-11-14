@@ -106,6 +106,5 @@ Svaka funkcionalna cjelina ima svoj folder u Domain, Application i Infrastructur
 ## Tim 5: ST-004 i ST-005
 
 Akademske godine i izvođenja predmeta (ST-004), te nastavnici i saradnici na
-predmetu (ST-005). Plan, demo scenario, pravila i zavisnosti od drugih timova:
-[docs/5/plan.md](docs/5/plan.md).
-Dijagrami: [arhitektura](docs/5/arhitektura.png), [DFD](docs/5/dfd.png).
+predmetu (ST-005).Plan, pravila i zavisnosti: [plan](docs/tim5/plan.md).
+Dijagrami: [arhitektura](docs/tim5/dijagram-arhitekture.drawio.png), [tok podataka](docs/tim5/dijagram-toka-podataka.drawio.png).

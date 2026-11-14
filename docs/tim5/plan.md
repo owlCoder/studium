@@ -1,6 +1,6 @@
 # Tim 5: ST-004 i ST-005
 
-Plan rada za KT1 i KT2. Dijagrami: [arhitektura](arhitektura.png), [DFD](dfd.png).
+Plan rada za KT1 i KT2. Dijagrami: [arhitektura](dijagram-arhitekture.drawio.png), [DFD](dijagram-toka-podataka.drawio.png).
 
 ## 1. Obim
 

@@ -1,6 +1,5 @@
 using System.Text;
 using Application.Courses;
-
 using Infrastructure.Demo;
 
 Console.OutputEncoding = Encoding.UTF8;
@@ -11,7 +10,5 @@ var courses = await handler.HandleAsync();
 
 foreach (var course in courses)
     Console.WriteLine($"{course.Code} — {course.Name}");
-
-
 
 Console.WriteLine("Sledeći korak: implementirati dodeljene zahteve iz specifikacije.");
