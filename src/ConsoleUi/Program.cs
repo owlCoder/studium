@@ -1,5 +1,6 @@
 using System.Text;
 using Application.Courses;
+using ConsoleUi;
 using Infrastructure.Demo;
 
 Console.OutputEncoding = Encoding.UTF8;
@@ -11,5 +12,9 @@ var courses = await handler.HandleAsync();
 foreach (var course in courses)
     Console.WriteLine($"{course.Code} — {course.Name}");
 
+if (args.Contains("--demo-st004"))
+{
+    await St004Demo.RunAsync();
+}
 Console.WriteLine("Sledeći korak: implementirati dodeljene zahteve iz specifikacije.");
 await ConsoleUi.AcademicYearsDemo.RunAsync();
