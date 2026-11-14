@@ -48,7 +48,7 @@ Poslednje dve komande pokreću alternativne ulaze; nisu potrebne istovremeno. AP
 ## KT1 scenario (ST-031 i ST-032)
 
 ```bash
-dotnet run --project src/ConsoleUi
+dotnet run --project src/ConsoleUi -- st-031-032
 ```
 
 Komanda pokreće scenario kontrolne tačke: odbijen termin koji se završava pre početka, kreiranje termina, označavanje kao Održan, spisak podobnih studenata, unos prisustva i prikaz da student bez unosa ostaje `Neevidentirano` (ne `Odsutan`), kao i odbijanje unosa na otkazan termin.
