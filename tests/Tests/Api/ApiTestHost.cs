@@ -17,6 +17,18 @@ internal static class ApiTestHost
 {
     public const string AdminRoleHeaderValue = "Admin";
 
+    /// <summary>
+    /// Stvarna konfiguracija bez ikakve zamene: ostaje ona autentifikaciona sema koju
+    /// Program.cs registruje (cookie "TestScheme"), bez TestAuthenticationHandler-a.
+    /// </summary>
+    public static WebApplicationFactory<Program> CreateWithApplicationAuthentication(string environment)
+    {
+        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment(environment);
+        });
+    }
+
     public static WebApplicationFactory<Program> Create(
         string environment,
         Action<IServiceCollection>? configureServices = null)
@@ -28,11 +40,11 @@ internal static class ApiTestHost
             builder.ConfigureTestServices(services =>
             {
                 services.AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = "Test";
-                    options.DefaultChallengeScheme = "Test";
-                    options.DefaultForbidScheme = "Test";
-                })
+                    {
+                        options.DefaultAuthenticateScheme = "Test";
+                        options.DefaultChallengeScheme = "Test";
+                        options.DefaultForbidScheme = "Test";
+                    })
                     .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>("Test", _ => { });
 
                 configureServices?.Invoke(services);

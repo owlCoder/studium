@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -70,6 +71,19 @@ builder.Services.AddScoped<Application.Content.IContentReader, Infrastructure.Co
 builder.Services.AddScoped<Application.Groups.IStudentGroupReader, Infrastructure.Groups.DummyStudentGroupReader>();
 builder.Services.AddScoped<Application.Content.GetStudentContentHandler>();
 
+/* ---------- AUTENTIFIKACIJA: SAMO KT1 (nije produkcioni tok) ----------
+ * "TestScheme" je privremena cookie sema bez ikakvog toka izdavanja identiteta: ovaj modul nema
+ * login endpoint ni izdavanje sesije, pa u stvarnom hostu NIJEDAN zahtev ne dobija identitet i
+ * svi zasticeni endpointi vracaju 401 (fail-closed). Identitet iz zaglavlja (X-Test-User /
+ * X-Test-Role) postoji samo u testovima, preko TestAuthenticationHandler-a.
+ *
+ * Stvarna autentifikacija (ST-002) nije u main grani: nalazi se na grani feature/st-002-prijava
+ * (LoginHandler, /api/auth/login) i ne izdaje sesiju. Povezivanje se dogovara sa timom ST-002;
+ * ovaj PR ga namerno ne uvodi. Naziv seme se ne menja da se ne bi sudarale paralelne izmene.
+ * Kada se poveze ST-002, ovaj blok se zamenjuje, a testovi u RealAuthenticationHostTests
+ * (401 bez stvarnog identiteta) treba da ostanu zeleni.
+ * ----------------------------------------------------------------------- */
+
 builder.Services.AddAuthentication("TestScheme")
     .AddCookie("TestScheme", options =>
     {
@@ -107,8 +121,19 @@ if (builder.Environment.IsDevelopment())
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+if (!DemoAdapterPolicy.IsAllowed(app.Environment))
+    {
+        app.Logger.LogWarning(
+            "Autentifikacija je KT1-only (nema izdavanja identiteta): zasticeni endpointi vracaju 401 " +
+            "dok se ne poveze ST-002. Demo adapteri su iskljuceni u okruzenju {Environment}.",
+            app.Environment.EnvironmentName);
+    }
 
 app.UseAuthentication();
 app.UseAuthorization();
