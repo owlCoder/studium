@@ -1,6 +1,8 @@
 using Application.Courses;
 using Infrastructure.Demo;
 using Studium.Application.ST015.Queries;
+using Studium.Domain.ST015.Repositories;
+using Studium.Infrastructure.ST015;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +11,8 @@ builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader())
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
 
-// Registracija kontrolera, MediatR-a i autentifikacije za ST-015
+// Registracija kontrolera, MediatR-a, repozitorijuma i autentifikacije za ST-015
+builder.Services.AddScoped<IRokoviRepository, FailClosedRokoviRepository>();
 builder.Services.AddControllers();
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(GetPrimenljiviRokQuery).Assembly));
