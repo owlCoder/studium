@@ -1,39 +1,16 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using Studium.Domain.Models; 
+using Studium.Domain.Models;
 
 namespace Studium.Application
 {
-    // 1. Interfejs za repozitorij
+    // 1. Interfejs (Port) za repozitorijum
     public interface IReviewRepository
     {
         void Save(PregledRada pregled);
-        PregledRada GetByRadId(Guid radId);
+        PregledRada? GetByRadId(Guid radId);
     }
 
-    // 2. In-memory repozitorij
-    public class InMemoryReviewRepository : IReviewRepository
-    {
-        private readonly List<PregledRada> _pregledi = new();
-
-        public void Save(PregledRada pregled)
-        {
-            var postojeci = GetByRadId(pregled.RadId);
-            if (postojeci != null)
-            {
-                _pregledi.Remove(postojeci);
-            }
-            _pregledi.Add(pregled);
-        }
-
-        public PregledRada GetByRadId(Guid radId)
-        {
-            return _pregledi.FirstOrDefault(p => p.RadId == radId);
-        }
-    }
-
-    // 3. Handler koji čuva nacrt
+    // 2. Handler koji čuva i ažurira nacrt
     public class SaveReviewDraftHandler
     {
         private readonly IReviewRepository _repository;
@@ -45,30 +22,35 @@ namespace Studium.Application
 
         public bool Handle(SaveReviewDraftCommand komanda)
         {
-            // Odbijen unos ne menja postojeće stanje u bazi/memoriji
+            // Validacija ulaznih podataka
             if (string.IsNullOrWhiteSpace(komanda.Komentar) || string.IsNullOrWhiteSpace(komanda.AutorId))
             {
-                return false; 
+                return false;
             }
 
             var pregled = _repository.GetByRadId(komanda.RadId);
-            
+
             if (pregled == null)
             {
-                // Ako pregled ne postoji, kreira se novi koristeći Marinin konstruktor (Stanje je automatski Nacrt)
+                // Ako pregled ne postoji, kreira se novi (Stanje je automatski Nacrt)
                 pregled = new PregledRada(komanda.RadId, komanda.Komentar, komanda.AutorId, komanda.Outcome);
             }
             else
             {
+                // Kontrola vlasništva: samo nastavnik koji je kreirao nacrt može da ga menja
+                if (pregled.AutorId != komanda.AutorId)
+                {
+                    return false;
+                }
+
                 try
                 {
-                    // Ako postoji, ažurira se koristeći njenu metodu
+                    // Ako postoji i vlasnik je isti, ažurira se nacrt
                     pregled.AzurirajNacrt(komanda.Komentar, komanda.AutorId, komanda.Outcome);
                 }
                 catch (InvalidOperationException)
                 {
                     // Ukoliko pokušamo ažurirati objavljen pregled, metoda baca izuzetak.
-                    // Vraćamo false i ne snimamo ništa, postojeće stanje ostaje netaknuto
                     return false;
                 }
             }

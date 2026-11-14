@@ -2,6 +2,7 @@ using System;
 using Xunit;
 using Studium.Domain.Models;
 using Studium.Application;
+using Studium.Infrastructure;
 
 namespace Studium.Tests
 {
