@@ -9,13 +9,16 @@ public sealed class ChangeOfferingStateHandler
         _offerings = offerings;
     }
 
-    public Task HandleAsync(
+    public async Task HandleAsync(
         ChangeOfferingStateCommand command,
         CancellationToken cancellationToken = default)
     {
-        // TODO: učitati izvođenje preko _offerings.GetByIdAsync (greška ako ne postoji)
-        // TODO: pozvati offering.ChangeState(command.NewState) iz domena
-        // TODO: sačuvati promjenu (treba nova metoda u ICourseOfferingRepository, dogovoriti sa NG)
-        throw new NotImplementedException();
+        var offering = await _offerings.GetByIdAsync(command.OfferingId, cancellationToken)
+            ?? throw new InvalidOperationException("Izvođenje ne postoji.");
+
+        // Domen sam odbija nedozvoljene prelaze (npr. U pripremi -> Završeno)
+        offering.ChangeState(command.NewState);
+
+        await _offerings.UpdateAsync(offering, cancellationToken);
     }
 }
