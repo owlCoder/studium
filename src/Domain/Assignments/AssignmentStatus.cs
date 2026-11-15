@@ -2,5 +2,6 @@ namespace Domain.Assignments;
 
 public enum AssignmentStatus
 {
-    Draft
+    Draft,
+    Published
 }

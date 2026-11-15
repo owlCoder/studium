@@ -4,7 +4,7 @@ using Domain.Assignments;
 
 namespace Infrastructure.Assignments;
 
-public sealed class InMemoryAssignmentDraftWriter : IAssignmentDraftWriter
+public sealed class InMemoryAssignmentDraftWriter : IAssignmentDraftWriter, IAssignmentRepository
 {
     private readonly ConcurrentDictionary<Guid, Assignment> _drafts = new();
 
@@ -31,4 +31,23 @@ public sealed class InMemoryAssignmentDraftWriter : IAssignmentDraftWriter
     }
 
     public Assignment? FindById(Guid assignmentId) => _drafts.GetValueOrDefault(assignmentId);
+
+    public Task<Assignment?> FindAsync(
+        Guid assignmentId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(FindById(assignmentId));
+    }
+
+    public Task SaveAsync(
+        Assignment assignment,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(assignment);
+
+        _drafts[assignment.Id] = assignment;
+        return Task.CompletedTask;
+    }
 }

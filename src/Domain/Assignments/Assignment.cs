@@ -8,7 +8,7 @@ public sealed class Assignment
     public string? Description { get; }
     public string? Instructions { get; }
     public DateTimeOffset? Deadline { get; }
-    public AssignmentStatus Status { get; } = AssignmentStatus.Draft;
+    public AssignmentStatus Status { get; private set; } = AssignmentStatus.Draft;
 
     private Assignment(
         Guid id,
@@ -42,5 +42,35 @@ public sealed class Assignment
             throw new ArgumentException("Naziv zadatka je obavezan.", nameof(title));
 
         return new Assignment(id, courseOfferingId, title, description, instructions, deadline);
+    }
+
+    public IReadOnlyList<string> GetMissingPublicationFields()
+    {
+        return AssignmentPublication.GetMissingPublicationFields(Title, Description, Instructions, Deadline);
+    }
+
+    public string? GetPublicationError()
+    {
+        return AssignmentPublication.GetPublicationError(
+            isDraft: Status == AssignmentStatus.Draft,
+            title: Title,
+            description: Description,
+            instructions: Instructions,
+            deadline: Deadline);
+    }
+
+    public bool IsVisibleToStudents()
+    {
+        return Status == AssignmentStatus.Published;
+    }
+
+    public string? Publish()
+    {
+        var error = GetPublicationError();
+        if (error is not null)
+            return error;
+
+        Status = AssignmentStatus.Published;
+        return null;
     }
 }

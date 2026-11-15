@@ -58,4 +58,109 @@ public sealed class AssignmentTests
 
         Assert.That(exception!.ParamName, Is.EqualTo("title"));
     }
+
+    [Test]
+    public void GetMissingPublicationFields_ReturnsOnlyMissingFields()
+    {
+        var assignment = Assignment.CreateDraft(
+            Guid.NewGuid(), Guid.NewGuid(), "Zadatak", " \t", "Uputstvo", null);
+
+        Assert.That(assignment.GetMissingPublicationFields(), Is.EqualTo(new[] { "opis", "rok" }));
+    }
+
+    [Test]
+    public void GetMissingPublicationFields_ReturnsEmptyListForCompleteDraft()
+    {
+        var assignment = Assignment.CreateDraft(
+            Guid.NewGuid(), Guid.NewGuid(), "Zadatak", "Opis", "Uputstvo", Deadline);
+
+        Assert.That(assignment.GetMissingPublicationFields(), Is.Empty);
+    }
+
+    [Test]
+    public void GetPublicationError_ReturnsNullWithoutPublishingCompleteDraft()
+    {
+        var assignment = Assignment.CreateDraft(
+            Guid.NewGuid(), Guid.NewGuid(), "Zadatak", "Opis", "Uputstvo", Deadline);
+
+        Assert.That(assignment.GetPublicationError(), Is.Null);
+        Assert.That(assignment.Status, Is.EqualTo(AssignmentStatus.Draft));
+    }
+
+    [Test]
+    public void GetPublicationError_ReportsMissingFields()
+    {
+        var assignment = Assignment.CreateDraft(
+            Guid.NewGuid(), Guid.NewGuid(), "Zadatak", "Opis", "Uputstvo", null);
+
+        Assert.That(assignment.GetPublicationError(), Is.EqualTo("Nedostaju obavezni podaci: rok."));
+    }
+
+    [Test]
+    public void GetPublicationError_ReportsAlreadyPublishedAssignment()
+    {
+        var assignment = Assignment.CreateDraft(
+            Guid.NewGuid(), Guid.NewGuid(), "Zadatak", "Opis", "Uputstvo", Deadline);
+        Assert.That(assignment.Publish(), Is.Null);
+
+        Assert.That(assignment.GetPublicationError(), Is.EqualTo("Samo zadatak u nacrtu može da se objavi."));
+    }
+
+    [Test]
+    public void IsVisibleToStudents_BecomesTrueAfterPublication()
+    {
+        var assignment = Assignment.CreateDraft(
+            Guid.NewGuid(), Guid.NewGuid(), "Zadatak", "Opis", "Uputstvo", Deadline);
+
+        Assert.That(assignment.IsVisibleToStudents(), Is.False);
+        Assert.That(assignment.Publish(), Is.Null);
+        Assert.That(assignment.IsVisibleToStudents(), Is.True);
+    }
+
+    [Test]
+    public void IsVisibleToStudents_RemainsFalseAfterRejectedPublication()
+    {
+        var assignment = Assignment.CreateDraft(
+            Guid.NewGuid(), Guid.NewGuid(), "Zadatak", "Opis", "Uputstvo", null);
+
+        Assert.That(assignment.Publish(), Is.Not.Null);
+        Assert.That(assignment.IsVisibleToStudents(), Is.False);
+    }
+
+    [Test]
+    public void Publish_PublishesCompleteDraft()
+    {
+        var assignment = Assignment.CreateDraft(
+            Guid.NewGuid(), Guid.NewGuid(), "Zadatak", "Opis", "Uputstvo", Deadline);
+
+        var error = assignment.Publish();
+
+        Assert.That(error, Is.Null);
+        Assert.That(assignment.Status, Is.EqualTo(AssignmentStatus.Published));
+    }
+
+    [Test]
+    public void Publish_ReportsMissingFieldsAndKeepsDraft()
+    {
+        var assignment = Assignment.CreateDraft(
+            Guid.NewGuid(), Guid.NewGuid(), "Zadatak", "Opis", "  ", null);
+
+        var error = assignment.Publish();
+
+        Assert.That(error, Is.EqualTo("Nedostaju obavezni podaci: uputstvo, rok."));
+        Assert.That(assignment.Status, Is.EqualTo(AssignmentStatus.Draft));
+    }
+
+    [Test]
+    public void Publish_RejectsAlreadyPublishedAssignment()
+    {
+        var assignment = Assignment.CreateDraft(
+            Guid.NewGuid(), Guid.NewGuid(), "Zadatak", "Opis", "Uputstvo", Deadline);
+        Assert.That(assignment.Publish(), Is.Null);
+
+        var error = assignment.Publish();
+
+        Assert.That(error, Is.EqualTo("Samo zadatak u nacrtu može da se objavi."));
+        Assert.That(assignment.Status, Is.EqualTo(AssignmentStatus.Published));
+    }
 }
