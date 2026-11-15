@@ -1,7 +1,7 @@
 using Domain.Assignments;
 using NUnit.Framework;
 
-namespace Tests.Domain;
+namespace Tests.Domain.Assignments;
 
 [TestFixture]
 public sealed class AssignmentPublicationTests

@@ -9,8 +9,8 @@ public sealed class PublishAssignmentHandler
         IAssignmentRepository repository,
         IAssignmentPublicationAccess access)
     {
-        _repository = repository;
-        _access = access;
+        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _access = access ?? throw new ArgumentNullException(nameof(access));
     }
 
     public async Task<PublishAssignmentResult> HandleAsync(
@@ -22,7 +22,7 @@ public sealed class PublishAssignmentHandler
         if (assignment is null)
             return PublishAssignmentResult.Failure("Zadatak ne postoji.");
 
-        if (!await _access.CanPublishAsync(assignment.OfferingId, cancellationToken))
+        if (!await _access.CanPublishAsync(assignment.CourseOfferingId, cancellationToken))
             return PublishAssignmentResult.Failure("Nemate pravo da objavite zadatak na ovom izvođenju predmeta.");
 
         var publicationError = assignment.Publish();

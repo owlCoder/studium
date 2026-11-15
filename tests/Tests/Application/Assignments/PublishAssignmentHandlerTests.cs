@@ -1,5 +1,6 @@
 using Application.Assignments;
 using Domain.Assignments;
+using Infrastructure.Assignments;
 using Moq;
 using NUnit.Framework;
 
@@ -11,19 +12,18 @@ public sealed class PublishAssignmentHandlerTests
     [Test]
     public async Task HandleAsync_PublishesAndSavesCompleteDraft()
     {
-        var assignmentId = Guid.NewGuid();
         var assignment = CompleteDraft();
-        var repository = new FakeAssignmentRepository(assignmentId, assignment);
-        var access = AllowPublicationOn(assignment.OfferingId);
+        var repository = new FakeAssignmentRepository(assignment.Id, assignment);
+        var access = AllowPublicationOn(assignment.CourseOfferingId);
         var handler = new PublishAssignmentHandler(repository, access.Object);
 
-        var result = await handler.HandleAsync(assignmentId);
+        var result = await handler.HandleAsync(assignment.Id);
 
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.True);
             Assert.That(result.Error, Is.Null);
-            Assert.That(assignment.State, Is.EqualTo(AssignmentStatus.Published));
+            Assert.That(assignment.Status, Is.EqualTo(AssignmentStatus.Published));
             Assert.That(repository.SavedAssignment, Is.SameAs(assignment));
             Assert.That(repository.SaveCallCount, Is.EqualTo(1));
         });
@@ -32,20 +32,19 @@ public sealed class PublishAssignmentHandlerTests
     [Test]
     public async Task HandleAsync_DoesNotPublishWhenTeacherIsAssignedToAnotherOffering()
     {
-        var assignmentId = Guid.NewGuid();
         var assignment = CompleteDraft();
-        var repository = new FakeAssignmentRepository(assignmentId, assignment);
+        var repository = new FakeAssignmentRepository(assignment.Id, assignment);
         var access = AllowPublicationOn(Guid.NewGuid());
         var handler = new PublishAssignmentHandler(repository, access.Object);
 
-        var result = await handler.HandleAsync(assignmentId);
+        var result = await handler.HandleAsync(assignment.Id);
 
-        access.Verify(x => x.CanPublishAsync(assignment.OfferingId, CancellationToken.None), Times.Once);
+        access.Verify(x => x.CanPublishAsync(assignment.CourseOfferingId, CancellationToken.None), Times.Once);
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.Error, Is.EqualTo("Nemate pravo da objavite zadatak na ovom izvođenju predmeta."));
-            Assert.That(assignment.State, Is.EqualTo(AssignmentStatus.Draft));
+            Assert.That(assignment.Status, Is.EqualTo(AssignmentStatus.Draft));
             Assert.That(repository.SaveCallCount, Is.Zero);
         });
     }
@@ -71,9 +70,10 @@ public sealed class PublishAssignmentHandlerTests
     public async Task HandleAsync_DoesNotSaveIncompleteDraft()
     {
         var assignmentId = Guid.NewGuid();
-        var assignment = new Assignment(Guid.NewGuid(), "Zadatak", "Opis", " ", null);
+        var courseOfferingId = Guid.NewGuid();
+        var assignment = Assignment.CreateDraft(assignmentId, courseOfferingId, "Zadatak", "Opis", " ", null);
         var repository = new FakeAssignmentRepository(assignmentId, assignment);
-        var handler = new PublishAssignmentHandler(repository, AllowPublicationOn(assignment.OfferingId).Object);
+        var handler = new PublishAssignmentHandler(repository, AllowPublicationOn(courseOfferingId).Object);
 
         var result = await handler.HandleAsync(assignmentId);
 
@@ -81,7 +81,7 @@ public sealed class PublishAssignmentHandlerTests
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.Error, Is.EqualTo("Nedostaju obavezni podaci: uputstvo, rok."));
-            Assert.That(assignment.State, Is.EqualTo(AssignmentStatus.Draft));
+            Assert.That(assignment.Status, Is.EqualTo(AssignmentStatus.Draft));
             Assert.That(repository.SaveCallCount, Is.Zero);
         });
     }
@@ -89,34 +89,105 @@ public sealed class PublishAssignmentHandlerTests
     [Test]
     public async Task HandleAsync_DoesNotSaveAlreadyPublishedAssignmentAgain()
     {
-        var assignmentId = Guid.NewGuid();
         var assignment = CompleteDraft();
         Assert.That(assignment.Publish(), Is.Null);
 
-        var repository = new FakeAssignmentRepository(assignmentId, assignment);
-        var handler = new PublishAssignmentHandler(repository, AllowPublicationOn(assignment.OfferingId).Object);
+        var repository = new FakeAssignmentRepository(assignment.Id, assignment);
+        var handler = new PublishAssignmentHandler(repository, AllowPublicationOn(assignment.CourseOfferingId).Object);
 
-        var result = await handler.HandleAsync(assignmentId);
+        var result = await handler.HandleAsync(assignment.Id);
 
         Assert.Multiple(() =>
         {
             Assert.That(result.IsSuccess, Is.False);
             Assert.That(result.Error, Is.EqualTo("Samo zadatak u nacrtu može da se objavi."));
-            Assert.That(assignment.State, Is.EqualTo(AssignmentStatus.Published));
+            Assert.That(assignment.Status, Is.EqualTo(AssignmentStatus.Published));
             Assert.That(repository.SaveCallCount, Is.Zero);
+        });
+    }
+
+    [Test]
+    public async Task CreateAndPublishFlow_PublishesCreatedDraftWhenComplete()
+    {
+        var courseOfferingId = Guid.NewGuid();
+        var store = new InMemoryAssignmentDraftWriter();
+
+        var createAccess = new Mock<IAssignmentCreationAccess>();
+        createAccess.Setup(x => x.CanCreateAsync(courseOfferingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var createHandler = new CreateAssignmentHandler(createAccess.Object, store);
+        var publishHandler = new PublishAssignmentHandler(store, AllowPublicationOn(courseOfferingId).Object);
+
+        var assignmentId = await createHandler.HandleAsync(new CreateAssignmentCommand(
+            courseOfferingId,
+            "Domaći 1",
+            "Opis zadatka",
+            "Uputstvo za izradu",
+            DateTimeOffset.UnixEpoch));
+
+        var result = await publishHandler.HandleAsync(assignmentId);
+        var stored = store.FindById(assignmentId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Error, Is.Null);
+            Assert.That(stored, Is.Not.Null);
+            Assert.That(stored!.Status, Is.EqualTo(AssignmentStatus.Published));
+            Assert.That(stored.IsVisibleToStudents(), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task CreateAndPublishFlow_RejectsCreatedDraftWhenIncomplete()
+    {
+        var courseOfferingId = Guid.NewGuid();
+        var store = new InMemoryAssignmentDraftWriter();
+
+        var createAccess = new Mock<IAssignmentCreationAccess>();
+        createAccess.Setup(x => x.CanCreateAsync(courseOfferingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var createHandler = new CreateAssignmentHandler(createAccess.Object, store);
+        var publishHandler = new PublishAssignmentHandler(store, AllowPublicationOn(courseOfferingId).Object);
+
+        var assignmentId = await createHandler.HandleAsync(new CreateAssignmentCommand(
+            courseOfferingId,
+            "Domaći 1",
+            null,
+            "Uputstvo za izradu",
+            null));
+
+        var result = await publishHandler.HandleAsync(assignmentId);
+        var stored = store.FindById(assignmentId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.Error, Is.EqualTo("Nedostaju obavezni podaci: opis, rok."));
+            Assert.That(stored, Is.Not.Null);
+            Assert.That(stored!.Status, Is.EqualTo(AssignmentStatus.Draft));
+            Assert.That(stored.IsVisibleToStudents(), Is.False);
         });
     }
 
     private static Assignment CompleteDraft()
     {
-        return new Assignment(Guid.NewGuid(), "Zadatak", "Opis", "Uputstvo", DateTimeOffset.UnixEpoch);
+        return Assignment.CreateDraft(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "Zadatak",
+            "Opis",
+            "Uputstvo",
+            DateTimeOffset.UnixEpoch);
     }
 
-    private static Mock<IAssignmentPublicationAccess> AllowPublicationOn(Guid offeringId)
+    private static Mock<IAssignmentPublicationAccess> AllowPublicationOn(Guid courseOfferingId)
     {
         var access = new Mock<IAssignmentPublicationAccess>();
         access.Setup(x => x.CanPublishAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Guid checkedOfferingId, CancellationToken _) => checkedOfferingId == offeringId);
+            .ReturnsAsync((Guid checkedOfferingId, CancellationToken _) => checkedOfferingId == courseOfferingId);
         return access;
     }
 
