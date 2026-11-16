@@ -1,5 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <Compile Remove="Users - Copy\**" />
+    <EmbeddedResource Remove="Users - Copy\**" />
+    <None Remove="Users - Copy\**" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../Domain/Domain.csproj" />
   </ItemGroup>
 </Project>
