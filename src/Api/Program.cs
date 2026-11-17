@@ -10,6 +10,9 @@ using Application.Identity;
 using Infrastructure.Demo;
 using Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication;
+using Application.Activities;
+using Application.Home;
+using Infrastructure.Activities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +30,16 @@ builder.Services.AddScoped<ListStudentOfferingsHandler>();
 // US-7.2: izvođenja na kojima je korisnik angažovan, uz listu upisa iz US-7.1
 builder.Services.AddSingleton<IStaffOfferingsReader>(_ => DemoData.CreateStaffOfferingsReader());
 builder.Services.AddScoped<ListMyOfferingsHandler>();
+
+// US-7.3: pravo pravilo otvorene aktivnosti (Svetislav)
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<InMemoryActivityStore>();
+builder.Services.AddSingleton<IActivityReader>(sp => sp.GetRequiredService<InMemoryActivityStore>());
+builder.Services.AddSingleton<IActivitySubmissionReader>(sp => sp.GetRequiredService<InMemoryActivityStore>());
+builder.Services.AddSingleton<IOpenActivityCounter, OpenActivityCounter>();
+
+// US-7.4: servis početnog pregleda (spaja US-7.1, US-7.2 i US-7.3; veze prema US-7.6)
+builder.Services.AddScoped<GetHomeOverviewHandler>();
 
 // US-7.5: identitet iz sesije. Privremeni memorijski adapteri dok se ne integrišu ST-001 i ST-002;
 // tada se samo ove dve registracije porta preusmere na njihove evidencije.
@@ -99,6 +112,22 @@ app.MapGet("/api/moja-izvodjenja", async (
 
     var offerings = await handler.HandleAsync(userId, cancellationToken);
     return Results.Ok(offerings);
+}).RequireAuthorization();
+
+// US-7.4: ceo početni pregled u jednom JSON odgovoru.
+// Identitet samo iz sesije (US-7.5), nikad iz zahteva; bez važeće sesije 401.
+app.MapGet("/pocetna", async (
+    ClaimsPrincipal user,
+    GetHomeOverviewHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    if (!user.TryGetSessionUserId(out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var overview = await handler.HandleAsync(userId, cancellationToken);
+    return Results.Ok(overview);
 }).RequireAuthorization();
 
 // US-7.5: vraća ID prijavljenog korisnika, uzet isključivo iz sesije.
