@@ -1,50 +1,70 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 using Application.CourseEnrollments;
+using Application.DTOs;
+using Application.Interfaces;
 using Domain.CourseEnrollments;
+using Domain.Entities;
 
 namespace Infrastructure.CourseEnrollments;
 
-public sealed class InMemoryCourseEnrollmentRepository : ICourseEnrollmentRepository
+public sealed class InMemoryCourseEnrollmentRepository : ICourseEnrollmentRepository, IEnrollmentRepository
 {
-    private readonly List<CourseEnrollment> _enrollments = new();
+    private readonly List<Enrollment> _enrollments;
     private readonly object _lock = new();
 
+    public InMemoryCourseEnrollmentRepository(IEnumerable<Enrollment>? enrollments = null)
+    {
+        _enrollments = enrollments?.ToList() ?? new List<Enrollment>();
+    }
+
+   
     public Task<bool> TryAddActiveEnrollmentAsync(CourseEnrollment enrollment, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
         lock (_lock)
         {
-            var exists = _enrollments.Any(e =>
-                e.CourseExecutionId == enrollment.CourseExecutionId &&
+            var alreadyActive = _enrollments.Any(e =>
+                e.OfferingId == enrollment.CourseExecutionId &&
                 e.StudentId == enrollment.StudentId &&
-                e.Status == EnrollmentStatus.Active);
+                e.IsActive);
 
-            if (exists)
+            if (alreadyActive)
             {
                 return Task.FromResult(false);
             }
 
-            _enrollments.Add(enrollment);
+            _enrollments.Add(new Enrollment
+            {
+                Id = enrollment.Id,
+                OfferingId = enrollment.CourseExecutionId,
+                StudentId = enrollment.StudentId
+            });
+
             return Task.FromResult(true);
         }
     }
 
-    public Task<CourseEnrollment?> GetActiveEnrollmentAsync(Guid courseExecutionId, Guid studentId, CancellationToken cancellationToken = default)
+  
+    public Task<List<StudentEnrollmentDto>> GetEnrollmentsByOfferingAsync(Guid offeringId)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         lock (_lock)
         {
-            var result = _enrollments.FirstOrDefault(e =>
-                e.CourseExecutionId == courseExecutionId &&
-                e.StudentId == studentId &&
-                e.Status == EnrollmentStatus.Active);
+            var enrollments = _enrollments
+                .Where(e => e.OfferingId == offeringId && e.IsActive)
+                .Select(e => new StudentEnrollmentDto(e.Id, e.StudentId, e.IsActive))
+                .ToList();
 
-            return Task.FromResult(result);
+            return Task.FromResult(enrollments);
         }
     }
+
+    public Task<Enrollment?> GetByIdAsync(Guid enrollmentId)
+    {
+        lock (_lock)
+        {
+            return Task.FromResult(_enrollments.FirstOrDefault(e => e.Id == enrollmentId));
+        }
+    }
+
+    public Task SaveChangesAsync() => Task.CompletedTask;
 }

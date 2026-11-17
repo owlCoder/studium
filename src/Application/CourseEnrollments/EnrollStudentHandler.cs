@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+using Application.Interfaces;
 using Domain.CourseEnrollments;
 
 namespace Application.CourseEnrollments;
@@ -13,14 +8,14 @@ public record EnrollStudentCommand(Guid TeacherId, Guid CourseExecutionId, Guid 
 public sealed class EnrollStudentHandler
 {
     private readonly ICourseEnrollmentRepository _repository;
-    private readonly ICourseExecutionPermissionChecker _permissionChecker;
+    private readonly IOfferingAccessReader _offeringAccess;
 
     public EnrollStudentHandler(
         ICourseEnrollmentRepository repository,
-        ICourseExecutionPermissionChecker permissionChecker)
+        IOfferingAccessReader offeringAccess)
     {
         _repository = repository;
-        _permissionChecker = permissionChecker;
+        _offeringAccess = offeringAccess;
     }
 
     public async Task<Guid> HandleAsync(EnrollStudentCommand command, CancellationToken cancellationToken = default)
@@ -30,8 +25,9 @@ public sealed class EnrollStudentHandler
             throw new UnauthorizedAccessException("Korisnik nije autentifikovan.");
         }
 
-        var hasPermission = await _permissionChecker.CanTeacherManageExecutionAsync(command.TeacherId, command.CourseExecutionId, cancellationToken);
-        if (!hasPermission)
+       
+        var isTeacherOfOffering = await _offeringAccess.IsTeacherOfOfferingAsync(command.TeacherId, command.CourseExecutionId);
+        if (!isTeacherOfOffering)
         {
             throw new UnauthorizedAccessException("Nastavnik nema pravo upisa na ovo izvođenje predmeta.");
         }
@@ -40,10 +36,9 @@ public sealed class EnrollStudentHandler
             Guid.NewGuid(),
             command.CourseExecutionId,
             command.StudentId,
-            DateTime.UtcNow
-        );
+            DateTime.UtcNow);
 
-        // Atomski check-and-insert
+        
         var added = await _repository.TryAddActiveEnrollmentAsync(enrollment, cancellationToken);
         if (!added)
         {

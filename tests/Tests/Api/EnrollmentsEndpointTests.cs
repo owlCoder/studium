@@ -1,141 +1,197 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Security.Claims;
-using System.Text.Encodings.Web;
-using Application.CourseEnrollments;
-using Microsoft.AspNetCore.Authentication;
+using Api.Authentication;
+using Application.DTOs;
+using Infrastructure.Demo;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
 namespace Tests.Api;
 
+
 [TestFixture]
 public sealed class EnrollmentsEndpointTests
 {
-    private static readonly Guid AuthorizedTeacherId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-    private static readonly Guid UnauthorizedTeacherId = Guid.Parse("22222222-2222-2222-2222-222222222222");
-    private static readonly Guid AllowedExecutionId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
-    private static readonly Guid StudentId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+    private const string Url = "/api/enrollments";
+
+    
+    private static readonly Guid AlreadyEnrolledStudentId = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001");
+    private static readonly Guid TerminatedStudentId = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000003");
 
     private WebApplicationFactory<Program> _factory = null!;
+    private HttpClient _client = null!;
 
     [SetUp]
     public void SetUp()
     {
-        _factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                builder.ConfigureTestServices(services =>
-                {
-                    services.RemoveAll<ICourseExecutionPermissionChecker>();
-                    services.AddSingleton<ICourseExecutionPermissionChecker>(
-                        new StubPermissionChecker(AuthorizedTeacherId, AllowedExecutionId));
-
-                    services.AddAuthentication(options =>
-                    {
-                        options.DefaultAuthenticateScheme = "TestScheme";
-                        options.DefaultChallengeScheme = "TestScheme";
-                    })
-                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("TestScheme", _ => { });
-                });
-            });
+        _factory = new WebApplicationFactory<Program>();
+        _client = _factory.CreateClient();
     }
 
     [TearDown]
-    public void TearDown() => _factory.Dispose();
+    public void TearDown()
+    {
+        _client.Dispose();
+        _factory.Dispose();
+    }
+
+    private void LoginAs(Guid userId) => LoginAs(userId.ToString());
+
+    private void LoginAs(string userId) =>
+        _client.DefaultRequestHeaders.Add(DemoAuthHandler.UserHeader, userId);
+
+    private Task<HttpResponseMessage> PostEnrollment(Guid courseExecutionId, Guid studentId) =>
+        _client.PostAsJsonAsync(Url, new { courseExecutionId, studentId });
+
+    // --- Negativni: autentifikacija ---
 
     [Test]
-    public async Task PostEnrollment_AnonymousUser_Returns401Unauthorized()
+    public async Task Post_AnonymousUser_Returns401()
     {
-        var client = _factory.CreateClient();
-
-        var response = await client.PostAsJsonAsync("/api/enrollments", new
-        {
-            courseExecutionId = AllowedExecutionId,
-            studentId = StudentId
-        });
+        var response = await PostEnrollment(DemoData.ErsId, Guid.NewGuid());
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
     [Test]
-    public async Task PostEnrollment_SpoofedTeacherIdInBody_IgnoresBodyAndReturns403ForUnauthorizedPrincipal()
+    public async Task Post_InvalidUserId_Returns401()
     {
-        var client = _factory.CreateClient();
-        
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("TestScheme", UnauthorizedTeacherId.ToString());
+        LoginAs("nije-guid");
 
-        
-        var response = await client.PostAsJsonAsync("/api/enrollments", new
+        var response = await PostEnrollment(DemoData.ErsId, Guid.NewGuid());
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task Post_OutsideKt1Host_Returns401()
+    {
+        using var productionFactory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder => builder.UseEnvironment("Production"));
+        using var client = productionFactory.CreateClient();
+        client.DefaultRequestHeaders.Add(DemoAuthHandler.UserHeader, DemoData.ErsTeacherId.ToString());
+
+        var response = await client.PostAsJsonAsync(Url, new { courseExecutionId = DemoData.ErsId, studentId = Guid.NewGuid() });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized),
+            "Demo autentifikacija ne sme raditi van KT1 test hosta.");
+    }
+
+   
+
+    [Test]
+    public async Task Post_TeacherNotAssignedToOffering_Returns403()
+    {
+        LoginAs(DemoData.ErsTeacherId);
+
+        var response = await PostEnrollment(DemoData.OibId, Guid.NewGuid());
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task Post_UnknownTeacher_Returns403()
+    {
+        LoginAs(Guid.NewGuid());
+
+        var response = await PostEnrollment(DemoData.ErsId, Guid.NewGuid());
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task Post_SpoofedTeacherIdInBody_IsIgnored_Returns403()
+    {
+        LoginAs(Guid.NewGuid());
+
+        var response = await _client.PostAsJsonAsync(Url, new
         {
-            teacherId = AuthorizedTeacherId,
-            courseExecutionId = AllowedExecutionId,
-            studentId = StudentId
+            teacherId = DemoData.ErsTeacherId,
+            courseExecutionId = DemoData.ErsId,
+            studentId = Guid.NewGuid()
         });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
     [Test]
-    public async Task PostEnrollment_AuthenticatedTeacherWithoutPermission_Returns403Forbidden()
+    public async Task Post_EmptyStudentId_Returns400()
     {
-        var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("TestScheme", UnauthorizedTeacherId.ToString());
+        LoginAs(DemoData.ErsTeacherId);
 
-        var response = await client.PostAsJsonAsync("/api/enrollments", new
-        {
-            courseExecutionId = AllowedExecutionId,
-            studentId = StudentId
-        });
+        var response = await PostEnrollment(DemoData.ErsId, Guid.Empty);
 
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    
+
+    [Test]
+    public async Task Post_AssignedTeacher_Returns201_AndStudentAppearsInList()
+    {
+        LoginAs(DemoData.ErsTeacherId);
+        var studentId = Guid.NewGuid();
+
+        var response = await PostEnrollment(DemoData.ErsId, studentId);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var list = await _client.GetFromJsonAsync<List<StudentEnrollmentDto>>($"/api/offerings/{DemoData.ErsId}/enrollments");
+        Assert.That(list!.Exists(e => e.StudentId == studentId), Is.True,
+            "Upisan student mora biti vidljiv u pretrazi istog izvođenja.");
     }
 
     [Test]
-    public async Task PostEnrollment_AuthorizedTeacherForExecution_Returns201Created()
+    public async Task Post_StudentWithTerminatedMembership_CanBeEnrolledAgain()
     {
-        var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("TestScheme", AuthorizedTeacherId.ToString());
+        LoginAs(DemoData.ErsTeacherId);
 
-        var response = await client.PostAsJsonAsync("/api/enrollments", new
-        {
-            courseExecutionId = AllowedExecutionId,
-            studentId = StudentId
-        });
+        var response = await PostEnrollment(DemoData.ErsId, TerminatedStudentId);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
     }
 
-    private sealed class StubPermissionChecker(Guid allowedTeacher, Guid allowedExecution) : ICourseExecutionPermissionChecker
+    // --- Ponovljeni i konkurentni upis ---
+
+    [Test]
+    public async Task Post_StudentAlreadyEnrolled_Returns409()
     {
-        public Task<bool> CanTeacherManageExecutionAsync(Guid teacherId, Guid courseExecutionId, CancellationToken cancellationToken = default)
-            => Task.FromResult(teacherId == allowedTeacher && courseExecutionId == allowedExecution);
+        LoginAs(DemoData.ErsTeacherId);
+
+        var response = await PostEnrollment(DemoData.ErsId, AlreadyEnrolledStudentId);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
     }
 
-    private sealed class TestAuthHandler(
-        IOptionsMonitor<AuthenticationSchemeOptions> options,
-        ILoggerFactory logger,
-        UrlEncoder encoder) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+    [Test]
+    public async Task Post_SameStudentTwice_SecondReturns409()
     {
-        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        LoginAs(DemoData.ErsTeacherId);
+        var studentId = Guid.NewGuid();
+
+        var first = await PostEnrollment(DemoData.ErsId, studentId);
+        var second = await PostEnrollment(DemoData.ErsId, studentId);
+
+        Assert.Multiple(() =>
         {
-            if (!Request.Headers.TryGetValue("Authorization", out var authHeader)) { 
-                return Task.FromResult(AuthenticateResult.NoResult());
-            }
+            Assert.That(first.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+            Assert.That(second.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+        });
+    }
 
-            var token = authHeader.ToString().Replace("TestScheme ", "", StringComparison.OrdinalIgnoreCase);
-            var claims = new[] { new Claim(ClaimTypes.NameIdentifier, token) };
-            var identity = new ClaimsIdentity(claims, "TestScheme");
-            var principal = new ClaimsPrincipal(identity);
-            var ticket = new AuthenticationTicket(principal, "TestScheme");
+    [Test]
+    public async Task Post_ConcurrentRequestsForSameStudent_OnlyOneSucceeds()
+    {
+        LoginAs(DemoData.ErsTeacherId);
+        var studentId = Guid.NewGuid();
 
-            return Task.FromResult(AuthenticateResult.Success(ticket));
-        }
+        var responses = await Task.WhenAll(
+            Enumerable.Range(0, 20).Select(_ => PostEnrollment(DemoData.ErsId, studentId)));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(responses.Count(r => r.StatusCode == HttpStatusCode.Created), Is.EqualTo(1));
+            Assert.That(responses.Count(r => r.StatusCode == HttpStatusCode.Conflict), Is.EqualTo(19));
+        });
     }
 }

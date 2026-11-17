@@ -35,15 +35,11 @@ public class MockSubmissionOverviewService : ISubmissionOverviewService
 
     public Task<SubmissionOverviewDto?> GetSubmissionOverviewAsync(Guid submissionId, Guid requestingMemberId)
     {
-        if (!_authorizedMemberIds.Contains(requestingMemberId)) { 
+        if (!_authorizedMemberIds.Contains(requestingMemberId))
             throw new UnauthorizedAccessException("Nemate pravo pristupa ovom zapisu.");
-        }
 
         var submission = _submissions.FirstOrDefault(s => s.SubmissionId == submissionId);
-        if (submission == null)
-        {
-            return Task.FromResult<SubmissionOverviewDto?>(null);
-        }
+        if (submission == null) return Task.FromResult<SubmissionOverviewDto?>(null);
 
         var member = _members.FirstOrDefault(m => m.MemberId == submission.MemberId);
         var task = _tasks.FirstOrDefault(t => t.TaskId == submission.TaskId);
@@ -62,9 +58,8 @@ public class MockSubmissionOverviewService : ISubmissionOverviewService
 
     public Task<IReadOnlyList<SubmissionOverviewDto>> GetSubmissionsForTaskAsync(Guid taskId, Guid requestingMemberId)
     {
-        if (!_authorizedMemberIds.Contains(requestingMemberId)) { 
+        if (!_authorizedMemberIds.Contains(requestingMemberId))
             throw new UnauthorizedAccessException("Nemate pravo pristupa ovom zapisu.");
-        }
 
         var result = _submissions
             .Where(s => s.TaskId == taskId)
@@ -89,9 +84,8 @@ public class MockSubmissionOverviewService : ISubmissionOverviewService
 
     public Task<SubmissionStatusCountsDto> GetStatusCountsForTaskAsync(Guid taskId, Guid requestingMemberId)
     {
-        if (!_authorizedMemberIds.Contains(requestingMemberId)) { 
+        if (!_authorizedMemberIds.Contains(requestingMemberId))
             throw new UnauthorizedAccessException("Nemate pravo pristupa ovom zapisu.");
-        }
 
         var taskSubmissions = _submissions.Where(s => s.TaskId == taskId).ToList();
 

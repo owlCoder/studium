@@ -1,30 +1,43 @@
+using System;
 using System.Security.Claims;
-using Application.Courses;
-using Infrastructure.Demo;
+using Api.Authentication;
 using Application.CourseEnrollments;
+using Application.Courses;
+using Application.Interfaces;
+using Application.Services;
 using Infrastructure.CourseEnrollments;
+using Infrastructure.Demo;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddAuthentication();
-builder.Services.AddAuthorization();
-
-
+builder.Services.AddControllers();
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
 
 
-builder.Services.AddSingleton<ICourseEnrollmentRepository, InMemoryCourseEnrollmentRepository>();
-builder.Services.AddScoped<ICourseExecutionPermissionChecker, DenyAllCourseExecutionPermissionChecker>();
+builder.Services.AddSingleton(_ => new InMemoryCourseEnrollmentRepository(DemoData.CreateEnrollments()));
+builder.Services.AddSingleton<IEnrollmentRepository>(sp => sp.GetRequiredService<InMemoryCourseEnrollmentRepository>());
+builder.Services.AddSingleton<ICourseEnrollmentRepository>(sp => sp.GetRequiredService<InMemoryCourseEnrollmentRepository>());
+builder.Services.AddSingleton<IOfferingAccessReader>(_ => DemoData.CreateOfferingAccessReader());
+builder.Services.AddScoped<EnrollmentService>();
 builder.Services.AddScoped<EnrollStudentHandler>();
+
+
+builder.Services
+    .AddAuthentication(DemoAuthHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, DemoAuthHandler>(DemoAuthHandler.SchemeName, _ => { });
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapControllers();
+
 
 app.MapGet("/demo/courses", async (
     ListCoursesHandler handler,
@@ -34,13 +47,14 @@ app.MapGet("/demo/courses", async (
     return Results.Ok(courses);
 });
 
+
 app.MapPost("/api/enrollments", async (
     EnrollStudentRequest request,
     ClaimsPrincipal user,
     EnrollStudentHandler handler,
     CancellationToken cancellationToken) =>
 {
-    var teacherIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
+    var teacherIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
     if (!Guid.TryParse(teacherIdClaim, out var verifiedTeacherId) || verifiedTeacherId == Guid.Empty)
     {
         return Results.Unauthorized();
@@ -48,7 +62,6 @@ app.MapPost("/api/enrollments", async (
 
     try
     {
-        
         var command = new EnrollStudentCommand(verifiedTeacherId, request.CourseExecutionId, request.StudentId);
         var enrollmentId = await handler.HandleAsync(command, cancellationToken);
         return Results.Created($"/api/enrollments/{enrollmentId}", new { id = enrollmentId });
@@ -56,6 +69,10 @@ app.MapPost("/api/enrollments", async (
     catch (UnauthorizedAccessException ex)
     {
         return Results.Json(new { error = ex.Message }, statusCode: StatusCodes.Status403Forbidden);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
     }
     catch (InvalidOperationException ex)
     {
