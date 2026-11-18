@@ -37,6 +37,7 @@ builder.Services.AddSingleton<IAttachmentFileStorage>(new LocalDiskAttachmentFil
 builder.Services.AddSingleton<IMaterialAttachmentRepository, InMemoryMaterialAttachmentRepository>();
 builder.Services.AddScoped<AttachFileToMaterialHandler>();
 builder.Services.AddScoped<UploadMaterialAttachmentsHandler>();
+builder.Services.AddScoped<RemoveMaterialAttachmentHandler>();
 
 var app = builder.Build();
 
@@ -169,6 +170,40 @@ app.MapPost("/materials/{materialId:guid}/attachments", async (
         });
     }
 }).DisableAntiforgery();
+
+// ST-009 (US-07): uklanjanje jednog priloga iz materijala.
+// Redosled: 401 bez identiteta -> 404 ako materijal ne postoji -> 403 ako korisnik nije
+// nastavno osoblje izvođenja materijala (ST-005) -> 404 ako prilog ne postoji ili pripada
+// drugom materijalu -> 204 kada je prilog uklonjen.
+// Dok ST-002 ne doda autentifikaciju, svaki zahtev dobija 401.
+app.MapDelete("/materials/{materialId:guid}/attachments/{attachmentId:guid}", async (
+    Guid materialId,
+    Guid attachmentId,
+    HttpContext httpContext,
+    RemoveMaterialAttachmentHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (!Guid.TryParse(userIdClaim, out var userId) || userId == Guid.Empty)
+    {
+        return Results.Unauthorized();
+    }
+
+    try
+    {
+        var outcome = await handler.HandleAsync(
+            new RemoveMaterialAttachmentCommand(userId, materialId, attachmentId),
+            cancellationToken);
+
+        return outcome == RemoveMaterialAttachmentOutcome.Removed
+            ? Results.NoContent()
+            : Results.NotFound();
+    }
+    catch (MaterialAccessDeniedException ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status403Forbidden);
+    }
+});
 
 app.Run();
 

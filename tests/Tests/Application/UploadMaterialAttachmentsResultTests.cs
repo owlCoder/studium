@@ -245,6 +245,12 @@ public sealed class UploadMaterialAttachmentsResultTests
         public Task<IReadOnlyList<MaterialAttachment>> ListByMaterialAsync(
             Guid materialId, CancellationToken cancellationToken = default) =>
             _inner.ListByMaterialAsync(materialId, cancellationToken);
+
+        public Task<MaterialAttachment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+            _inner.GetByIdAsync(id, cancellationToken);
+
+        public Task<bool> RemoveAsync(Guid id, CancellationToken cancellationToken = default) =>
+            _inner.RemoveAsync(id, cancellationToken);
     }
 
     /// <summary>Tok bez poznate dužine, kao telo HTTP zahteva.</summary>

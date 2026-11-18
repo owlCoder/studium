@@ -116,4 +116,70 @@ public sealed class InMemoryMaterialAttachmentRepositoryTests
         var result = await repository.ListByMaterialAsync(materialId);
         Assert.That(result, Is.Empty);
     }
+
+    // US-07: čitanje i uklanjanje jednog priloga
+
+    [Test]
+    public async Task GetByIdAsync_ReturnsSavedAttachment()
+    {
+        var repository = new InMemoryMaterialAttachmentRepository();
+        var attachment = CreateAttachment(Guid.NewGuid(), "a.pdf");
+        await repository.AddAsync(attachment);
+
+        var result = await repository.GetByIdAsync(attachment.Id);
+
+        Assert.That(result, Is.SameAs(attachment));
+    }
+
+    [Test]
+    public async Task GetByIdAsync_Unknown_ReturnsNull()
+    {
+        var repository = new InMemoryMaterialAttachmentRepository();
+
+        Assert.That(await repository.GetByIdAsync(Guid.NewGuid()), Is.Null);
+    }
+
+    [Test]
+    public async Task RemoveAsync_RemovesOnlyThatAttachment()
+    {
+        var repository = new InMemoryMaterialAttachmentRepository();
+        var materialId = Guid.NewGuid();
+        var removed = CreateAttachment(materialId, "staro.pdf");
+        var kept = CreateAttachment(materialId, "aktuelno.pdf");
+        await repository.AddAsync(removed);
+        await repository.AddAsync(kept);
+
+        var result = await repository.RemoveAsync(removed.Id);
+
+        Assert.That(result, Is.True);
+        Assert.That((await repository.ListByMaterialAsync(materialId)).Select(a => a.Id),
+            Is.EqualTo(new[] { kept.Id }));
+    }
+
+    [Test]
+    public async Task RemoveAsync_UnknownOrAlreadyRemoved_ReturnsFalse()
+    {
+        var repository = new InMemoryMaterialAttachmentRepository();
+        var attachment = CreateAttachment(Guid.NewGuid());
+        await repository.AddAsync(attachment);
+        await repository.RemoveAsync(attachment.Id);
+
+        Assert.That(await repository.RemoveAsync(attachment.Id), Is.False);
+        Assert.That(await repository.RemoveAsync(Guid.NewGuid()), Is.False);
+    }
+
+    [Test]
+    public async Task RemoveAsync_WhenCancelled_ThrowsAndKeepsAttachment()
+    {
+        var repository = new InMemoryMaterialAttachmentRepository();
+        var attachment = CreateAttachment(Guid.NewGuid());
+        await repository.AddAsync(attachment);
+        using var source = new CancellationTokenSource();
+        source.Cancel();
+
+        Assert.That(
+            () => repository.RemoveAsync(attachment.Id, source.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+        Assert.That(await repository.GetByIdAsync(attachment.Id), Is.Not.Null);
+    }
 }

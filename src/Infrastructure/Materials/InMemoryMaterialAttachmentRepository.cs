@@ -38,4 +38,17 @@ public sealed class InMemoryMaterialAttachmentRepository : IMaterialAttachmentRe
 
         return Task.FromResult(result);
     }
+
+    public Task<MaterialAttachment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _attachments.TryGetValue(id, out var attachment);
+        return Task.FromResult(attachment);
+    }
+
+    public Task<bool> RemoveAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(_attachments.TryRemove(id, out _));
+    }
 }
