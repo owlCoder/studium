@@ -13,6 +13,7 @@
         <ProjectReference Include="../../src/Application/Application.csproj" />
         <ProjectReference Include="../../src/Infrastructure/Infrastructure.csproj" />
         <ProjectReference Include="../../src/Api/Api.csproj" />
+        <ProjectReference Include="../../src/ConsoleUi/ConsoleUi.csproj" />
     </ItemGroup>
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App" />

@@ -58,6 +58,30 @@ Komanda pokreće scenario kontrolne tačke: odbijen termin koji se završava pre
 1. `dotnet run --project src/ConsoleUi` → prva linija je `STUDIUM | Demonstracija čitanja kataloga (nije ST-003)` i ispisuje listu predmeta.
 2. `dotnet run --project src/ConsoleUi -- st-031-032` → prva linija je `STUDIUM | KT1 scenario (ST-031 + ST-032)`, a u koraku 6 Marko ima stanje `Neevidentirano`.
 
+## KT2 scenario (ST-011 / US-01)
+
+U prvom PowerShell terminalu, iz korena repozitorijuma, pokreni API i ostavi ga da radi:
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = 'Development'
+dotnet run --project src/Api --configuration Release -- --urls http://127.0.0.1:5098
+```
+
+U drugom terminalu pokreni konzolnu formu:
+
+```powershell
+dotnet run --project src/ConsoleUi --configuration Release -- st-011
+```
+
+1. Unesi prikazani ID izvođenja ERS. Opcijama `1`–`4` unesi naziv `Domaći zadatak`, opis, uputstvo i rok `15.01.2027 18:30 +01:00`.
+2. Ponovo izaberi `1` i promeni naziv u `Domaći zadatak 1`. Proveri da se izmenjeni naziv i ostale vrednosti vide u formi.
+3. Izaberi `5` za čuvanje. Konzola ispisuje `Nacrt je sačuvan. ID zadatka:` i identifikator koji je vratio API.
+4. Ponovo pokreni konzolnu formu, izaberi prikazani ID izvođenja OIB, unesi naziv i potvrdi opcijom `5`. Demo nastavnik je angažovan na ERS-u, pa za OIB API vraća `403 Forbidden`, a konzola prikazuje poruku o nedozvoljenom pristupu.
+
+Za proveru grešaka probaj da potvrdiš prazan naziv ili da posle važećeg roka uneseš `31.02.2027 18:30 +01:00`. Forma ostaje otvorena i možeš da nastaviš unos. Opcija `0` prekida unos bez slanja zahteva.
+
+Scenario koristi demo prijavu i memorijsko čuvanje. Nacrti se gube kad se API zaustavi. [Dijagrami arhitekture i toka podataka za US-01](docs/tim14/st-011-us-01-kt2.md)
+
 ## Kako nastaviti
 
 1. Pročitati [specifikaciju i mapiranje zahteva](docs/requirements/README.md) i odabrati dodeljeni zahtev ST-xxx.
