@@ -39,6 +39,11 @@ builder.Services.AddScoped<AttachFileToMaterialHandler>();
 builder.Services.AddScoped<UploadMaterialAttachmentsHandler>();
 builder.Services.AddScoped<RemoveMaterialAttachmentHandler>();
 
+// ST-009 (US-03): memorijsko skladište spoljnih veza materijala do odluke o bazi (ADR-0003).
+// HTTP endpoint za dodavanje veze još nije dodat.
+builder.Services.AddSingleton<IMaterialExternalLinkRepository, InMemoryMaterialExternalLinkRepository>();
+builder.Services.AddScoped<AddMaterialExternalLinkHandler>();
+
 var app = builder.Build();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));

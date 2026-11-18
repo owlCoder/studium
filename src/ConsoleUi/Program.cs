@@ -69,5 +69,31 @@ var uploadForm = new UploadAttachmentsForm(
     Console.Out);
 await uploadForm.RunAsync(demoTeacherId, demoMaterial.Id);
 
+// ST-009, US-03: unos spoljne veze u demonstracioni materijal i prikaz liste veza.
+// Veze se čuvaju samo u memoriji; sintetički nastavnik je angažovan na izvođenju materijala.
+Console.WriteLine();
+var externalLinks = new InMemoryMaterialExternalLinkRepository();
+var addLinkHandler = new AddMaterialExternalLinkHandler(
+    materials,
+    externalLinks,
+    new InMemoryOfferingStaffChecker([(demoTeacherId, demoMaterial.CourseOfferingId)]));
+var enteredLink = new ExternalLinkField(Console.In, Console.Out).Read(demoMaterial.Id);
+if (enteredLink is not null)
+{
+    try
+    {
+        await addLinkHandler.HandleAsync(
+            new AddMaterialExternalLinkCommand(demoTeacherId, demoMaterial.Id, enteredLink.Url.AbsoluteUri));
+        Console.WriteLine("Veza je sačuvana.");
+    }
+    catch (MaterialAccessDeniedException ex)
+    {
+        Console.WriteLine($"Veza nije sačuvana: {ex.Message}");
+    }
+}
+new ExternalLinkListView(Console.Out).Show(
+    demoMaterial.Id,
+    await externalLinks.ListByMaterialAsync(demoMaterial.Id));
+
 Console.WriteLine();
 Console.WriteLine("Sledeći korak: implementirati dodeljene zahteve iz specifikacije.");
