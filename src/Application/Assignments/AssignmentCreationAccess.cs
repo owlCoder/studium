@@ -13,7 +13,7 @@ public sealed class AssignmentCreationAccess(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (currentUser is not { Role: UserRole.Teacher })
+        if (currentUser == null || currentUser.Role != UserRole.Teacher)
             return false;
 
         var isTeacherOfOffering = await offeringAccess.IsTeacherOfOfferingAsync(

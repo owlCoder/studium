@@ -1,8 +1,12 @@
 using System;
+using System.Security.Claims;
 using Api.Authentication;
+using Application.Access;
+using Application.Assignments;
 using Application.Courses;
 using Application.Interfaces;
 using Application.Services;
+using Infrastructure.Assignments;
 using Infrastructure.Demo;
 using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication;
@@ -18,6 +22,28 @@ builder.Services.AddSingleton<IEnrollmentRepository>(
 builder.Services.AddSingleton<IOfferingAccessReader>(_ => DemoData.CreateOfferingAccessReader());
 builder.Services.AddScoped<EnrollmentService>();
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<InMemoryAssignmentDraftWriter>();
+builder.Services.AddSingleton<IAssignmentDraftWriter>(
+    services => services.GetRequiredService<InMemoryAssignmentDraftWriter>());
+builder.Services.AddSingleton<IAssignmentRepository>(
+    services => services.GetRequiredService<InMemoryAssignmentDraftWriter>());
+builder.Services.AddScoped<IAssignmentCreationAccess>(services =>
+{
+    var user = services.GetRequiredService<IHttpContextAccessor>().HttpContext?.User;
+    UserContext? currentUser = null;
+    if (user?.Identity?.IsAuthenticated == true &&
+        user.IsInRole(nameof(UserRole.Teacher)) &&
+        Guid.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId) &&
+        userId != Guid.Empty)
+    {
+        currentUser = new UserContext(userId, UserRole.Teacher);
+    }
+
+    return new AssignmentCreationAccess(
+        currentUser, services.GetRequiredService<IOfferingAccessReader>());
+});
+builder.Services.AddScoped<CreateAssignmentHandler>();
 
 builder.Services
     .AddAuthentication(DemoAuthHandler.SchemeName)
