@@ -1,7 +1,8 @@
+using Application.Access;
 using Application.Assignments;
 using Domain.Assignments;
 using Infrastructure.Assignments;
-using Moq;
+using Infrastructure.Repositories;
 using NUnit.Framework;
 
 namespace Tests.Infrastructure.Assignments;
@@ -13,11 +14,11 @@ public sealed class InMemoryAssignmentDraftWriterTests
     public async Task Handler_ShouldSaveDraftForRequestedCourseOffering()
     {
         var command = CreateCommand();
-        var access = new Mock<IAssignmentCreationAccess>();
-        access.Setup(x => x.CanCreateAsync(command.CourseOfferingId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        var teacherId = Guid.NewGuid();
+        var offerings = new InMemoryOfferingAccessReader(new[] { (teacherId, command.CourseOfferingId) });
+        var access = new AssignmentCreationAccess(new UserContext(teacherId, UserRole.Teacher), offerings);
         var writer = new InMemoryAssignmentDraftWriter();
-        var handler = new CreateAssignmentHandler(access.Object, writer);
+        var handler = new CreateAssignmentHandler(access, writer);
 
         var assignmentId = await handler.HandleAsync(command);
         var draft = writer.FindById(assignmentId);
@@ -33,6 +34,23 @@ public sealed class InMemoryAssignmentDraftWriterTests
             Assert.That(draft.Instructions, Is.EqualTo(command.Instructions));
             Assert.That(draft.Deadline, Is.EqualTo(command.Deadline));
         });
+    }
+
+    [TestCase(UserRole.Teacher, false)]
+    [TestCase(UserRole.Student, true)]
+    [TestCase(UserRole.Assistant, true)]
+    [TestCase(null, true)]
+    public void Handler_ShouldRejectCreationWithoutTeachingAccess(UserRole? role, bool assignedToOffering)
+    {
+        var command = CreateCommand();
+        var userId = Guid.NewGuid();
+        var assignedOfferingId = assignedToOffering ? command.CourseOfferingId : Guid.NewGuid();
+        var offerings = new InMemoryOfferingAccessReader(new[] { (userId, assignedOfferingId) });
+        var currentUser = role is UserRole userRole ? new UserContext(userId, userRole) : null;
+        var access = new AssignmentCreationAccess(currentUser, offerings);
+        var handler = new CreateAssignmentHandler(access, new InMemoryAssignmentDraftWriter());
+
+        Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await handler.HandleAsync(command));
     }
 
     [Test]
