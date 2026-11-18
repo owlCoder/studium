@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using Application.Access;
+using Infrastructure.Demo;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -47,8 +50,11 @@ public class DemoAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
             return Task.FromResult(AuthenticateResult.Fail("Neispravan korisnički identifikator."));
         }
 
-        var identity = new ClaimsIdentity(
-            new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) }, SchemeName);
+        var claims = new List<Claim> { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) };
+        if (userId == DemoData.ErsTeacherId)
+            claims.Add(new Claim(ClaimTypes.Role, nameof(UserRole.Teacher)));
+
+        var identity = new ClaimsIdentity(claims, SchemeName);
 
         return Task.FromResult(AuthenticateResult.Success(
             new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));
