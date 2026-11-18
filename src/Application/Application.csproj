@@ -2,4 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="../Domain/Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="15.0.0" />
+  </ItemGroup>
 </Project>
