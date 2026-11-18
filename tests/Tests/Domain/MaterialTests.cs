@@ -206,4 +206,45 @@ public sealed class MaterialTests
 
         Assert.That(material.Name, Is.EqualTo("B"));
     }
+
+    // ST-009, US-08: objava materijala (nacrt → objavljen)
+
+    [Test]
+    public void Publish_ChangesDraftToPublished()
+    {
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Naziv", null);
+
+        material.Publish();
+
+        Assert.That(material.PublicationState, Is.EqualTo(MaterialPublicationState.Published));
+    }
+
+    [Test]
+    public void Publish_AlreadyPublished_IsRejectedAndStateStaysPublished()
+    {
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Naziv", null);
+        material.Publish();
+
+        Assert.That(() => material.Publish(), Throws.TypeOf<InvalidOperationException>());
+        Assert.That(material.PublicationState, Is.EqualTo(MaterialPublicationState.Published));
+    }
+
+    [Test]
+    public void Publish_DoesNotChangeOtherFields()
+    {
+        var id = Guid.NewGuid();
+        var offeringId = Guid.NewGuid();
+        var material = new Material(id, offeringId, "Naziv", "Opis");
+
+        material.Publish();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(material.Id, Is.EqualTo(id));
+            Assert.That(material.CourseOfferingId, Is.EqualTo(offeringId));
+            Assert.That(material.Name, Is.EqualTo("Naziv"));
+            Assert.That(material.Description, Is.EqualTo("Opis"));
+            Assert.That(material.LastModifiedAt, Is.Null);
+        });
+    }
 }
