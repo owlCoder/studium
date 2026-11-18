@@ -2,8 +2,8 @@ namespace Domain.Materials;
 
 /// <summary>
 /// Nastavni materijal vezan za konkretno izvođenje predmeta (ST-009).
-/// Obuhvata naziv, opis, izvođenje i stanje objave. Prilozi, spoljne veze
-/// i prelazi stanja objave nisu deo ovog modela i dodaju se posebnim zadacima.
+/// Obuhvata naziv, opis, izvođenje i stanje objave. Prilozi i spoljne veze
+/// nisu deo ovog modela; objava (US-08) je prelaz nacrt → objavljen.
 /// </summary>
 public sealed class Material
 {
@@ -16,7 +16,7 @@ public sealed class Material
 
     public string Name { get; private set; }
     public string Description { get; private set; }
-    public MaterialPublicationState PublicationState { get; }
+    public MaterialPublicationState PublicationState { get; private set; }
 
     /// <summary>
     /// Vreme poslednje uspešne izmene naziva ili opisa (ST-009, US-02), u UTC.
@@ -57,5 +57,19 @@ public sealed class Material
         Name = name.Trim();
         Description = description?.Trim() ?? string.Empty;
         LastModifiedAt = modifiedAt.ToUniversalTime();
+    }
+
+    /// <summary>
+    /// Objava materijala (ST-009, US-08): prelaz iz nacrta u objavljen.
+    /// Objaviti se može samo nacrt; za svako drugo stanje baca se
+    /// <see cref="InvalidOperationException"/> i stanje se ne menja.
+    /// Provera prava i postojanja datoteka priloga je odgovornost slučaja upotrebe.
+    /// </summary>
+    public void Publish()
+    {
+        if (PublicationState != MaterialPublicationState.Draft)
+            throw new InvalidOperationException("Objaviti se može samo materijal u stanju nacrta.");
+
+        PublicationState = MaterialPublicationState.Published;
     }
 }
