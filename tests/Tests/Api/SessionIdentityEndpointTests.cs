@@ -40,6 +40,7 @@ public sealed class SessionIdentityEndpointTests
     [TestCase("/api/ja")]
     [TestCase("/api/student/izvodjenja")]
     [TestCase("/api/moja-izvodjenja")]
+    [TestCase("/pocetna")]
     public async Task BezSesije_Vraca401(string url)
     {
         using var client = _factory.CreateClient();
@@ -121,9 +122,12 @@ public sealed class SessionIdentityEndpointTests
         _accounts.Deactivate(userId);
         var afterDeactivation = await client.GetAsync("/api/ja");
         var homeAfterDeactivation = await client.GetAsync("/api/moja-izvodjenja");
+        var pocetnaAfterDeactivation = await client.GetAsync("/pocetna");
+
         Assert.That(beforeDeactivation.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(afterDeactivation.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
         Assert.That(homeAfterDeactivation.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        Assert.That(pocetnaAfterDeactivation.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
     [Test]
