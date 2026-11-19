@@ -1,15 +1,31 @@
+using System;
 using System.Security.Claims;
+using Api.Authentication;
 using Application.Courses;
+using Application.Interfaces;
 using Application.Materials;
+using Application.Services;
 using Infrastructure.Demo;
 using Infrastructure.Materials;
+using Infrastructure.Repositories;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Composition root: spoljašnji sloj bira implementaciju ugovora.
+builder.Services.AddControllers();
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
+builder.Services.AddSingleton<IEnrollmentRepository>(
+    _ => new EnrollmentRepository(DemoData.CreateEnrollments()));
+builder.Services.AddSingleton<IOfferingAccessReader>(_ => DemoData.CreateOfferingAccessReader());
+builder.Services.AddScoped<EnrollmentService>();
+
+
+builder.Services
+    .AddAuthentication(DemoAuthHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, DemoAuthHandler>(DemoAuthHandler.SchemeName, _ => { });
+builder.Services.AddAuthorization();
 
 // ST-009: memorijsko skladište materijala do odluke o bazi (ADR).
 builder.Services.AddSingleton<IMaterialRepository, InMemoryMaterialRepository>();
@@ -47,9 +63,12 @@ builder.Services.AddScoped<AddMaterialExternalLinkHandler>();
 var app = builder.Build();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.UseAuthentication();
+app.UseAuthorization();
 
-// Javno dostupan demonstracioni endpoint, bez autentifikacije:
-// ne predstavlja funkcionalnost ST-003 i ne koristiti ga za stvarne podatke.
+app.MapControllers();
+
+
 app.MapGet("/demo/courses", async (
     ListCoursesHandler handler,
     CancellationToken cancellationToken) =>
@@ -215,3 +234,5 @@ app.Run();
 internal sealed record CreateMaterialRequest(string? Name, string? Description);
 
 internal sealed record CreateMaterialResponse(Guid Id, string PublicationState);
+
+public partial class Program { }
