@@ -45,6 +45,19 @@ dotnet run --project src/Api
 
 Poslednje dve komande pokreću alternativne ulaze; nisu potrebne istovremeno. API ispisuje adresu u terminalu. Proveriti `GET /health` i demonstracioni `GET /demo/courses`.
 
+## KT1 scenario (ST-031 i ST-032)
+
+```bash
+dotnet run --project src/ConsoleUi -- st-031-032
+```
+
+Komanda pokreće scenario kontrolne tačke: odbijen termin koji se završava pre početka, kreiranje termina, označavanje kao Održan, spisak podobnih studenata, unos prisustva i prikaz da student bez unosa ostaje `Neevidentirano` (ne `Odsutan`), kao i odbijanje unosa na otkazan termin.
+
+### Provera oba scenarija
+
+1. `dotnet run --project src/ConsoleUi` → prva linija je `STUDIUM | Demonstracija čitanja kataloga (nije ST-003)` i ispisuje listu predmeta.
+2. `dotnet run --project src/ConsoleUi -- st-031-032` → prva linija je `STUDIUM | KT1 scenario (ST-031 + ST-032)`, a u koraku 6 Marko ima stanje `Neevidentirano`.
+
 ## Kako nastaviti
 
 1. Pročitati [specifikaciju i mapiranje zahteva](docs/requirements/README.md) i odabrati dodeljeni zahtev ST-xxx.
@@ -69,3 +82,42 @@ Poslednje dve komande pokreću alternativne ulaze; nisu potrebne istovremeno. AP
 - [ADR šablon](docs/templates/adr.md)
 
 Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslovnih zahteva; primeri u repozitorijumu služe isključivo za početnu organizaciju koda.
+
+## Pokretanje
+
+1. Kloniraj repozitorijum i otvori solution u Visual Studiju.
+2. Instaliraj .NET 8 SDK (`dotnet --list-sdks` treba da prikaže liniju koja počinje sa `8.0.`).
+3. Desni klik na projekat `ConsoleUi`, pa **Set as Startup Project**.
+4. Pokreni sa **Ctrl+F5**.
+
+Očekivani ispis polaznog demoa: naslov "STUDIUM | Demonstracija čitanja kataloga"
+i spisak predmeta (ERS, OIB). Program se završava sa kodom 0.
+
+Testovi: **Test → Run All Tests** (NUnit, projekat `Tests`).
+
+## Struktura rješenja
+
+| Projekat | Uloga |
+|---|---|
+| `Domain` | Entiteti i pravila koja važe uvijek (validacija u konstruktoru) |
+| `Application` | Servisi i interfejsi, provjera ovlašćenja |
+| `Infrastructure` | Repozitorijumi i čuvanje podataka |
+| `ConsoleUi` | Izvršni projekat, konzolni meniji |
+| `Api` | Rezervisano za API sloj |
+| `Tests` | NUnit testovi |
+
+Svaka funkcionalna cjelina ima svoj folder u Domain, Application i Infrastructure
+(npr. `Courses`). Novi kod ide u isti obrazac.
+
+## Rad u Git-u
+
+- Grane: `feature/st-XXX-opis-tim-5`, svaka osoba radi u svojoj grani.
+- Ne commit-ovati direktno u `main`; za svaku izmjenu otvara se Pull Request.
+- Prije rada: `git pull`.
+- Ne commit-ovati lozinke ni `.env` fajlove.
+
+## Tim 5: ST-004 i ST-005
+
+Akademske godine i izvođenja predmeta (ST-004), te nastavnici i saradnici na
+predmetu (ST-005).Plan, pravila i zavisnosti: [plan](docs/tim5/plan.md).
+Dijagrami: [arhitektura](docs/tim5/dijagram-arhitekture.drawio.png), [tok podataka](docs/tim5/dijagram-toka-podataka.drawio.png).
