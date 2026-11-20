@@ -20,12 +20,6 @@ public sealed class InMemoryCourseOfferingRepository : ICourseOfferingRepository
         return Task.FromResult(_offerings.FirstOrDefault(o => o.Id == id));
     }
 
-    public Task AddAsync(CourseOffering offering, CancellationToken cancellationToken = default)
-    {
-        _offerings.Add(offering);
-        return Task.CompletedTask;
-    }
-
     public Task<bool> TryAddAsync(CourseOffering offering, CancellationToken cancellationToken = default)
     {
         lock (_lock)

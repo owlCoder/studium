@@ -21,12 +21,6 @@ public sealed class InMemoryAcademicYearRepository : IAcademicYearRepository
         return Task.FromResult(_years.FirstOrDefault(y => y.Id == id));
     }
 
-    public Task AddAsync(AcademicYear year, CancellationToken cancellationToken = default)
-    {
-        _years.Add(year);
-        return Task.CompletedTask;
-    }
-
     public Task<bool> TryAddAsync(AcademicYear year, CancellationToken cancellationToken = default)
     {
         lock (_lock)
