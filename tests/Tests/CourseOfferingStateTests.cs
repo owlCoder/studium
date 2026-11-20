@@ -20,7 +20,7 @@ public class CourseOfferingStateTests
     private async Task<CourseOffering> AddOfferingAsync()
     {
         var offering = new CourseOffering(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
-        await _repository.AddAsync(offering);
+        Assert.That(await _repository.TryAddAsync(offering), Is.True);
         return offering;
     }
 
