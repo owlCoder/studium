@@ -83,6 +83,58 @@ Komanda pokreće scenario kontrolne tačke: odbijen termin koji se završava pre
 
 Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslovnih zahteva; primeri u repozitorijumu služe isključivo za početnu organizaciju koda.
 
+## ST-004: stanje i plan
+
+### Urađeno
+- Domain: AcademicYear, CourseOffering, OfferingState (validacije, stanja samo unapred)
+- Application: handleri za kreiranje akademske godine i izvođenja
+- Infrastructure: memorijski repozitorijumi; provera i upis su atomarni (TryAddAsync pod lock-om)
+- Testovi: 8 NUnit testova, uključujući test sa 20 paralelnih pokušaja
+- Dijagrami: docs/st-004-arhitektura.png, docs/st-004-dfd.png
+
+### Poslovna pravila
+- Početak godine pre kraja; oznaka godine jedinstvena (bez razlike u veličini slova)
+- Par (predmet, godina) jedinstven; deaktiviran predmet nema novo izvođenje
+- Stanja: U pripremi → Aktivno → Završeno
+
+### Ograničenja (delimična implementacija)
+- Ovo nije kompletan ST-004: nema provere uloge Administrator, Api/ConsoleUi ulaza ni trajne baze.
+- Svojstvo IsArchived postoji, ali logika arhiviranja (ST-091) nije implementirana.
+- `lock` važi samo unutar jednog procesa; trajna baza mora garantovati jedinstvenost unique ograničenjem
+  nad parom (CourseId, AcademicYearId) i nad oznakom godine.
+
+### Preostalo do KT2
+- Handler za promenu stanja i pregled izvođenja
+- Provera uloge Administrator (zavisi od ST-001/002)
+- Povezivanje sa Api/ConsoleUi
+- Više negativnih testova, ažuriranje dijagrama i README
+
+### Zavisnosti
+- ST-001/002: korisnici i uloge
+- ST-003: Course, ICourseReader
+- ST-005, ST-006: koriste CourseOffering.Id
+
+## ST-004: akademske godine (grana `feature/st-004-akademske-godine-tim-5`)
+
+Delimična in-memory/demonstraciona implementacija.
+
+**Urađeno (KT1)**
+- Application: `ListAcademicYearsHandler` (pregled i pretraga po oznaci), `UpdateAcademicYearCommand` i `UpdateAcademicYearHandler` (izmena); `IAcademicYearRepository` proširen metodama `ListAsync` i `TryUpdateAsync`
+- Infrastructure: `ListAsync` i atomarni `TryUpdateAsync` u `InMemoryAcademicYearRepository`
+- ConsoleUi: demo scenario `AcademicYearsDemo` (kreiranje, lista, pretraga, izmena i odbijeni unosi)
+- Testovi: 10 NUnit testova u `AcademicYearsHandlersTests`
+- Dijagrami: `docs/5/st004-akademske-godine-arhitektura.png`, `docs/5/st004-akademske-godine-dfd.png` (izvori u `.drawio`)
+
+**Poslovna pravila**
+- Oznaka je obavezna, bez razmaka na krajevima i jedinstvena bez razlike u veličini slova
+- Početak godine prethodi završetku
+- Izmena zadržava isti Id
+- Odbijena operacija ne menja postojeće podatke
+
+**Pokretanje demoa:** `dotnet run --project src/ConsoleUi -- st-004`
+
+**Preostalo:** provera uloge Administratora, trajno skladište, veza sa izvođenjima.
+
 ## Pokretanje
 
 1. Kloniraj repozitorijum i otvori solution u Visual Studiju.
@@ -121,3 +173,4 @@ Svaka funkcionalna cjelina ima svoj folder u Domain, Application i Infrastructur
 Akademske godine i izvođenja predmeta (ST-004), te nastavnici i saradnici na
 predmetu (ST-005).Plan, pravila i zavisnosti: [plan](docs/tim5/plan.md).
 Dijagrami: [arhitektura](docs/tim5/dijagram-arhitekture.drawio.png), [tok podataka](docs/tim5/dijagram-toka-podataka.drawio.png).
+
