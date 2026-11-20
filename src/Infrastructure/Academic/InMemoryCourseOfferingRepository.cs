@@ -34,4 +34,19 @@ public sealed class InMemoryCourseOfferingRepository : ICourseOfferingRepository
             return Task.FromResult(true);
         }
     }
+
+    public Task UpdateAsync(CourseOffering offering, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            var index = _offerings.FindIndex(o => o.Id == offering.Id);
+            if (index < 0)
+            {
+                throw new InvalidOperationException("Izvođenje ne postoji.");
+            }
+
+            _offerings[index] = offering;
+            return Task.CompletedTask;
+        }
+    }
 }

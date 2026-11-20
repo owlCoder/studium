@@ -8,4 +8,5 @@ public interface ICourseOfferingRepository
     Task<CourseOffering?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<bool> TryAddAsync(CourseOffering offering, CancellationToken cancellationToken = default);
+    Task UpdateAsync(CourseOffering offering, CancellationToken cancellationToken = default);
 }
