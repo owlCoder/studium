@@ -1,15 +1,11 @@
 using System.Text;
-using Application.Courses;
-using Infrastructure.Demo;
+using ConsoleUi.Scenarios;
 
 Console.OutputEncoding = Encoding.UTF8;
-Console.WriteLine("STUDIUM | Demonstracija čitanja kataloga (nije ST-003)");
 
-var handler = new ListCoursesHandler(DemoData.CreateCourseReader());
-var courses = await handler.HandleAsync();
-
-foreach (var course in courses)
-    Console.WriteLine($"{course.Code} — {course.Name}");
-
-Console.WriteLine("Sledeći korak: implementirati dodeljene zahteve iz specifikacije.");
-await ConsoleUi.AcademicYearsDemo.RunAsync();
+if (args.Length > 0 && args[0] == "st-031-032")
+    await St031St032Scenario.RunAsync();
+else if (args.Length > 0 && args[0] == "st-004")
+    await ConsoleUi.AcademicYearsDemo.RunAsync();
+else
+    await CatalogDemo.RunAsync();
