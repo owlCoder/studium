@@ -83,7 +83,6 @@ Komanda pokreće scenario kontrolne tačke: odbijen termin koji se završava pre
 
 Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslovnih zahteva; primeri u repozitorijumu služe isključivo za početnu organizaciju koda.
 
-feature/st-004-domen-baza-tim-5
 ## ST-004: stanje i plan
 
 ### Urađeno
@@ -174,4 +173,4 @@ Svaka funkcionalna cjelina ima svoj folder u Domain, Application i Infrastructur
 Akademske godine i izvođenja predmeta (ST-004), te nastavnici i saradnici na
 predmetu (ST-005).Plan, pravila i zavisnosti: [plan](docs/tim5/plan.md).
 Dijagrami: [arhitektura](docs/tim5/dijagram-arhitekture.drawio.png), [tok podataka](docs/tim5/dijagram-toka-podataka.drawio.png).
-main
+
