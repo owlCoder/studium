@@ -118,6 +118,6 @@ Delimična in-memory/demonstraciona implementacija.
 - Izmena zadržava isti Id
 - Odbijena operacija ne menja postojeće podatke
 
-**Pokretanje demoa:** `dotnet run --project src/ConsoleUi`
+**Pokretanje demoa:** `dotnet run --project src/ConsoleUi -- st-004`
 
 **Preostalo:** provera uloge Administratora, trajno skladište, veza sa izvođenjima.
