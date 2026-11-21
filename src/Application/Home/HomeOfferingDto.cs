@@ -7,4 +7,7 @@ public sealed record HomeOfferingDto(
     string AcademicYear,
     string? Role,
     int? OpenActivities,
-    IReadOnlyList<HomeLinkDto> Links);
+        IReadOnlyList<HomeLinkDto> Links)
+{
+    public string? RoleLabel => RoleLabels.For(Role);
+}
