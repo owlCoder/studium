@@ -8,6 +8,16 @@ namespace Tests.Application;
 [TestFixture]
 public class SubmitWorkHandlerTests
 {
+    // Pomoćna metoda: student je aktivan član predmeta.
+    // Koriste je svi testovi kojima članstvo nije ono što se proverava.
+    private static Mock<IEnrollmentChecker> ActiveMember()
+    {
+        var enrollmentChecker = new Mock<IEnrollmentChecker>();
+        enrollmentChecker.Setup(x => x.IsActiveMemberAsync(It.IsAny<Guid>(), It.IsAny<Guid>()))
+            .ReturnsAsync(true);
+        return enrollmentChecker;
+    }
+
     [Test]
     public async Task HandleAsync_SavesSubmissionWithStudentFromLogin()
     {
@@ -30,7 +40,7 @@ public class SubmitWorkHandlerTests
         var repository = new Mock<ISubmissionRepository>();
         repository.Setup(x => x.AddAsync(It.IsAny<Submission>())).Returns(Task.CompletedTask);
 
-        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, repository.Object);
+        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, ActiveMember().Object, repository.Object);
         var command = new SubmitWorkCommand(assignmentId, "Moj rad", null);
 
         var result = await handler.HandleAsync(command);
@@ -64,7 +74,7 @@ public class SubmitWorkHandlerTests
         var repository = new Mock<ISubmissionRepository>();
         repository.Setup(x => x.AddAsync(It.IsAny<Submission>())).Returns(Task.CompletedTask);
 
-        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, repository.Object);
+        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, ActiveMember().Object, repository.Object);
         var command = new SubmitWorkCommand(Guid.NewGuid(), "Moj rad", null);
 
         var result = await handler.HandleAsync(command);
@@ -90,7 +100,7 @@ public class SubmitWorkHandlerTests
 
         var repository = new Mock<ISubmissionRepository>();
 
-        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, repository.Object);
+        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, ActiveMember().Object, repository.Object);
         var command = new SubmitWorkCommand(Guid.NewGuid(), "   ", null);
 
         Assert.ThrowsAsync<ArgumentException>(
@@ -120,7 +130,7 @@ public class SubmitWorkHandlerTests
 
         var repository = new Mock<ISubmissionRepository>();
 
-        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, repository.Object);
+        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, ActiveMember().Object, repository.Object);
         var command = new SubmitWorkCommand(Guid.NewGuid(), "Moj rad", null);
 
         var result = await handler.HandleAsync(command);
@@ -151,7 +161,7 @@ public class SubmitWorkHandlerTests
 
         var repository = new Mock<ISubmissionRepository>();
 
-        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, repository.Object);
+        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, ActiveMember().Object, repository.Object);
         var command = new SubmitWorkCommand(Guid.NewGuid(), "Moj rad", null);
 
         var result = await handler.HandleAsync(command);
@@ -182,7 +192,7 @@ public class SubmitWorkHandlerTests
         var repository = new Mock<ISubmissionRepository>();
         repository.Setup(x => x.AddAsync(It.IsAny<Submission>())).Returns(Task.CompletedTask);
 
-        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, repository.Object);
+        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, ActiveMember().Object, repository.Object);
         var command = new SubmitWorkCommand(Guid.NewGuid(), "Moj rad", null);
 
         var result = await handler.HandleAsync(command);
@@ -211,7 +221,7 @@ public class SubmitWorkHandlerTests
 
         var repository = new Mock<ISubmissionRepository>();
 
-        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, repository.Object);
+        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, ActiveMember().Object, repository.Object);
         var command = new SubmitWorkCommand(Guid.NewGuid(), "Moj rad", null);
 
         var result = await handler.HandleAsync(command);
@@ -220,6 +230,44 @@ public class SubmitWorkHandlerTests
         Assert.That(result.Success, Is.False);
         Assert.That(result.ErrorCode, Is.EqualTo("DeadlinePassed"));
         Assert.That(result.Confirmation, Is.Null);
+        repository.Verify(x => x.AddAsync(It.IsAny<Submission>()), Times.Never);
+    }
+
+    [Test]
+    public async Task HandleAsync_StudentNotActiveMember_IsRejectedAndNotSaved()
+    {
+        var studentId = Guid.NewGuid();
+        var offeringId = Guid.NewGuid();
+        var now = new DateTimeOffset(2026, 11, 7, 20, 0, 0, TimeSpan.Zero);
+        var deadline = new DateTimeOffset(2026, 11, 30, 23, 59, 0, TimeSpan.Zero);
+
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(x => x.StudentId).Returns(studentId);
+
+        var clock = new Mock<IClock>();
+        clock.Setup(x => x.UtcNow).Returns(now);
+
+        var assignmentReader = new Mock<IAssignmentReader>();
+        assignmentReader.Setup(x => x.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new AssignmentInfo(offeringId, AssignmentState.Published, deadline));
+
+        // Student nije upisan na predmet ili mu je članstvo prekinuto.
+        var enrollmentChecker = new Mock<IEnrollmentChecker>();
+        enrollmentChecker.Setup(x => x.IsActiveMemberAsync(studentId, offeringId))
+            .ReturnsAsync(false);
+
+        var repository = new Mock<ISubmissionRepository>();
+
+        var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, enrollmentChecker.Object, repository.Object);
+        var command = new SubmitWorkCommand(Guid.NewGuid(), "Moj rad", null);
+
+        var result = await handler.HandleAsync(command);
+
+        Assert.That(result.Success, Is.False);
+        Assert.That(result.ErrorCode, Is.EqualTo("NotActiveMember"));
+        Assert.That(result.Confirmation, Is.Null);
+
+        // Odbijena predaja ne sme ništa da sačuva (stavka 8).
         repository.Verify(x => x.AddAsync(It.IsAny<Submission>()), Times.Never);
     }
 }
