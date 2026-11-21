@@ -66,8 +66,16 @@ public class SubmitWorkHandler
             return SubmitWorkResult.Fail("DeadlinePassed");
         }
 
-        // 6. Sve provere su prošle, pravimo predaju.
-        //    Ako je predaja prazna, Submission baca izuzetak i ništa se ne čuva.
+        // 6. Predaja mora imati tekst ili bar jedan prilog.
+        //    Prazna predaja se odbija kao i ostale greške. Ništa se ne čuva.
+        bool hasText = !string.IsNullOrWhiteSpace(command.Text);
+        bool hasAttachments = command.Attachments != null && command.Attachments.Count > 0;
+        if (!hasText && !hasAttachments)
+        {
+            return SubmitWorkResult.Fail("EmptySubmission");
+        }
+
+        // 7. Sve provere su prošle, pravimo predaju.
         var submission = new Submission(
             Guid.NewGuid(),
             command.AssignmentId,
@@ -76,7 +84,7 @@ public class SubmitWorkHandler
             command.Attachments,
             submittedAt);
 
-        // 7. Čuvamo predaju i vraćamo potvrdu studentu.
+        // 8. Čuvamo predaju i vraćamo potvrdu studentu.
         await _repository.AddAsync(submission);
 
         var confirmation = new SubmissionConfirmation(submission.Id, submission.SubmittedAt);

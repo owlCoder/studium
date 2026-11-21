@@ -85,7 +85,7 @@ public class SubmitWorkHandlerTests
     }
 
     [Test]
-    public void HandleAsync_EmptySubmission_IsNotSaved()
+    public async Task HandleAsync_EmptySubmission_IsRejectedAndNotSaved()
     {
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(x => x.StudentId).Returns(Guid.NewGuid());
@@ -103,9 +103,13 @@ public class SubmitWorkHandlerTests
         var handler = new SubmitWorkHandler(currentUser.Object, clock.Object, assignmentReader.Object, ActiveMember().Object, repository.Object);
         var command = new SubmitWorkCommand(Guid.NewGuid(), "   ", null);
 
-        Assert.ThrowsAsync<ArgumentException>(
-            async () => await handler.HandleAsync(command));
+        var result = await handler.HandleAsync(command);
 
+        Assert.That(result.Success, Is.False);
+        Assert.That(result.ErrorCode, Is.EqualTo("EmptySubmission"));
+        Assert.That(result.Confirmation, Is.Null);
+
+        // Odbijena predaja ne sme ništa da sačuva (stavka 8).
         repository.Verify(x => x.AddAsync(It.IsAny<Submission>()), Times.Never);
     }
 
