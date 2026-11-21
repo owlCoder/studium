@@ -29,7 +29,8 @@ export function toOfferingCardModel(offering) {
         id,
         title,
         yearLabel: `Akademska godina ${academicYear}`,
-        ariaLabel: `${title}, akademska godina ${academicYear}`
+        ariaLabel: `${title}, akademska godina ${academicYear}`,
+        roleLabel: optionalText(offering.roleLabel)
     };
 }
 
@@ -65,6 +66,14 @@ export function createOfferingCard(offering, doc = globalThis.document) {
     year.textContent = model.yearLabel;
 
     body.append(title, year);
+    if (model.roleLabel !== null)
+    {
+        const role = doc.createElement("p");
+        role.className = `${CARD_CLASS}__role`;
+        role.textContent = model.roleLabel;
+        body.append(role);
+        card.setAttribute("data-role", model.roleLabel);
+    }
     card.append(body);
     item.append(card);
     return item;
@@ -87,6 +96,11 @@ export function renderOfferingCards(list, offerings, doc = globalThis.document) 
     const cards = offerings.map(offering => createOfferingCard(offering, doc));
     list.replaceChildren(...cards);
     return cards.length;
+}
+
+function optionalText(value)
+{
+    return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
 function requireText(value, field) {
