@@ -56,6 +56,22 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// US-7.7: početna strana (wwwroot/index.html) i njeni statički fajlovi.
+// Stranica ne sadrži podatke; kartice dobija tek preko zaštićenog GET /pocetna.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+// US-7.7: samo u Development okruženju pravi se sesija demo studenta,
+// da se kartice mogu prikazati dok ST-002 ne uvede prijavu.
+if (app.Environment.IsDevelopment())
+{
+    var demoToken = DemoSession.StartForDemoStudent(
+        app.Services.GetRequiredService<InMemorySessionReader>(),
+        app.Services.GetRequiredService<InMemoryAccountStatusReader>());
+    app.Logger.LogInformation("Demo token sesije studenta (samo Development): {DemoToken}", demoToken);
+}
+
+
 // US-7.5: svaki zahtev prolazi proveru sesije pre endpointa.
 app.UseAuthentication();
 app.UseAuthorization();
