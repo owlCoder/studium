@@ -9,8 +9,21 @@ export class FakeElement {
     this.children = [];
     this.attributes = new Map();
     this._text = null;
+    this.hidden = false;
+    this.listeners = new Map();
   }
 
+  addEventListener(type, listener) {
+    const list = this.listeners.get(type) ?? [];
+    list.push(listener);
+    this.listeners.set(type, list);
+  }
+
+  click() {
+    for (const listener of this.listeners.get("click") ?? []) {
+      listener({ type: "click", target: this });
+    }
+  }
   setAttribute(name, value) {
     this.attributes.set(name, String(value));
   }
