@@ -103,6 +103,7 @@ body {
 }
 
 .offering-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -130,6 +131,29 @@ body {
     margin: 0;
     color: var(--muted);
     font-size: 0.9rem;
+}
+/* US-7.9: bedž sa brojem otvorenih obaveza u gornjem desnom uglu kartice. */
+.offering-card__badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    padding: 0 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* Naslov ne sme da ide ispod bedža. */
+.offering-card[data-open-activities] .offering-card__title {
+    padding-right: 2.5rem;
 }
 
 

@@ -30,8 +30,28 @@ export function toOfferingCardModel(offering) {
         title,
         yearLabel: `Akademska godina ${academicYear}`,
         ariaLabel: `${title}, akademska godina ${academicYear}`,
-        roleLabel: optionalText(offering.roleLabel)
+        roleLabel: optionalText(offering.roleLabel),
+        // US-7.9: broj otvorenih obaveza za bedž; null znači da se bedž ne prikazuje (0 ili nema broja).
+        openActivities: badgeCount(offering.openActivities)
     };
+}
+/**
+ * US-7.9: tekst bedža za čitače ekrana i tooltip, sa ispravnim oblikom reči.
+ * 1 → "1 otvorena obaveza", 2–4 → "otvorene obaveze", ostalo (i 11–14) → "otvorenih obaveza".
+ *
+ * @param {number} count broj veći od nule
+ * @returns {string}
+ */
+export function openActivitiesLabel(count) {
+    const lastTwo = count % 100;
+    const last = count % 10;
+    if (last === 1 && lastTwo !== 11) {
+        return `${count} otvorena obaveza`;
+    }
+    if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) {
+        return `${count} otvorene obaveze`;
+    }
+    return `${count} otvorenih obaveza`;
 }
 
 /**
@@ -74,10 +94,22 @@ export function createOfferingCard(offering, doc = globalThis.document) {
         body.append(role);
         card.setAttribute("data-role", model.roleLabel);
     }
+    // US-7.9: bedž sa brojem otvorenih obaveza; kada je broj 0, bedža nema.
+    if (model.openActivities !== null) {
+        const label = openActivitiesLabel(model.openActivities);
+        const badge = doc.createElement("span");
+        badge.className = `${CARD_CLASS}__badge`;
+        badge.textContent = String(model.openActivities);
+        badge.setAttribute("aria-label", label);
+        badge.setAttribute("title", label);
+        card.setAttribute("data-open-activities", String(model.openActivities));
+        card.append(badge);
+    }
     card.append(body);
     item.append(card);
     return item;
 }
+
 
 /**
  * Prikazuje kartice u listi. Postojeći sadržaj liste se zamenjuje,
@@ -98,6 +130,9 @@ export function renderOfferingCards(list, offerings, doc = globalThis.document) 
     return cards.length;
 }
 
+function badgeCount(value) {
+    return Number.isInteger(value) && value > 0 ? value : null;
+}
 function optionalText(value)
 {
     return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
