@@ -85,22 +85,6 @@ public sealed class SearchCoursesHandlerTests
     }
 
     [Test]
-    public async Task HandleAsync_ReturnsIdCodeAndName()
-    {
-        var id = Guid.NewGuid();
-        var (handler, _) = Create(new Course(id, "ERS", "Razvoj softvera"));
-
-        var result = await handler.HandleAsync("ers");
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(result[0].Id, Is.EqualTo(id));
-            Assert.That(result[0].Code, Is.EqualTo("ERS"));
-            Assert.That(result[0].Name, Is.EqualTo("Razvoj softvera"));
-        });
-    }
-
-    [Test]
     public void HandleAsync_DoesNotSwallowReaderFailure()
     {
         var reader = new Mock<ICourseReader>();
@@ -112,5 +96,32 @@ public sealed class SearchCoursesHandlerTests
         Assert.That(
             async () => await handler.HandleAsync("ers"),
             Throws.TypeOf<InvalidOperationException>());
+    }
+
+    [Test]
+    public async Task HandleAsync_ReturnsIdCodeNameDescriptionAndActivity()
+    {
+        var id = Guid.NewGuid();
+        var(handler, _) = Create(new Course(id, "ERS", "Razvoj softvera", "Opis predmeta"));
+        var result = await handler.HandleAsync("ers");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result[0].Id, Is.EqualTo(id));
+            Assert.That(result[0].Code, Is.EqualTo("ERS"));
+            Assert.That(result[0].Name, Is.EqualTo("Razvoj softvera"));
+            Assert.That(result[0].Description, Is.EqualTo("Opis predmeta"));
+            Assert.That(result[0].IsActive, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task HandleAsync_ReturnsDeactivatedCourse_MarkedAsInactive()
+    { 
+        var (handler, _) = Create(new Course(Guid.NewGuid(), "ERS", "Razvoj softvera","" ,isActive: false));
+        var result = await handler.HandleAsync("ers");
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].IsActive, Is.False);
     }
 }
