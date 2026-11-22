@@ -1,0 +1,166 @@
+/* US-7.7: početna strana i kartice izvođenja. */
+
+:root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --text: #1c2330;
+    --muted: #586070;
+    --border: #d9dde4;
+    --accent: #1f5f8b;
+    --radius: 10px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    padding: 1rem 1.5rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+    .page-header h1 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: var(--accent);
+    }
+
+.session-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+    .session-form input,
+    .session-form button {
+        min-height: 2.5rem;
+        padding: 0 0.75rem;
+        font: inherit;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+    }
+
+    .session-form button {
+        color: #ffffff;
+        background: var(--accent);
+        border-color: var(--accent);
+        cursor: pointer;
+    }
+
+.page {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.home-status {
+    margin: 0 0 1rem;
+    color: var(--muted);
+}
+
+.home {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.home-section__title {
+    margin: 0 0 1rem;
+    font-size: 1.15rem;
+}
+
+/* Mreža se sama prilagođava širini: kartica nikad nije uža od 16rem,
+   osim kada je ekran uži od toga, pa tada zauzima cijelu širinu. */
+.home-section__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.offering-card-item {
+    display: flex;
+    min-width: 0;
+}
+
+.offering-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.offering-card__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.offering-card__title {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.offering-card__year {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+/* Uzak ekran (telefon): jedna kolona, manji razmaci, formular preko cijele širine. */
+@media (max-width: 30rem) {
+    .page-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .session-form,
+    .session-form input {
+        width: 100%;
+    }
+
+        .session-form input {
+            flex: 1 1 auto;
+        }
+
+    .page {
+        padding: 1rem;
+    }
+
+    .home {
+        gap: 1.5rem;
+    }
+
+    .home-section__list {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .offering-card {
+        padding: 0.875rem 1rem;
+    }
+}

@@ -4,7 +4,7 @@
 // GET /pocetna (polje "enrolled"). Podaci se upisuju isključivo kroz textContent,
 // nikad kroz innerHTML, pa naziv predmeta ne može da ubaci HTML ili skriptu u stranicu.
 //
-// 
+//  Ostali treba da dodaju svoje elemente u tijelo kartice (.offering-card__body):
 //  treba odraditi - US-7.8 oznaku uloge, US-7.9 bedž otvorenih aktivnosti, US-7.10 veze ka sadržaju.
 
 const CARD_CLASS = "offering-card";
