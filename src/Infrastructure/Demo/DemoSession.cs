@@ -24,4 +24,32 @@ public static class DemoSession
 
         return token;
     }
+
+    /// <summary>US-7.8: sesija demo nastavnika (odgovorni nastavnik na ERS, nastavnik na OIB).</summary>
+    public static string StartForDemoTeacher(
+        InMemorySessionReader sessions,
+        InMemoryAccountStatusReader accounts)
+        => StartFor(DemoData.DemoTeacherId, sessions, accounts);
+
+    /// <summary>US-7.8: sesija demo asistentkinje (asistent na OIB, uklonjena sa ERS).</summary>
+    public static string StartForDemoAssistant(
+        InMemorySessionReader sessions,
+        InMemoryAccountStatusReader accounts)
+        => StartFor(DemoData.DemoAssistantId, sessions, accounts);
+
+    private static string StartFor(
+        Guid userId,
+        InMemorySessionReader sessions,
+        InMemoryAccountStatusReader accounts)
+    {
+        ArgumentNullException.ThrowIfNull(sessions);
+        ArgumentNullException.ThrowIfNull(accounts);
+
+        var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+
+        accounts.Activate(userId);
+        sessions.Register(token, userId);
+
+        return token;
+    }
 }

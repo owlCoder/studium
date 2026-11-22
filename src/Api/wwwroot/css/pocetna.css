@@ -132,6 +132,19 @@ body {
     font-size: 0.9rem;
 }
 
+
+/* US-7.8: oznaka uloge na kartici izvođenja u „Predajem”.*/
+.offering-card__role {
+    margin: 0.25rem 0 0;
+    padding: 0.125rem 0.625rem;
+    color: var(--accent);
+    background: #e6eff6;
+    border: 1px solid #b9d0e2;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
 /* Uzak ekran (telefon): jedna kolona, manji razmaci, formular preko cijele širine. */
 @media (max-width: 30rem) {
     .page-header {

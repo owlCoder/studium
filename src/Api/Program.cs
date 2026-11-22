@@ -69,6 +69,16 @@ if (app.Environment.IsDevelopment())
         app.Services.GetRequiredService<InMemorySessionReader>(),
         app.Services.GetRequiredService<InMemoryAccountStatusReader>());
     app.Logger.LogInformation("Demo token sesije studenta (samo Development): {DemoToken}", demoToken);
+
+
+    // US-7.8: demo nastavnik i asistentkinja, da se vidi sekcija „Predajem” sa oznakom uloge.
+    var sessions = app.Services.GetRequiredService<InMemorySessionReader>();
+    var accounts = app.Services.GetRequiredService<InMemoryAccountStatusReader>();
+    app.Logger.LogInformation("Demo token sesije nastavnika (samo Development): {DemoToken}",
+        DemoSession.StartForDemoTeacher(sessions, accounts));
+    app.Logger.LogInformation("Demo token sesije asistentkinje (samo Development): {DemoToken}",
+        DemoSession.StartForDemoAssistant(sessions, accounts));
+
 }
 
 
