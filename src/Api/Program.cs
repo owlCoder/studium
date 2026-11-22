@@ -36,6 +36,8 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<InMemoryActivityStore>();
 builder.Services.AddSingleton<IActivityReader>(sp => sp.GetRequiredService<InMemoryActivityStore>());
 builder.Services.AddSingleton<IActivitySubmissionReader>(sp => sp.GetRequiredService<InMemoryActivityStore>());
+// US-7.9: pojedinačni rokovi (ST-015); kad ST-015 uđe u main, ovde ide adapter nad njihovim IRokoviRepository.
+builder.Services.AddSingleton<IIndividualDeadlineReader>(sp => sp.GetRequiredService<InMemoryActivityStore>());
 builder.Services.AddSingleton<IOpenActivityCounter, OpenActivityCounter>();
 
 // US-7.4: servis početnog pregleda (spaja US-7.1, US-7.2 i US-7.3; veze prema US-7.6)
