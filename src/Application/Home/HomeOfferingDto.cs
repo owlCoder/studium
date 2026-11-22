@@ -10,4 +10,6 @@ public sealed record HomeOfferingDto(
         IReadOnlyList<HomeLinkDto> Links)
 {
     public string? RoleLabel => RoleLabels.For(Role);
+
+    public IReadOnlyList<OpenTaskLinkDto> OpenTasks { get; init; } = Array.Empty<OpenTaskLinkDto>();
 }
