@@ -25,6 +25,10 @@ Priloženi **demo katalog predmeta** prikazuje tok `API/ConsoleUi → Applicatio
 
 **Ograničenje:** i ovaj endpoint trenutno čita isključivo memorijske demo podatke (`DemoData.CreateCourseReader()`), bez trajne baze, autentifikacije, autorizacije, unosa/izmene/brisanja predmeta i provere jedinstvenosti. Ne tretirati ga kao završen ST-003 niti koristiti za stvarne podatke. Za integraciju potpunog ST-003 potrebni su zasebni zahtevi, validacija i testovi prema projektnoj specifikaciji.
 
+### Početna strana sa karticama predmeta (ST-007, US-7.7)
+
+`GET /` otvara početnu stranu (`src/Api/wwwroot`). Student posle unosa tokena sesije vidi kartice svojih predmeta (naziv i akademska godina) iz zaštićenog `GET /pocetna`. U Development okruženju API pri pokretanju ispisuje demo token studenta. Detalji, dijagram toka i testovi: [docs/2/us-7.7-kartice-izvodjenja.md](docs/2/us-7.7-kartice-izvodjenja.md), odluka: [ADR ST-007-01](docs/adr/st-007-01-web-prikaz-pocetne-strane.md).
+
 ## Preduslovi
 
 - .NET **8 SDK** (`dotnet --version`)
