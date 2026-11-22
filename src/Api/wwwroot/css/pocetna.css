@@ -145,6 +145,74 @@ body {
     font-weight: 600;
 }
 
+.home-status[data-state] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.home-status[hidden] {
+    display: none;
+}
+
+.home-status[data-state="loading"]::before {
+    content: "";
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: home-status-spin 0.8s linear infinite;
+}
+
+.home-status[data-state="empty"] {
+    color: var(--text);
+}
+
+.home-status[data-state="error"] {
+    color: #8a1c1c;
+    background: #fdf1f1;
+    border-color: #e6b8b8;
+}
+
+.home-status__text {
+    flex: 1 1 12rem;
+}
+
+.home-status__retry {
+    min-height: 2.5rem;
+    padding: 0 0.75rem;
+    font: inherit;
+    color: #ffffff;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.home-updated {
+    margin: 0 0 1rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+@keyframes home-status-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-status[data-state="loading"]::before {
+        animation: none;
+    }
+}
+
 /* Uzak ekran (telefon): jedna kolona, manji razmaci, formular preko cijele širine. */
 @media (max-width: 30rem) {
     .page-header {

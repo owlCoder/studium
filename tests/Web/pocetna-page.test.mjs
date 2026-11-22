@@ -99,3 +99,23 @@ test("svaka klasa kartice i sekcije ima stil", () => {
         assert.ok(ruleBody(css, `.${className}`), `nema stila za .${className}`);
     }
 });
+
+
+test("stranica ima element za vreme poslednjeg učitavanja", () => {
+    assert.match(html, /<p\s+id="home-updated"[^>]*hidden[^>]*><\/p>/);
+    assert.match(html, /<p\s+id="home-status"[^>]*aria-live="polite"/);
+});
+
+test("svako stanje i dugme za ponovni pokušaj imaju stil, a skrivena poruka se ne vidi", () => {
+    for (const selector of [
+        '.home-status[data-state="loading"]::before',
+        '.home-status[data-state="empty"]',
+        '.home-status[data-state="error"]',
+        ".home-status[hidden]",
+        ".home-status__retry",
+        ".home-updated"
+    ]) {
+        assert.ok(ruleBody(css, selector), `nema stila za ${selector}`);
+    }
+    assert.match(compact(ruleBody(css, ".home-status[hidden]")), /display: none;/);
+});
