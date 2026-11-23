@@ -134,6 +134,50 @@ public sealed class OwnSubmissionApiTests
         }
     }
 
+    [TestCase(HttpStatusCode.BadRequest, "API je odbio zahtev za pregled predaje.")]
+    [TestCase(HttpStatusCode.Unauthorized, "Demo prijava nije prihvaćena.")]
+    [TestCase(HttpStatusCode.InternalServerError, "API je vratio HTTP 500.")]
+    public async Task Console_ExplainsApiError(HttpStatusCode status, string message)
+    {
+        var output = await RunConsoleAsync(() => new HttpResponseMessage(status));
+        Assert.That(output, Does.Contain(message));
+    }
+
+    [Test]
+    public async Task Console_ExplainsUnavailableApi()
+    {
+        var output = await RunConsoleAsync(() => throw new HttpRequestException());
+        Assert.That(output, Does.Contain("Veza sa API-jem nije uspela."));
+    }
+
+    private static async Task<string> RunConsoleAsync(Func<HttpResponseMessage> respond)
+    {
+        using var client = new HttpClient(new StubHttpHandler(respond))
+        {
+            BaseAddress = new Uri("http://localhost")
+        };
+        using var input = new StringReader(SubmissionDemoData.AssignmentId.ToString());
+        using var output = new StringWriter();
+        await ViewOwnSubmissionScenario.RunAsync(client, input, output);
+        return output.ToString();
+    }
+
+    private sealed class StubHttpHandler : HttpMessageHandler
+    {
+        private readonly Func<HttpResponseMessage> _respond;
+
+        public StubHttpHandler(Func<HttpResponseMessage> respond)
+        {
+            _respond = respond;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_respond());
+        }
+    }
+
     private static void LoginAs(HttpClient client, Guid studentId)
     {
         client.DefaultRequestHeaders.Add(DemoAuthHandler.UserHeader, studentId.ToString());
