@@ -31,7 +31,7 @@ builder.Services.AddScoped<ListStudentOfferingsHandler>();
 builder.Services.AddSingleton<IStaffOfferingsReader>(_ => DemoData.CreateStaffOfferingsReader());
 builder.Services.AddScoped<ListMyOfferingsHandler>();
 
-// US-7.3: pravo pravilo otvorene aktivnosti (Svetislav)
+// US-7.3: pravo pravilo otvorene aktivnosti 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<InMemoryActivityStore>();
 builder.Services.AddSingleton<IActivityReader>(sp => sp.GetRequiredService<InMemoryActivityStore>());
@@ -42,6 +42,10 @@ builder.Services.AddSingleton<IOpenActivityCounter, OpenActivityCounter>();
 
 // US-7.4: servis početnog pregleda (spaja US-7.1, US-7.2 i US-7.3; veze prema US-7.6)
 builder.Services.AddScoped<GetHomeOverviewHandler>();
+
+// US-7.10: veze ka svakom otvorenom zadatku i provera ovlašćenja pri otvaranju veze
+builder.Services.AddSingleton<IOpenTaskLinkReader, OpenTaskLinkReader>();
+builder.Services.AddScoped<CheckContentAccessHandler>();
 
 // US-7.5: identitet iz sesije. Privremeni memorijski adapteri dok se ne integrišu ST-001 i ST-002;
 // tada se samo ove dve registracije porta preusmere na njihove evidencije.
@@ -80,6 +84,11 @@ if (app.Environment.IsDevelopment())
         DemoSession.StartForDemoTeacher(sessions, accounts));
     app.Logger.LogInformation("Demo token sesije asistentkinje (samo Development): {DemoToken}",
         DemoSession.StartForDemoAssistant(sessions, accounts));
+
+    // US-7.10: demo zadaci na ERS (jedan objavljen, jedan nacrt), da se vide veze ka zadacima.
+    DemoActivities.Seed(
+        app.Services.GetRequiredService<InMemoryActivityStore>(),
+        app.Services.GetRequiredService<TimeProvider>());
 
 }
 
@@ -156,6 +165,40 @@ app.MapGet("/pocetna", async (
 
     var overview = await handler.HandleAsync(userId, cancellationToken);
     return Results.Ok(overview);
+}).RequireAuthorization();
+
+// US-7.10: otvaranje veze ka izvođenju. Ovlašćenje se proverava pri svakom otvaranju,
+// ne samo pri prikazu veze: tuđe izvođenje daje 404, bez otkrivanja da postoji.
+app.MapGet("/offerings/{offeringId:guid}", async (
+    Guid offeringId,
+    ClaimsPrincipal user,
+    CheckContentAccessHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    if (!user.TryGetSessionUserId(out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var offering = await handler.ForOfferingAsync(userId, offeringId, cancellationToken);
+    return offering is null ? Results.NotFound() : Results.Ok(offering);
+}).RequireAuthorization();
+
+// US-7.10: otvaranje veze ka zadatku. Nacrt i zadatak tuđeg izvođenja daju 404 za studenta.
+app.MapGet("/offerings/{offeringId:guid}/assignments/{activityId:guid}", async (
+    Guid offeringId,
+    Guid activityId,
+    ClaimsPrincipal user,
+    CheckContentAccessHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    if (!user.TryGetSessionUserId(out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var assignment = await handler.ForAssignmentAsync(userId, offeringId, activityId, cancellationToken);
+    return assignment is null ? Results.NotFound() : Results.Ok(assignment);
 }).RequireAuthorization();
 
 // US-7.5: vraća ID prijavljenog korisnika, uzet isključivo iz sesije.
