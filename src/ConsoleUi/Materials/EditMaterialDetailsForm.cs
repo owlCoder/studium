@@ -7,7 +7,8 @@ namespace ConsoleUi.Materials;
 /// Konzolna forma za izmenu naziva i opisa materijala (ST-009, US-02).
 /// Prikazuje postojeće podatke; prazan unos (Enter) zadržava postojeću vrednost,
 /// a <see cref="ClearDescriptionMarker"/> briše opis.
-/// Ovo je prezentacija, ne bezbednosna kontrola: provera nastavnika (ST-005) nije uključena.
+/// Ovo je prezentacija, ne bezbednosna kontrola: pravo izmene (nastavno osoblje izvođenja,
+/// ST-005) proverava <see cref="UpdateMaterialDetailsHandler"/>.
 /// </summary>
 public sealed class EditMaterialDetailsForm
 {
@@ -38,7 +39,10 @@ public sealed class EditMaterialDetailsForm
     /// <summary>
     /// Vraća <c>true</c> samo ako je izmena sačuvana.
     /// </summary>
-    public async Task<bool> RunAsync(Guid materialId, CancellationToken cancellationToken = default)
+    public async Task<bool> RunAsync(
+        Guid requestingUserId,
+        Guid materialId,
+        CancellationToken cancellationToken = default)
     {
         var material = await _repository.GetByIdAsync(materialId, cancellationToken);
         if (material is null)
@@ -74,8 +78,13 @@ public sealed class EditMaterialDetailsForm
         try
         {
             updated = await _handler.HandleAsync(
-                new UpdateMaterialDetailsCommand(materialId, newName, newDescription),
+                new UpdateMaterialDetailsCommand(requestingUserId, materialId, newName, newDescription),
                 cancellationToken);
+        }
+        catch (MaterialAccessDeniedException ex)
+        {
+            _output.WriteLine($"Izmena nije sačuvana: {ex.Message}");
+            return false;
         }
         catch (ArgumentException ex)
         {
