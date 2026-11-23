@@ -1,5 +1,6 @@
 import { fetchHomeOverview } from "./home-api.js";
 import { createHomePage } from "./home-page.js";
+import { attachContentLinks } from "./offering-links.js";
 
 const TOKEN_KEY = "studium.sessionToken";
 
@@ -14,6 +15,16 @@ const homePage = createHomePage({
     tokenStore: {
         get: () => sessionStorage.getItem(TOKEN_KEY),
         clear: () => sessionStorage.removeItem(TOKEN_KEY)
+    }
+});
+
+attachContentLinks({
+    container: document.getElementById("pocetna"),
+    output: document.getElementById("content-result"),
+    getToken: () => sessionStorage.getItem(TOKEN_KEY),
+    onUnauthorized: () => {
+        sessionStorage.removeItem(TOKEN_KEY);
+        homePage.load();
     }
 });
 

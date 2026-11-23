@@ -5,7 +5,8 @@
 // nikad kroz innerHTML, pa naziv predmeta ne može da ubaci HTML ili skriptu u stranicu.
 //
 //  Ostali treba da dodaju svoje elemente u tijelo kartice (.offering-card__body):
-//  treba odraditi - US-7.8 oznaku uloge, US-7.9 bedž otvorenih aktivnosti, US-7.10 veze ka sadržaju.
+//  US-7.8 oznaka uloge, US-7.9 bedž otvorenih aktivnosti i US-7.10 veze ka sadržaju su urađeni.
+import { createOfferingLinks } from "./offering-links.js";
 
 const CARD_CLASS = "offering-card";
 
@@ -94,6 +95,13 @@ export function createOfferingCard(offering, doc = globalThis.document) {
         body.append(role);
         card.setAttribute("data-role", model.roleLabel);
     }
+
+        // US-7.10: veze ka stranici izvođenja i ka svakom otvorenom zadatku.
+    const links = createOfferingLinks(offering, doc);
+    if (links !== null) {
+        body.append(links);
+    }
+
     // US-7.9: bedž sa brojem otvorenih obaveza; kada je broj 0, bedža nema.
     if (model.openActivities !== null) {
         const label = openActivitiesLabel(model.openActivities);
