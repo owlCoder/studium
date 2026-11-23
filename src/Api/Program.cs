@@ -1,6 +1,6 @@
 using System;
-using System.Security.Claims;
 using Api.Authentication;
+using Api.Materials;
 using Application.Courses;
 using Application.Interfaces;
 using Application.Materials;
@@ -86,153 +86,9 @@ app.MapGet("/courses", async (
     return Results.Ok(courses);
 });
 
-// ST-009: kreiranje materijala kao nacrta na konkretnom izvođenju.
-// Redosled: 401 bez identiteta -> 403 ako korisnik nije nastavno osoblje
-// izvođenja (ST-005) -> 400 za neispravne podatke -> 201.
-// Identitet se čita iz ClaimsPrincipal (NameIdentifier); dok ST-002 ne doda
-// autentifikaciju, svaki zahtev dobija 401.
-app.MapPost("/offerings/{offeringId:guid}/materials", async (
-    Guid offeringId,
-    CreateMaterialRequest request,
-    HttpContext httpContext,
-    CreateMaterialHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    if (!Guid.TryParse(userIdClaim, out var userId) || userId == Guid.Empty)
-    {
-        return Results.Unauthorized();
-    }
-
-    try
-    {
-        var id = await handler.HandleAsync(
-            new CreateMaterialCommand(userId, offeringId, request.Name ?? string.Empty, request.Description),
-            cancellationToken);
-
-        return Results.Created(
-            $"/offerings/{offeringId}/materials/{id}",
-            new CreateMaterialResponse(id, "Draft"));
-    }
-    catch (MaterialAccessDeniedException ex)
-    {
-        // Results.Forbid() zahteva registrovanu autentifikaciju koje još nema.
-        return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status403Forbidden);
-    }
-    catch (ArgumentException ex)
-    {
-        var message = ex.ParamName is null
-            ? ex.Message
-            : ex.Message.Replace($" (Parameter '{ex.ParamName}')", string.Empty);
-
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            [ex.ParamName ?? "request"] = [message]
-        });
-    }
-});
-
-// ST-009 (US-04): otpremanje jedne ili više datoteka u materijal (multipart/form-data).
-// Redosled: 401 bez identiteta -> 404 ako materijal ne postoji -> 403 ako korisnik nije
-// nastavno osoblje izvođenja materijala (ST-005) -> 400 za neispravne ili odbijene
-// datoteke (US-05; tada se ne čuva nijedna) -> rezultat po datoteci (US-06):
-// 201 ako su sve datoteke sačuvane, 200 ako bar jedna nije (telo kaže koja).
-// Dok ST-002 ne doda autentifikaciju, svaki zahtev dobija 401.
-// Antiforgery je isključen jer način autentifikacije (ST-002) još nije izabran;
-// ako se izabere autentifikacija kolačićem, zaštitu treba uključiti.
-app.MapPost("/materials/{materialId:guid}/attachments", async (
-    Guid materialId,
-    IFormFileCollection files,
-    HttpContext httpContext,
-    UploadMaterialAttachmentsHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    if (!Guid.TryParse(userIdClaim, out var userId) || userId == Guid.Empty)
-    {
-        return Results.Unauthorized();
-    }
-
-    var uploaded = files
-        .Select(f => new UploadedFile(f.FileName, f.ContentType, f.Length, f.OpenReadStream))
-        .ToArray();
-
-    try
-    {
-        var results = await handler.HandleAsync(
-            new UploadMaterialAttachmentsCommand(userId, materialId, uploaded),
-            cancellationToken);
-
-        if (results is null)
-            return Results.NotFound();
-
-        // US-06: telo uvek sadrži rezultat po datoteci (sačuvano / nije sačuvano).
-        return results.All(r => r.Saved)
-            ? Results.Created((string?)null, results)
-            : Results.Ok(results);
-    }
-    catch (MaterialAccessDeniedException ex)
-    {
-        return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status403Forbidden);
-    }
-    catch (AttachmentRejectedException ex)
-    {
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["files"] = [ex.Message]
-        });
-    }
-    catch (ArgumentException ex)
-    {
-        var message = ex.ParamName is null
-            ? ex.Message
-            : ex.Message.Replace($" (Parameter '{ex.ParamName}')", string.Empty);
-
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["files"] = [message]
-        });
-    }
-}).DisableAntiforgery();
-
-// ST-009 (US-07): uklanjanje jednog priloga iz materijala.
-// Redosled: 401 bez identiteta -> 404 ako materijal ne postoji -> 403 ako korisnik nije
-// nastavno osoblje izvođenja materijala (ST-005) -> 404 ako prilog ne postoji ili pripada
-// drugom materijalu -> 204 kada je prilog uklonjen.
-// Dok ST-002 ne doda autentifikaciju, svaki zahtev dobija 401.
-app.MapDelete("/materials/{materialId:guid}/attachments/{attachmentId:guid}", async (
-    Guid materialId,
-    Guid attachmentId,
-    HttpContext httpContext,
-    RemoveMaterialAttachmentHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    if (!Guid.TryParse(userIdClaim, out var userId) || userId == Guid.Empty)
-    {
-        return Results.Unauthorized();
-    }
-
-    try
-    {
-        var outcome = await handler.HandleAsync(
-            new RemoveMaterialAttachmentCommand(userId, materialId, attachmentId),
-            cancellationToken);
-
-        return outcome == RemoveMaterialAttachmentOutcome.Removed
-            ? Results.NoContent()
-            : Results.NotFound();
-    }
-    catch (MaterialAccessDeniedException ex)
-    {
-        return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status403Forbidden);
-    }
-});
+// ST-009: endpointi za nastavne materijale i priloge (src/Api/Materials/MaterialEndpoints.cs).
+app.MapMaterialEndpoints();
 
 app.Run();
-
-internal sealed record CreateMaterialRequest(string? Name, string? Description);
-
-internal sealed record CreateMaterialResponse(Guid Id, string PublicationState);
 
 public partial class Program { }
