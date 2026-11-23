@@ -6,6 +6,8 @@ using Application.Services;
 using Infrastructure.Demo;
 using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication;
+using Application.Submissions;
+using Infrastructure.Submissions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +25,10 @@ builder.Services
     .AddAuthentication(DemoAuthHandler.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, DemoAuthHandler>(DemoAuthHandler.SchemeName, _ => { });
 builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<ISubmissionRepository, InMemorySubmissionRepository>();
+builder.Services.AddScoped<ICurrentUser, HttpCurrentStudent>();
+builder.Services.AddScoped<GetOwnSubmissionHandler>();
 
 var app = builder.Build();
 
@@ -49,6 +55,13 @@ app.MapGet("/courses", async (
     var courses = await handler.HandleAsync(query, cancellationToken);
     return Results.Ok(courses);
 });
+
+if (DemoAuthHandler.IsAllowedEnvironment(app.Environment) &&
+    app.Configuration.GetValue<bool>("DemoSubmissions"))
+{
+    await app.Services.GetRequiredService<ISubmissionRepository>()
+        .AddAsync(SubmissionDemoData.CreateSubmission());
+}
 
 app.Run();
 
