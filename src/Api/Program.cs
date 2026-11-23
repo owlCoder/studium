@@ -1,10 +1,12 @@
 using System;
 using System.Security.Claims;
 using Api.Authentication;
+using Application.Access;
 using Application.Courses;
 using Application.Interfaces;
 using Application.Materials;
 using Application.Services;
+using Infrastructure.Access;
 using Infrastructure.Demo;
 using Infrastructure.Materials;
 using Infrastructure.Repositories;
@@ -54,6 +56,13 @@ builder.Services.AddSingleton<IMaterialAttachmentRepository, InMemoryMaterialAtt
 builder.Services.AddScoped<AttachFileToMaterialHandler>();
 builder.Services.AddScoped<UploadMaterialAttachmentsHandler>();
 builder.Services.AddScoped<RemoveMaterialAttachmentHandler>();
+
+// ST-009 (zaštita pristupa, tačka 1): preuzimanje priloga uz proveru članstva.
+// Članstva studenata (ST-006) još nisu povezana sa ovim portom: privremeni adapter
+// bez zapisa odbija sve studente (403), isto kao privremena provera osoblja.
+builder.Services.AddSingleton<IMembershipReader>(
+    _ => new InMemoryMembershipReader(Array.Empty<OfferingMembership>()));
+builder.Services.AddScoped<DownloadMaterialAttachmentHandler>();
 
 // ST-009 (US-03): memorijsko skladište spoljnih veza materijala do odluke o bazi (ADR-0003).
 // HTTP endpoint za dodavanje veze još nije dodat.
@@ -222,6 +231,45 @@ app.MapDelete("/materials/{materialId:guid}/attachments/{attachmentId:guid}", as
         return outcome == RemoveMaterialAttachmentOutcome.Removed
             ? Results.NoContent()
             : Results.NotFound();
+    }
+    catch (MaterialAccessDeniedException ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status403Forbidden);
+    }
+});
+
+// ST-009 (zaštita pristupa, tačka 1): preuzimanje jednog priloga.
+// Prilog nasleđuje pravo materijala: preuzima ga samo nastavno osoblje (ST-005) ili
+// aktivan student (ST-006) izvođenja materijala; provera se radi pri svakom zahtevu.
+// Redosled: 401 bez identiteta -> 404 ako materijal ne postoji -> 403 bez prava ->
+// 404 ako prilog ne postoji, pripada drugom materijalu ili mu nedostaje sadržaj -> 200.
+app.MapGet("/materials/{materialId:guid}/attachments/{attachmentId:guid}", async (
+    Guid materialId,
+    Guid attachmentId,
+    HttpContext httpContext,
+    DownloadMaterialAttachmentHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (!Guid.TryParse(userIdClaim, out var userId) || userId == Guid.Empty)
+    {
+        return Results.Unauthorized();
+    }
+
+    try
+    {
+        var result = await handler.HandleAsync(
+            new DownloadMaterialAttachmentCommand(userId, materialId, attachmentId),
+            cancellationToken);
+
+        if (result.Outcome != DownloadMaterialAttachmentOutcome.Found)
+            return Results.NotFound();
+
+        // Results.File zatvara tok po slanju odgovora.
+        return Results.File(
+            result.Content!,
+            result.Attachment!.ContentType,
+            result.Attachment.OriginalFileName);
     }
     catch (MaterialAccessDeniedException ex)
     {
