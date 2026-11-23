@@ -13,6 +13,11 @@ using Microsoft.AspNetCore.Authentication;
 using Application.Activities;
 using Application.Home;
 using Infrastructure.Activities;
+// Iz main (ST-006 i drugi timovi)
+using Api.Authentication;
+using Application.Interfaces;
+using Application.Services;
+using Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +25,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
+
+// Iz main (ST-006): upisi i pristup izvođenju preko kontrolera.
+builder.Services.AddControllers();
+builder.Services.AddSingleton<IEnrollmentRepository>(
+    _ => new EnrollmentRepository(DemoData.CreateEnrollments()));
+builder.Services.AddSingleton<IOfferingAccessReader>(_ => DemoData.CreateOfferingAccessReader());
+builder.Services.AddScoped<EnrollmentService>();
+
 // US-7.6: registar podržanih funkcija (ST-007)
 builder.Services.AddSingleton<FeatureRegistry>(_ => SupportedFeatures.CreateRegistry());
 builder.Services.AddScoped<FilterSupportedActivitiesHandler>();
@@ -54,11 +67,37 @@ builder.Services.AddSingleton<ISessionReader>(sp => sp.GetRequiredService<InMemo
 builder.Services.AddSingleton<InMemoryAccountStatusReader>();
 builder.Services.AddSingleton<IAccountStatusReader>(sp => sp.GetRequiredService<InMemoryAccountStatusReader>());
 builder.Services.AddScoped<ResolveSessionUserHandler>();
+
+// Integracija ST-007 i main: u aplikaciji postoje dve prijave.
+//  - StudiumSession (US-7.5): token sesije u zaglavlju "Authorization: Bearer ...";
+//  - Demo (main, drugi tim): zaglavlje X-Demo-UserId, samo u Development/KT1.
+// Podrazumevana šema samo prosleđuje zahtev: sa Bearer tokenom ide na sesiju, inače na Demo.
+// Tako [Authorize] kontroleri drugog tima rade kao i pre, a ST-007 endpointi traže
+// politiku "StudiumSessionOnly", pa za njih važi SAMO sesija (ID se nikad ne uzima iz zahteva).
+const string DefaultScheme = "StudiumOrDemo";
+const string SessionOnlyPolicy = "StudiumSessionOnly";
+
 builder.Services
-    .AddAuthentication(SessionAuthenticationHandler.SchemeName)
+    .AddAuthentication(DefaultScheme)
+    .AddPolicyScheme(DefaultScheme, DefaultScheme, options =>
+    {
+        options.ForwardDefaultSelector = context =>
+            context.Request.Headers.Authorization.ToString()
+                .StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                ? SessionAuthenticationHandler.SchemeName
+                : DemoAuthHandler.SchemeName;
+    })
     .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(
-        SessionAuthenticationHandler.SchemeName, _ => { });
-builder.Services.AddAuthorization();
+        SessionAuthenticationHandler.SchemeName, _ => { })
+    .AddScheme<AuthenticationSchemeOptions, DemoAuthHandler>(
+        DemoAuthHandler.SchemeName, _ => { });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(SessionOnlyPolicy, policy => policy
+        .AddAuthenticationSchemes(SessionAuthenticationHandler.SchemeName)
+        .RequireAuthenticatedUser());
+});
 
 var app = builder.Build();
 
@@ -99,6 +138,9 @@ app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
+// Iz main (ST-006): kontroleri, npr. EnrollmentsController ([Authorize], prijava preko Demo šeme).
+app.MapControllers();
+
 // Javno dostupan demonstracioni endpoint, bez autentifikacije:
 // ne predstavlja funkcionalnost ST-003 i ne koristiti ga za stvarne podatke.
 app.MapGet("/demo/courses", async (
@@ -133,7 +175,7 @@ app.MapGet("/api/student/izvodjenja", async (
 
     var offerings = await handler.HandleAsync(studentId, cancellationToken);
     return Results.Ok(offerings);
-}).RequireAuthorization();
+}).RequireAuthorization(SessionOnlyPolicy);
 
 // US-7.2: obe liste prijavljenog korisnika („Predajem” i „Upisan sam”), bez duplikata.
 app.MapGet("/api/moja-izvodjenja", async (
@@ -149,7 +191,7 @@ app.MapGet("/api/moja-izvodjenja", async (
 
     var offerings = await handler.HandleAsync(userId, cancellationToken);
     return Results.Ok(offerings);
-}).RequireAuthorization();
+}).RequireAuthorization(SessionOnlyPolicy);
 
 // US-7.4: ceo početni pregled u jednom JSON odgovoru.
 // Identitet samo iz sesije (US-7.5), nikad iz zahteva; bez važeće sesije 401.
@@ -168,7 +210,7 @@ app.MapGet("/pocetna", async (
 
     var overview = await handler.HandleAsync(userId, cancellationToken);
     return Results.Ok(overview);
-}).RequireAuthorization();
+}).RequireAuthorization(SessionOnlyPolicy);
 
 // US-7.10: otvaranje veze ka izvođenju. Ovlašćenje se proverava pri svakom otvaranju,
 // ne samo pri prikazu veze: tuđe izvođenje daje 404, bez otkrivanja da postoji.
@@ -185,7 +227,7 @@ app.MapGet("/offerings/{offeringId:guid}", async (
 
     var offering = await handler.ForOfferingAsync(userId, offeringId, cancellationToken);
     return offering is null ? Results.NotFound() : Results.Ok(offering);
-}).RequireAuthorization();
+}).RequireAuthorization(SessionOnlyPolicy);
 
 // US-7.10: otvaranje veze ka delu predmeta (zadaci, materijali, obaveštenja).
 // Samo deo koji registar (US-7.6) označava kao dostupan, i samo za korisnika sa pristupom izvođenju.
@@ -203,7 +245,7 @@ app.MapGet("/offerings/{offeringId:guid}/{area:alpha}", async (
 
     var content = await handler.ForAreaAsync(userId, offeringId, area, cancellationToken);
     return content is null ? Results.NotFound() : Results.Ok(content);
-}).RequireAuthorization();
+}).RequireAuthorization(SessionOnlyPolicy);
 
 // US-7.10: otvaranje veze ka zadatku. Nacrt i zadatak tuđeg izvođenja daju 404 za studenta.
 app.MapGet("/offerings/{offeringId:guid}/assignments/{activityId:guid}", async (
@@ -220,14 +262,14 @@ app.MapGet("/offerings/{offeringId:guid}/assignments/{activityId:guid}", async (
 
     var assignment = await handler.ForAssignmentAsync(userId, offeringId, activityId, cancellationToken);
     return assignment is null ? Results.NotFound() : Results.Ok(assignment);
-}).RequireAuthorization();
+}).RequireAuthorization(SessionOnlyPolicy);
 
 // US-7.5: vraća ID prijavljenog korisnika, uzet isključivo iz sesije.
 app.MapGet("/api/ja", (ClaimsPrincipal user) =>
         user.TryGetSessionUserId(out var userId)
             ? Results.Ok(new { userId })
             : Results.Unauthorized())
-    .RequireAuthorization();
+    .RequireAuthorization(SessionOnlyPolicy);
 
 // US-7.6: lista podržanih vrsta aktivnosti i funkcionalnih oblasti
 app.MapGet("/features", (FeatureRegistry registry) => Results.Ok(new

@@ -1,29 +1,79 @@
 using Application.Courses;
+using Application.Engagements;
 using Application.Enrollments;
+using Application.Interfaces;
 using Domain.Courses;
 using Domain.Enrollments;
 using Domain.Offerings;
-using Infrastructure.Courses;
-using Infrastructure.Enrollments;
-using Application.Engagements;
 using Domain.Staff;
+using Infrastructure.Courses;
 using Infrastructure.Engagements;
+using Infrastructure.Enrollments;
+using Infrastructure.Repositories;
+// Integracija ST-007 i main: Enrollment postoji i u Domain.Entities (ovde) i u Domain.Enrollments (ST-006),
+// pa se ovim alijasom jasno bira onaj koji koristi CreateEnrollments.
+using Enrollment = Domain.Entities.Enrollment;
 
 namespace Infrastructure.Demo;
 
 public static class DemoData
 {
+    public static readonly Guid ErsId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    public static readonly Guid OibId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+
+    public static readonly Guid ErsTeacherId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+
     public static ICourseReader CreateCourseReader()
     {
         return new InMemoryCourseReader(new[]
         {
-            new Course(Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                "ERS", "Elementi razvoja softvera"),
-            new Course(Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                "OIB", "Osnove informacione bezbednosti")
+            new Course(ErsId, "ERS", "Elementi razvoja softvera"),
+            new Course(OibId, "OIB", "Osnove informacione bezbednosti")
         });
     }
 
+    public static IOfferingAccessReader CreateOfferingAccessReader()
+    {
+        return new InMemoryOfferingAccessReader(new[]
+        {
+            (ErsTeacherId, ErsId)
+        });
+    }
+
+    public static IEnumerable<Enrollment> CreateEnrollments()
+    {
+        var prekinut = new Enrollment
+        {
+            OfferingId = ErsId,
+            StudentId = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000003")
+        };
+        prekinut.Terminate();
+
+        return new List<Enrollment>
+        {
+            new Enrollment
+            {
+                Id = Guid.Parse("eeeeeeee-0000-0000-0000-000000000001"),
+                OfferingId = ErsId,
+                StudentId = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001")
+            },
+            new Enrollment
+            {
+                Id = Guid.Parse("eeeeeeee-0000-0000-0000-000000000002"),
+                OfferingId = ErsId,
+                StudentId = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000002")
+            },
+            new Enrollment
+            {
+                Id = Guid.Parse("eeeeeeee-0000-0000-0000-000000000003"),
+                OfferingId = OibId,
+                StudentId = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001")
+            },
+            prekinut
+        };
+    }
+
+    // ---------------- ST-007 (US-7.1, US-7.2) ----------------
 
     public static readonly Guid DemoStudentId = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001");
 
@@ -59,7 +109,7 @@ public static class DemoData
 
     public static IStaffOfferingsReader CreateStaffOfferingsReader()
     {
-        
+
         var ers = new Course(Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "ERS", "Elementi razvoja softvera");
         var oib = new Course(Guid.Parse("22222222-2222-2222-2222-222222222222"),
@@ -68,7 +118,7 @@ public static class DemoData
         var ersOffering = new Offering(Guid.Parse("33333333-0000-0000-0000-000000000001"), ers.Id, "2026/27");
         var oibOffering = new Offering(Guid.Parse("33333333-0000-0000-0000-000000000002"), oib.Id, "2026/27");
 
-        
+
         var removedFromErs = new TeachingAssignment(Guid.Parse("55555555-0000-0000-0000-000000000004"),
             ersOffering.Id, DemoAssistantId, Responsibility.Assistant);
         removedFromErs.Remove(DemoTeacherId, new DateTime(2026, 10, 1, 8, 0, 0, DateTimeKind.Utc));
@@ -87,5 +137,4 @@ public static class DemoData
                 removedFromErs
             });
     }
-
 }
