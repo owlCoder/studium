@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="sr-Latn">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>STUDIUM | Početna</title>
+    <link rel="stylesheet" href="css/pocetna.css">
+</head>
+<body>
+    <header class="page-header">
+        <h1>STUDIUM</h1>
+        <form id="session-form" class="session-form" autocomplete="off">
+            <label for="session-token">Token sesije</label>
+            <input id="session-token" name="session-token" type="password" required>
+            <button type="submit">Prijava</button>
+        </form>
+    </header>
+
+    <main class="page">
+        <p id="home-status" class="home-status" role="status" aria-live="polite" hidden></p>
+        <p id="home-updated" class="home-updated" hidden></p>
+        <p id="content-result" class="content-result" role="status" aria-live="polite" hidden></p>
+        <!-- Sekcije sa karticama izvodjenja -->
+        <div id="pocetna" class="home"></div>
+    </main>
+
+    <script type="module" src="js/pocetna.js"></script>
+</body>
+</html>

@@ -25,6 +25,22 @@ Priloženi **demo katalog predmeta** prikazuje tok `API/ConsoleUi → Applicatio
 
 **Ograničenje:** i ovaj endpoint trenutno čita isključivo memorijske demo podatke (`DemoData.CreateCourseReader()`), bez trajne baze, autentifikacije, autorizacije, unosa/izmene/brisanja predmeta i provere jedinstvenosti. Ne tretirati ga kao završen ST-003 niti koristiti za stvarne podatke. Za integraciju potpunog ST-003 potrebni su zasebni zahtevi, validacija i testovi prema projektnoj specifikaciji.
 
+### Početna strana sa karticama predmeta (ST-007, US-7.7)
+
+`GET /` otvara početnu stranu (`src/Api/wwwroot`). Student posle unosa tokena sesije vidi kartice svojih predmeta (naziv i akademska godina) iz zaštićenog `GET /pocetna`. U Development okruženju API pri pokretanju ispisuje demo token studenta. Detalji, dijagram toka i testovi: [docs/2/us-7.7-kartice-izvodjenja.md](docs/2/us-7.7-kartice-izvodjenja.md), odluka: [ADR ST-007-01](docs/adr/st-007-01-web-prikaz-pocetne-strane.md).
+
+### Registar podržanih funkcija (ST-007, US-7.6)
+
+Sistem vodi listu podržanih vrsta aktivnosti (obaveštenje, materijal, zadatak) i funkcionalnih oblasti, kako početni pregled ne bi prikazivao veze ka funkcijama koje ne rade. Lista je u `src/Infrastructure/Dashboard/SupportedFeatures.cs`, a pravila u `src/Domain/Dashboard/FeatureRegistry.cs`. Nepodržana vrsta aktivnosti se ne broji u otvorenim aktivnostima (US-7.3) i nema vezu na početnoj strani (US-7.4, US-7.10). `GET /features` vraća podržane vrste i oblasti, a `GET /features/activity-types/{vrsta}` proverava da li je vrsta podržana; isti spisak ispisuje i konzolna aplikacija (`dotnet run --project src/ConsoleUi`). Testovi: `tests/Tests/Domain/Dashboard`, `tests/Tests/Application/Dashboard`, `tests/Tests/Infrastructure/Dashboard`.
+
+### Testovi prihvatanja početnog pregleda (ST-007, US-7.12)
+
+Automatski testovi prihvatanja (`tests/Tests/Acceptance`) proveravaju ceo početni pregled nad pravim komponentama US-7.1–7.10 i kroz zaštićeni `GET /pocetna`: student iz dva predmeta sa jednim otvorenim zadatkom vidi oba predmeta i vezu ka zadatku, promena roka se vidi već pri sledećem zahtevu, odgovor se ne kešira i meri se vreme odgovora za korisnika sa 10 izvođenja. Podaci u testovima su sintetički. Pokretanje samo testova prihvatanja:
+
+    dotnet test Solution.sln --filter "TestCategory=Acceptance" --logger "console;verbosity=detailed"
+
+Rezultati izvršavanja i merenja: [docs/2/us-7.12-testovi-prihvatanja.md](docs/2/us-7.12-testovi-prihvatanja.md).
+
 ## Preduslovi
 
 - .NET **8 SDK** (`dotnet --version`)
