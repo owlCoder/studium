@@ -155,9 +155,12 @@ app.MapGet("/api/moja-izvodjenja", async (
 // Identitet samo iz sesije (US-7.5), nikad iz zahteva; bez važeće sesije 401.
 app.MapGet("/pocetna", async (
     ClaimsPrincipal user,
+    HttpContext http,
     GetHomeOverviewHandler handler,
     CancellationToken cancellationToken) =>
 {
+    http.Response.Headers.CacheControl = "no-store";
+
     if (!user.TryGetSessionUserId(out var userId))
     {
         return Results.Unauthorized();
