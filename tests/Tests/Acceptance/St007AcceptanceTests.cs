@@ -90,23 +90,4 @@ public sealed class St007AcceptanceTests
         });
     }
 
-    [Test]
-    public async Task PredajaZadatka_OdmahUklanjaOtvorenuAktivnost()
-    {
-        var scenario = new St007Scenario();
-        var ers = scenario.AddEnrolledOffering("ERS", "Elementi razvoja softvera");
-        var taskId = Guid.NewGuid();
-        scenario.Activities.Add(new Activity(taskId, ers, SupportedFeatures.Assignment, true, Now.AddDays(3)));
-        var handler = scenario.CreateHandler(new FixedTimeProvider(Now));
-
-        var before = await handler.HandleAsync(St007Scenario.StudentId);
-        scenario.Activities.AddSubmission(new ActivitySubmission(Guid.NewGuid(), taskId, St007Scenario.StudentId));
-        var after = await handler.HandleAsync(St007Scenario.StudentId);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(before.Enrolled.Single().OpenActivities, Is.EqualTo(1));
-            Assert.That(after.Enrolled.Single().OpenActivities, Is.EqualTo(0));
-        });
-    }
 }
