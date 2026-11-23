@@ -37,12 +37,11 @@ public sealed class St007AcceptanceTests
             Assert.That(ersCard.OpenActivities, Is.EqualTo(1));
             Assert.That(oibCard.OpenActivities, Is.EqualTo(0));
 
-            // Veza ka zadacima predmeta u kom je otvoren zadatak (US-7.4 + US-7.6).
+            // Veza ka zadacima predmeta i veza baš ka otvorenom zadatku (US-7.4, US-7.6, US-7.10).
             Assert.That(ersCard.Links.Select(l => l.Href), Does.Contain($"/offerings/{ers}/assignments"));
-
-            // Registar (US-7.6) daje vezu baš ka tom zadatku; prikaz veze po zadatku dodaje US-7.10.
-            Assert.That(SupportedFeatures.CreateRegistry().TryBuildLink(SupportedFeatures.Assignment, ers, taskId),
-                Is.EqualTo($"/offerings/{ers}/assignments/{taskId}"));
+            Assert.That(ersCard.OpenTasks.Select(t => t.Href),
+                Is.EqualTo(new[] { $"/offerings/{ers}/assignments/{taskId}" }));
+            Assert.That(oibCard.OpenTasks, Is.Empty);
         });
     }
 
@@ -79,6 +78,7 @@ public sealed class St007AcceptanceTests
         var handler = scenario.CreateHandler(new FixedTimeProvider(Now));
 
         var empty = await handler.HandleAsync(St007Scenario.StudentId);
+        var readsAfterFirst = scenario.Activities.ActivityReads;
         scenario.Activities.Add(new Activity(Guid.NewGuid(), ers, SupportedFeatures.Assignment, true, Now.AddDays(1)));
         var withTask = await handler.HandleAsync(St007Scenario.StudentId);
 
@@ -86,7 +86,7 @@ public sealed class St007AcceptanceTests
         {
             Assert.That(empty.Enrolled.Single().OpenActivities, Is.EqualTo(0));
             Assert.That(withTask.Enrolled.Single().OpenActivities, Is.EqualTo(1));
-            Assert.That(scenario.Activities.ActivityReads, Is.EqualTo(2), "Izvor mora biti pročitan pri svakom zahtevu.");
+            Assert.That(scenario.Activities.ActivityReads, Is.GreaterThan(readsAfterFirst), "Drugi zahtev mora ponovo pročitati izvor.");
         });
     }
 

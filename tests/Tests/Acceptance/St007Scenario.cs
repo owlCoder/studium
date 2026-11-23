@@ -37,9 +37,10 @@ internal sealed class St007Scenario
         var registry = SupportedFeatures.CreateRegistry();
         var students = new InMemoryStudentOfferingsReader(_courses, _offerings, _memberships);
         var staff = new InMemoryStaffOfferingsReader(_courses, _offerings, Array.Empty<TeachingAssignment>());
-        var counter = new OpenActivityCounter(Activities, Activities, registry, time);
+        var counter = new OpenActivityCounter(Activities, Activities, Activities, registry, time);
+        var openTasks = new OpenTaskLinkReader(Activities, Activities, Activities, registry, time);
 
-        return new GetHomeOverviewHandler(new ListMyOfferingsHandler(staff, students), counter, registry);
+        return new GetHomeOverviewHandler(new ListMyOfferingsHandler(staff, students), counter, registry, openTasks);
     }
 
     public IStudentOfferingsReader CreateStudentReader() =>

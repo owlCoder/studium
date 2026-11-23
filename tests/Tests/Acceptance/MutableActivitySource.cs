@@ -3,7 +3,7 @@ using Domain.Activities;
 
 namespace Tests.Acceptance;
 
-internal sealed class MutableActivitySource : IActivityReader, IActivitySubmissionReader
+internal sealed class MutableActivitySource : IActivityReader, IActivitySubmissionReader, IIndividualDeadlineReader
 {
     private readonly object _lock = new();
     private readonly Dictionary<Guid, Activity> _activities = new();
@@ -65,4 +65,11 @@ internal sealed class MutableActivitySource : IActivityReader, IActivitySubmissi
             return Task.FromResult(result);
         }
     }
+
+    // US-7.12: testovi menjaju opšti rok zadatka; pojedinačne rokove (US-7.9) ovaj izvor ne vodi.
+    public Task<IReadOnlyList<IndividualDeadline>> ListIndividualDeadlinesAsync(
+        Guid studentId,
+        Guid offeringId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<IndividualDeadline>>(Array.Empty<IndividualDeadline>());
 }

@@ -73,8 +73,8 @@ public sealed class HomeEndpointAcceptanceTests
     {
         var ers = _scenario.AddEnrolledOffering("ERS", "Elementi razvoja softvera");
         var oib = _scenario.AddEnrolledOffering("OIB", "Osnove informacione bezbednosti");
-        _scenario.Activities.Add(new Activity(Guid.NewGuid(), ers, SupportedFeatures.Assignment, true,
-            DateTimeOffset.UtcNow.AddDays(7)));
+        var taskId = Guid.NewGuid();
+        _scenario.Activities.Add(new Activity(taskId, ers, SupportedFeatures.Assignment, true, DateTimeOffset.UtcNow.AddDays(7)));
         StartApi();
         using var client = LoggedInStudent();
 
@@ -87,6 +87,9 @@ public sealed class HomeEndpointAcceptanceTests
             Assert.That(home.Enrolled.Single(x => x.OfferingId == oib).OpenActivities, Is.EqualTo(0));
             Assert.That(home.Enrolled.Single(x => x.OfferingId == ers).Links.Select(l => l.Href),
                 Does.Contain($"/offerings/{ers}/assignments"));
+            Assert.That(home.Enrolled.Single(x => x.OfferingId == ers).OpenTasks.Select(t => t.Href),
+                Is.EqualTo(new[] { $"/offerings/{ers}/assignments/{taskId}" }));
+            Assert.That(home.Enrolled.Single(x => x.OfferingId == oib).OpenTasks, Is.Empty);
         });
     }
 
