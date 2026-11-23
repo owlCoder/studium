@@ -1,14 +1,17 @@
 using System;
 using System.Security.Claims;
 using Api.Authentication;
+using Application.Access;
 using Application.Courses;
 using Application.Interfaces;
 using Application.Materials;
 using Application.Services;
+using Infrastructure.Access;
 using Infrastructure.Demo;
 using Infrastructure.Materials;
 using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +35,14 @@ builder.Services.AddSingleton<IMaterialRepository, InMemoryMaterialRepository>()
 builder.Services.AddScoped<CreateMaterialHandler>();
 // ST-005 još nije integrisan: privremeni adapter bez angažovanja odbija sve (403).
 builder.Services.AddSingleton<IOfferingStaffChecker>(_ => new InMemoryOfferingStaffChecker());
+
+// ST-009 (US-10): lista objavljenih materijala za upisanog studenta (ST-006).
+// Članstva studenata još nisu povezana sa ovim portom: privremeni adapter bez zapisa
+// odbija sve studente (403). TryAdd ne zamenjuje adapter ako ga je već registrovao
+// drugi zadatak ST-009 koji koristi isti port.
+builder.Services.TryAddSingleton<IMembershipReader>(
+    _ => new InMemoryMembershipReader(Array.Empty<OfferingMembership>()));
+builder.Services.AddScoped<ListPublishedMaterialsForStudentHandler>();
 
 // ST-009 (US-05): dozvoljeni tipovi i maksimalna veličina priloga iz konfiguracije.
 // Nedostajuća ili neispravna konfiguracija zaustavlja pokretanje umesto da prihvati sve.
@@ -129,6 +140,36 @@ app.MapPost("/offerings/{offeringId:guid}/materials", async (
         {
             [ex.ParamName ?? "request"] = [message]
         });
+    }
+});
+
+// ST-009 (US-10, tačka 1): lista objavljenih materijala izvođenja za upisanog studenta.
+// Vraća samo objavljene materijale (bez nacrta i povučenih), sa nazivom i opisom.
+// Redosled: 401 bez identiteta -> 403 ako korisnik nije aktivan student izvođenja (ST-006)
+// -> 200 sa listom (prazna lista ako objavljenih materijala nema).
+app.MapGet("/offerings/{offeringId:guid}/materials", async (
+    Guid offeringId,
+    HttpContext httpContext,
+    ListPublishedMaterialsForStudentHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (!Guid.TryParse(userIdClaim, out var userId) || userId == Guid.Empty)
+    {
+        return Results.Unauthorized();
+    }
+
+    try
+    {
+        var materials = await handler.HandleAsync(
+            new ListPublishedMaterialsForStudentQuery(userId, offeringId),
+            cancellationToken);
+
+        return Results.Ok(materials);
+    }
+    catch (MaterialAccessDeniedException ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status403Forbidden);
     }
 });
 
