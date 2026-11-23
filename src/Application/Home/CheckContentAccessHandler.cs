@@ -91,6 +91,33 @@ public sealed class CheckContentAccessHandler
             OpenActivityRule.EffectiveDeadline(activity, userId, deadlines));
     }
 
+  
+    public async Task<AreaAccessDto?> ForAreaAsync(
+        Guid userId,
+        Guid offeringId,
+        string area,
+        CancellationToken cancellationToken = default)
+    {
+        RequireIds(userId, offeringId);
+
+        if (string.IsNullOrWhiteSpace(area)
+            || !area.All(char.IsLetter)
+            || !Enum.TryParse<FunctionalArea>(area, ignoreCase: true, out var functionalArea)
+            || !_registry.IsAreaAvailable(functionalArea))
+        {
+            return null;
+        }
+
+        var offering = await ForOfferingAsync(userId, offeringId, cancellationToken);
+        return offering is null
+            ? null
+            : new AreaAccessDto(
+                offering.OfferingId,
+                offering.CourseName,
+                offering.AcademicYear,
+                functionalArea.ToString().ToLowerInvariant());
+    }
+
     private static void RequireIds(Guid userId, Guid offeringId)
     {
         if (userId == Guid.Empty)

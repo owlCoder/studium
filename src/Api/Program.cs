@@ -187,6 +187,24 @@ app.MapGet("/offerings/{offeringId:guid}", async (
     return offering is null ? Results.NotFound() : Results.Ok(offering);
 }).RequireAuthorization();
 
+// US-7.10: otvaranje veze ka delu predmeta (zadaci, materijali, obaveštenja).
+// Samo deo koji registar (US-7.6) označava kao dostupan, i samo za korisnika sa pristupom izvođenju.
+app.MapGet("/offerings/{offeringId:guid}/{area:alpha}", async (
+    Guid offeringId,
+    string area,
+    ClaimsPrincipal user,
+    CheckContentAccessHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    if (!user.TryGetSessionUserId(out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var content = await handler.ForAreaAsync(userId, offeringId, area, cancellationToken);
+    return content is null ? Results.NotFound() : Results.Ok(content);
+}).RequireAuthorization();
+
 // US-7.10: otvaranje veze ka zadatku. Nacrt i zadatak tuđeg izvođenja daju 404 za studenta.
 app.MapGet("/offerings/{offeringId:guid}/assignments/{activityId:guid}", async (
     Guid offeringId,

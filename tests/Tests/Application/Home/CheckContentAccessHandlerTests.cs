@@ -152,6 +152,38 @@ public sealed class CheckContentAccessHandlerTests
     }
 
     [Test]
+    public async Task UpisanStudent_OtvaraPodrzanDeoPredmeta()
+    {
+        var access = await Handler().ForAreaAsync(_student, _ers, "assignments");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(access, Is.Not.Null);
+            Assert.That(access!.Area, Is.EqualTo("assignments"));
+            Assert.That(access.CourseName, Is.EqualTo("Elementi razvoja softvera"));
+        });
+    }
+
+    [TestCase("materials")]   // postoji kao oblast, ali nije dostupna u ovom registru
+    [TestCase("quizzes")]     // ne postoji
+    [TestCase("3")]           // broj nije ime oblasti
+    public async Task NepodrzanDeoPredmeta_SeNeOtvara(string area)
+    {
+        var access = await Handler().ForAreaAsync(_student, _ers, area);
+
+        Assert.That(access, Is.Null);
+    }
+
+    [Test]
+    public async Task KorisnikBezClanstva_NeOtvaraDeoTudjegPredmeta()
+    {
+        var access = await Handler().ForAreaAsync(_stranger, _ers, "assignments");
+
+        Assert.That(access, Is.Null);
+    }
+
+
+    [Test]
     public void OdbijaPrazneIdentifikatore()
     {
         Assert.Multiple(() =>

@@ -131,6 +131,26 @@ public sealed class ContentLinkEndpointTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
+    [Test] 
+    public async Task OtvaranjeVeze_StudentOtvaraZadatkePredmeta()
+    {
+        using var client = ClientFor(DemoData.DemoStudentId);
+
+        var response = await client.GetAsync($"/offerings/{Ers}/assignments");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    [Test] 
+    public async Task OtvaranjeVeze_NepostojeciDeoPredmeta_Dobija404()
+    {
+        using var client = ClientFor(DemoData.DemoStudentId);
+
+        var response = await client.GetAsync($"/offerings/{Ers}/quizzes");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
     [TestCase("/offerings/33333333-0000-0000-0000-000000000001")]
     [TestCase("/offerings/33333333-0000-0000-0000-000000000001/assignments/66666666-0000-0000-0000-000000000001")]
     public async Task OtvaranjeVeze_BezSesije_Vraca401(string url)
