@@ -161,7 +161,6 @@ app.MapGet("/courses", async (
     return Results.Ok(courses);
 });
 
-// US-7.1: identitet se uzima samo iz sesije (claim NameIdentifier), nikad iz zahtjeva.
 
 // ST-007: endpointi početnog pregleda (US-7.1, 7.2, 7.4, 7.5, 7.6, 7.10) su u src/Api/Home/HomeEndpoints.cs.
 app.MapHomeEndpoints();
