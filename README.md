@@ -27,7 +27,7 @@ Priloženi **demo katalog predmeta** prikazuje tok `API/ConsoleUi → Applicatio
 
 ### Početna strana sa karticama predmeta (ST-007, US-7.7)
 
-`GET /` otvara početnu stranu (`src/Api/wwwroot`). Student posle unosa tokena sesije vidi kartice svojih predmeta (naziv i akademska godina) iz zaštićenog `GET /pocetna`. U Development okruženju API pri pokretanju ispisuje demo token studenta. Detalji, dijagram toka i testovi: [docs/2/us-7.7-kartice-izvodjenja.md](docs/2/us-7.7-kartice-izvodjenja.md), odluka: [ADR ST-007-01](docs/adr/st-007-01-web-prikaz-pocetne-strane.md).
+`GET /` otvara početnu stranu (`src/Api/wwwroot`). Student posle unosa tokena sesije vidi kartice svojih predmeta (naziv i akademska godina) iz zaštićenog `GET /pocetna`. U Development okruženju API pri pokretanju ispisuje demo token studenta. Detalji, dijagram toka i testovi: [docs/2/us-7.7-kartice-izvodjenja.md](docs/2/us-7.7-kartice-izvodjenja.md), odluka: [ADR-0004](docs/adr/0004-web-prikaz-pocetne-strane.md).
 
 ### Registar podržanih funkcija (ST-007, US-7.6)
 

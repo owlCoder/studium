@@ -1,4 +1,4 @@
-# ADR ST-007-01: Web prikaz početne strane kao statički fajlovi u Api projektu
+# ADR-0004: Web prikaz početne strane kao statički fajlovi u Api projektu
 
 - **Status:** Predložen
 - **Datum:** 2026-11-21

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Api.Home;
 using Api.Identity;
 using Application.Courses;
 using Application.Dashboard;
@@ -75,7 +76,7 @@ builder.Services.AddScoped<ResolveSessionUserHandler>();
 // Tako [Authorize] kontroleri drugog tima rade kao i pre, a ST-007 endpointi traže
 // politiku "StudiumSessionOnly", pa za njih važi SAMO sesija (ID se nikad ne uzima iz zahteva).
 const string DefaultScheme = "StudiumOrDemo";
-const string SessionOnlyPolicy = "StudiumSessionOnly";
+const string SessionOnlyPolicy = HomeEndpoints.SessionOnlyPolicy;
 
 builder.Services
     .AddAuthentication(DefaultScheme)
@@ -161,127 +162,9 @@ app.MapGet("/courses", async (
 });
 
 // US-7.1: identitet se uzima samo iz sesije (claim NameIdentifier), nikad iz zahtjeva.
-// US-7.5: bez važeće sesije i aktivnog naloga zahtev se odbija sa 401.
-app.MapGet("/api/student/izvodjenja", async (
-    ClaimsPrincipal user,
-    ListStudentOfferingsHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    var raw = user.FindFirstValue(ClaimTypes.NameIdentifier);
-    if (!Guid.TryParse(raw, out var studentId))
-    {
-        return Results.Unauthorized();
-    }
 
-    var offerings = await handler.HandleAsync(studentId, cancellationToken);
-    return Results.Ok(offerings);
-}).RequireAuthorization(SessionOnlyPolicy);
-
-// US-7.2: obe liste prijavljenog korisnika („Predajem” i „Upisan sam”), bez duplikata.
-app.MapGet("/api/moja-izvodjenja", async (
-    ClaimsPrincipal user,
-    ListMyOfferingsHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    var raw = user.FindFirstValue(ClaimTypes.NameIdentifier);
-    if (!Guid.TryParse(raw, out var userId))
-    {
-        return Results.Unauthorized();
-    }
-
-    var offerings = await handler.HandleAsync(userId, cancellationToken);
-    return Results.Ok(offerings);
-}).RequireAuthorization(SessionOnlyPolicy);
-
-// US-7.4: ceo početni pregled u jednom JSON odgovoru.
-// Identitet samo iz sesije (US-7.5), nikad iz zahteva; bez važeće sesije 401.
-app.MapGet("/pocetna", async (
-    ClaimsPrincipal user,
-    HttpContext http,
-    GetHomeOverviewHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    http.Response.Headers.CacheControl = "no-store";
-
-    if (!user.TryGetSessionUserId(out var userId))
-    {
-        return Results.Unauthorized();
-    }
-
-    var overview = await handler.HandleAsync(userId, cancellationToken);
-    return Results.Ok(overview);
-}).RequireAuthorization(SessionOnlyPolicy);
-
-// US-7.10: otvaranje veze ka izvođenju. Ovlašćenje se proverava pri svakom otvaranju,
-// ne samo pri prikazu veze: tuđe izvođenje daje 404, bez otkrivanja da postoji.
-app.MapGet("/offerings/{offeringId:guid}", async (
-    Guid offeringId,
-    ClaimsPrincipal user,
-    CheckContentAccessHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    if (!user.TryGetSessionUserId(out var userId))
-    {
-        return Results.Unauthorized();
-    }
-
-    var offering = await handler.ForOfferingAsync(userId, offeringId, cancellationToken);
-    return offering is null ? Results.NotFound() : Results.Ok(offering);
-}).RequireAuthorization(SessionOnlyPolicy);
-
-// US-7.10: otvaranje veze ka delu predmeta (zadaci, materijali, obaveštenja).
-// Samo deo koji registar (US-7.6) označava kao dostupan, i samo za korisnika sa pristupom izvođenju.
-app.MapGet("/offerings/{offeringId:guid}/{area:alpha}", async (
-    Guid offeringId,
-    string area,
-    ClaimsPrincipal user,
-    CheckContentAccessHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    if (!user.TryGetSessionUserId(out var userId))
-    {
-        return Results.Unauthorized();
-    }
-
-    var content = await handler.ForAreaAsync(userId, offeringId, area, cancellationToken);
-    return content is null ? Results.NotFound() : Results.Ok(content);
-}).RequireAuthorization(SessionOnlyPolicy);
-
-// US-7.10: otvaranje veze ka zadatku. Nacrt i zadatak tuđeg izvođenja daju 404 za studenta.
-app.MapGet("/offerings/{offeringId:guid}/assignments/{activityId:guid}", async (
-    Guid offeringId,
-    Guid activityId,
-    ClaimsPrincipal user,
-    CheckContentAccessHandler handler,
-    CancellationToken cancellationToken) =>
-{
-    if (!user.TryGetSessionUserId(out var userId))
-    {
-        return Results.Unauthorized();
-    }
-
-    var assignment = await handler.ForAssignmentAsync(userId, offeringId, activityId, cancellationToken);
-    return assignment is null ? Results.NotFound() : Results.Ok(assignment);
-}).RequireAuthorization(SessionOnlyPolicy);
-
-// US-7.5: vraća ID prijavljenog korisnika, uzet isključivo iz sesije.
-app.MapGet("/api/ja", (ClaimsPrincipal user) =>
-        user.TryGetSessionUserId(out var userId)
-            ? Results.Ok(new { userId })
-            : Results.Unauthorized())
-    .RequireAuthorization(SessionOnlyPolicy);
-
-// US-7.6: lista podržanih vrsta aktivnosti i funkcionalnih oblasti
-app.MapGet("/features", (FeatureRegistry registry) => Results.Ok(new
-{
-    activityTypes = registry.SupportedActivityTypes
-        .Select(type => new { code = type.Code, area = type.Area.ToString() }),
-    areas = registry.AvailableAreas.Select(area => area.ToString())
-}));
-
-// US-7.6: provera da li je vrsta aktivnosti podržana
-app.MapGet("/features/activity-types/{activityType}", (string activityType, FeatureRegistry registry) =>
-    Results.Ok(new { activityType, supported = registry.IsActivitySupported(activityType) }));
+// ST-007: endpointi početnog pregleda (US-7.1, 7.2, 7.4, 7.5, 7.6, 7.10) su u src/Api/Home/HomeEndpoints.cs.
+app.MapHomeEndpoints();
 
 app.Run();
 
