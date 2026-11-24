@@ -142,6 +142,10 @@ builder.Services.AddScoped<AttachFileToMaterialHandler>();
 builder.Services.AddScoped<UploadMaterialAttachmentsHandler>();
 builder.Services.AddScoped<RemoveMaterialAttachmentHandler>();
 
+// ST-009 (zaštita pristupa, tačka 1): preuzimanje priloga uz proveru članstva.
+// Koristi isti IMembershipReader koji je gore registrovan za US-10.
+builder.Services.AddScoped<DownloadMaterialAttachmentHandler>();
+
 // ST-009 (US-03): memorijsko skladište spoljnih veza materijala do odluke o bazi (ADR-0003).
 // HTTP endpoint za dodavanje veze još nije dodat.
 builder.Services.AddSingleton<IMaterialExternalLinkRepository, InMemoryMaterialExternalLinkRepository>();

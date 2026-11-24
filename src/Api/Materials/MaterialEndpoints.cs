@@ -33,6 +33,9 @@ public static class MaterialEndpoints
         // US-07: uklanjanje jedne spoljne veze.
         app.MapDelete("/materials/{materialId:guid}/links/{linkId:guid}", RemoveExternalLinkAsync);
 
+        // Zaštita pristupa, tačka 1: preuzimanje jednog priloga uz proveru članstva pri svakom zahtevu.
+        app.MapGet("/materials/{materialId:guid}/attachments/{attachmentId:guid}", DownloadAttachmentAsync);
+
         return app;
     }
 
@@ -154,6 +157,36 @@ public static class MaterialEndpoints
             return outcome == RemoveMaterialExternalLinkOutcome.Removed
                 ? Results.NoContent()
                 : Results.NotFound();
+        });
+    }
+
+    // Prilog nasleđuje pravo materijala: preuzima ga samo nastavno osoblje (ST-005) ili aktivan
+    // student (ST-006) izvođenja materijala. 403 bez prava; 404 ako materijal ili prilog ne postoji,
+    // prilog pripada drugom materijalu ili mu nedostaje sadržaj; 200 sa datotekom.
+    private static async Task<IResult> DownloadAttachmentAsync(
+        Guid materialId,
+        Guid attachmentId,
+        HttpContext httpContext,
+        DownloadMaterialAttachmentHandler handler,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(httpContext, out var userId))
+            return Results.Unauthorized();
+
+        return await ExecuteAsync(validationKey: null, async () =>
+        {
+            var result = await handler.HandleAsync(
+                new DownloadMaterialAttachmentCommand(userId, materialId, attachmentId),
+                cancellationToken);
+
+            if (result.Outcome != DownloadMaterialAttachmentOutcome.Found)
+                return Results.NotFound();
+
+            // Results.File zatvara tok po slanju odgovora.
+            return Results.File(
+                result.Content!,
+                result.Attachment!.ContentType,
+                result.Attachment.OriginalFileName);
         });
     }
 
