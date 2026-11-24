@@ -3,11 +3,11 @@ using Application.Materials;
 namespace ConsoleUi.Materials;
 
 /// <summary>
-/// Konzolna strana detalja materijala za studenta (ST-009, US-11, stavka 1):
-/// naziv, opis, spoljne veze i lista priloga.
+/// Konzolna strana detalja materijala za studenta (ST-009, US-11):
+/// naziv, opis, spoljne veze i lista priloga sa izvornim nazivom, tipom i veličinom.
 /// Prikaz je samo prezentacija: ko sme da vidi materijal (objavljen materijal,
 /// aktivan student izvođenja) određuje <see cref="GetMaterialDetailsHandler"/>.
-/// NAPOMENA: tip i veličina priloga (stavka 2) i preuzimanje (stavka 3) nisu deo ovog koraka.
+/// NAPOMENA: preuzimanje priloga (stavka 3) nije deo ovog koraka.
 /// </summary>
 public sealed class MaterialDetailsView
 {
@@ -50,23 +50,42 @@ public sealed class MaterialDetailsView
             return null;
         }
 
-        var details = result.Details;
-        _output.WriteLine(details.Name);
-        _output.WriteLine($"Opis: {(details.Description.Length == 0 ? "(bez opisa)" : details.Description)}");
-        _output.WriteLine();
-
-        _output.WriteLine($"Spoljne veze ({details.Links.Count}):");
-        if (details.Links.Count == 0)
-            _output.WriteLine("  (nema veza)");
-        foreach (var link in details.Links)
-            _output.WriteLine($"  - {link.Url}");
-
-        _output.WriteLine($"Prilozi ({details.Attachments.Count}):");
-        if (details.Attachments.Count == 0)
-            _output.WriteLine("  (nema priloga)");
-        foreach (var attachment in details.Attachments)
-            _output.WriteLine($"  - {attachment.OriginalFileName}");
-
-        return details;
+        WriteNameAndDescription(result.Details);
+        WriteLinks(result.Details.Links);
+        WriteAttachments(result.Details.Attachments);
+        return result.Details;
     }
+
+    private void WriteNameAndDescription(MaterialDetails details)
+    {
+        var description = details.Description.Length == 0 ? "(bez opisa)" : details.Description;
+
+        _output.WriteLine(details.Name);
+        _output.WriteLine($"Opis: {description}");
+        _output.WriteLine();
+    }
+
+    private void WriteLinks(IReadOnlyList<MaterialDetailsLink> links)
+    {
+        _output.WriteLine($"Spoljne veze ({links.Count}):");
+        if (links.Count == 0)
+            _output.WriteLine("  (nema veza)");
+
+        foreach (var link in links)
+            _output.WriteLine($"  - {link.Url}");
+    }
+
+    private void WriteAttachments(IReadOnlyList<MaterialDetailsAttachment> attachments)
+    {
+        _output.WriteLine($"Prilozi ({attachments.Count}):");
+        if (attachments.Count == 0)
+            _output.WriteLine("  (nema priloga)");
+
+        foreach (var attachment in attachments)
+            _output.WriteLine($"  - {DescribeAttachment(attachment)}");
+    }
+
+    // US-11, stavka 2: izvorni naziv, tip i veličina, u istom obliku kao lista priloga za nastavnika.
+    private static string DescribeAttachment(MaterialDetailsAttachment attachment) =>
+        $"{attachment.OriginalFileName} ({attachment.ContentType}, {FileSizeFormatter.Format(attachment.SizeInBytes)})";
 }
