@@ -33,6 +33,19 @@ public sealed class InMemoryMaterialRepository : IMaterialRepository
         return Task.FromResult(material);
     }
 
+    public Task<IReadOnlyList<Material>> ListByOfferingAsync(
+        Guid courseOfferingId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        IReadOnlyList<Material> result = _materials.Values
+            .Where(m => m.CourseOfferingId == courseOfferingId)
+            .ToArray();
+
+        return Task.FromResult(result);
+    }
+
     public Task UpdateAsync(Material material, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(material);

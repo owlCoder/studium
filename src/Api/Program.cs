@@ -24,6 +24,7 @@ using Application.Services;
 using Infrastructure.Access;
 using Infrastructure.Materials;
 using Infrastructure.Repositories;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -111,6 +112,14 @@ builder.Services.AddScoped<CreateMaterialHandler>();
 // ST-005 još nije integrisan: privremeni adapter bez angažovanja odbija sve (403).
 builder.Services.AddSingleton<IOfferingStaffChecker>(_ => new InMemoryOfferingStaffChecker());
 
+// ST-009 (US-10): lista objavljenih materijala za upisanog studenta (ST-006).
+// Članstva studenata još nisu povezana sa ovim portom: privremeni adapter bez zapisa
+// odbija sve studente (403). TryAdd ne zamenjuje adapter ako ga je već registrovao
+// drugi zadatak ST-009 koji koristi isti port.
+builder.Services.TryAddSingleton<IMembershipReader>(
+    _ => new InMemoryMembershipReader(Array.Empty<OfferingMembership>()));
+builder.Services.AddScoped<ListPublishedMaterialsForStudentHandler>();
+
 // ST-009 (US-05): dozvoljeni tipovi i maksimalna veličina priloga iz konfiguracije.
 // Nedostajuća ili neispravna konfiguracija zaustavlja pokretanje umesto da prihvati sve.
 var attachmentSection = builder.Configuration.GetSection("MaterialAttachments");
@@ -134,16 +143,14 @@ builder.Services.AddScoped<UploadMaterialAttachmentsHandler>();
 builder.Services.AddScoped<RemoveMaterialAttachmentHandler>();
 
 // ST-009 (zaštita pristupa, tačka 1): preuzimanje priloga uz proveru članstva.
-// Članstva studenata (ST-006) još nisu povezana sa ovim portom: privremeni adapter
-// bez zapisa odbija sve studente (403), isto kao privremena provera osoblja.
-builder.Services.AddSingleton<IMembershipReader>(
-    _ => new InMemoryMembershipReader(Array.Empty<OfferingMembership>()));
+// Koristi isti IMembershipReader koji je gore registrovan za US-10.
 builder.Services.AddScoped<DownloadMaterialAttachmentHandler>();
 
 // ST-009 (US-03): memorijsko skladište spoljnih veza materijala do odluke o bazi (ADR-0003).
 // HTTP endpoint za dodavanje veze još nije dodat.
 builder.Services.AddSingleton<IMaterialExternalLinkRepository, InMemoryMaterialExternalLinkRepository>();
 builder.Services.AddScoped<AddMaterialExternalLinkHandler>();
+builder.Services.AddScoped<RemoveMaterialExternalLinkHandler>();
 
 var app = builder.Build();
 

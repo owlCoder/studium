@@ -18,6 +18,9 @@ public static class MaterialEndpoints
         // US-01: kreiranje materijala kao nacrta na konkretnom izvođenju.
         app.MapPost("/offerings/{offeringId:guid}/materials", CreateMaterialAsync);
 
+        // US-10: lista objavljenih materijala izvođenja za upisanog studenta (ST-006).
+        app.MapGet("/offerings/{offeringId:guid}/materials", ListPublishedMaterialsForStudentAsync);
+
         // US-04/05/06: otpremanje jedne ili više datoteka (multipart/form-data).
         // Antiforgery je isključen jer način prijave (ST-002) još nije izabran;
         // uz prijavu kolačićem zaštitu treba uključiti.
@@ -26,6 +29,9 @@ public static class MaterialEndpoints
 
         // US-07: uklanjanje jednog priloga (zapis, pa datoteka iz skladišta).
         app.MapDelete("/materials/{materialId:guid}/attachments/{attachmentId:guid}", RemoveAttachmentAsync);
+
+        // US-07: uklanjanje jedne spoljne veze.
+        app.MapDelete("/materials/{materialId:guid}/links/{linkId:guid}", RemoveExternalLinkAsync);
 
         // Zaštita pristupa, tačka 1: preuzimanje jednog priloga uz proveru članstva pri svakom zahtevu.
         app.MapGet("/materials/{materialId:guid}/attachments/{attachmentId:guid}", DownloadAttachmentAsync);
@@ -52,6 +58,28 @@ public static class MaterialEndpoints
             return Results.Created(
                 $"/offerings/{offeringId}/materials/{id}",
                 new CreateMaterialResponse(id, "Draft"));
+        });
+    }
+
+    // US-10: 401 bez identiteta → 403 ako korisnik nije aktivan student izvođenja (ST-006)
+    // → 200 sa listom objavljenih materijala (naziv i opis); prazna lista ako ih nema.
+    // Nacrti i povučeni materijali se ne vraćaju.
+    private static async Task<IResult> ListPublishedMaterialsForStudentAsync(
+        Guid offeringId,
+        HttpContext httpContext,
+        ListPublishedMaterialsForStudentHandler handler,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(httpContext, out var userId))
+            return Results.Unauthorized();
+
+        return await ExecuteAsync(validationKey: null, async () =>
+        {
+            var materials = await handler.HandleAsync(
+                new ListPublishedMaterialsForStudentQuery(userId, offeringId),
+                cancellationToken);
+
+            return Results.Ok(materials);
         });
     }
 
@@ -104,6 +132,29 @@ public static class MaterialEndpoints
                 cancellationToken);
 
             return outcome == RemoveMaterialAttachmentOutcome.Removed
+                ? Results.NoContent()
+                : Results.NotFound();
+        });
+    }
+
+    // 204 kada je veza uklonjena; 404 ako materijal ili veza ne postoji ili veza pripada drugom materijalu.
+    private static async Task<IResult> RemoveExternalLinkAsync(
+        Guid materialId,
+        Guid linkId,
+        HttpContext httpContext,
+        RemoveMaterialExternalLinkHandler handler,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(httpContext, out var userId))
+            return Results.Unauthorized();
+
+        return await ExecuteAsync(validationKey: null, async () =>
+        {
+            var outcome = await handler.HandleAsync(
+                new RemoveMaterialExternalLinkCommand(userId, materialId, linkId),
+                cancellationToken);
+
+            return outcome == RemoveMaterialExternalLinkOutcome.Removed
                 ? Results.NoContent()
                 : Results.NotFound();
         });
