@@ -22,7 +22,7 @@ ST-009 traži da nastavnik materijalu priloži datoteke koje student kasnije pre
 - Domen i slučajevi upotrebe ne zavise od načina skladištenja; disk se kasnije može zameniti storage servisom implementacijom istog porta.
 - Skladište ne proverava prava pristupa — to je odgovornost slučajeva upotrebe (prilog nasleđuje pravo pristupa materijala, US-12).
 - Lokalni disk nije pogodan za više instanci API-ja bez deljenog diska.
-- Operacija brisanja (`DeleteAsync`) uvedena je u US-06: ako je sadržaj sačuvan, a upis zapisa priloga ne uspe, sačuvani sadržaj se briše, jer neuspela operacija ne sme delimično promeniti stanje (`docs/architecture.md`). Ista operacija služi za uklanjanje priloga u US-07. Provera postojanja ostaje za US-08.
+- Operacija brisanja (`DeleteAsync`) uvedena je u US-06: ako je sadržaj sačuvan, a upis zapisa priloga ne uspe, sačuvani sadržaj se briše, jer neuspela operacija ne sme delimično promeniti stanje (`docs/architecture.md`). Ista operacija služi za uklanjanje priloga u US-07. Za proveru postojanja pri objavi (US-08) nije uvedena nova operacija: koristi se `OpenReadAsync`, koja vraća `null` kada sadržaj ne postoji, pa se objava odbija ako bilo kom prilogu nedostaje datoteka.
 
 ## Povezanost sa specifikacijom
 
