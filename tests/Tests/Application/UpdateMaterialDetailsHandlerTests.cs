@@ -1,21 +1,38 @@
 using Application.Materials;
 using Domain.Materials;
 using Infrastructure.Materials;
+using Moq;
 using NUnit.Framework;
 
 namespace Tests.Application;
 
 /// <summary>
-/// ST-009, US-02: izmena naziva i opisa materijala i vreme poslednje izmene.
+/// ST-009, US-02: izmena naziva i opisa materijala i vreme poslednje izmene,
+/// uz proveru da je korisnik nastavno osoblje izvođenja materijala (ST-005).
 /// </summary>
 [TestFixture]
 public sealed class UpdateMaterialDetailsHandlerTests
 {
     private static readonly DateTimeOffset Now = new(2026, 11, 10, 10, 0, 0, TimeSpan.Zero);
+    private static readonly Guid TeacherId = Guid.NewGuid();
+    private static readonly Guid OtherUserId = Guid.NewGuid();
 
+    // Podrazumevano: TeacherId je nastavno osoblje na svakom izvođenju, drugi korisnici nisu.
     private static UpdateMaterialDetailsHandler CreateHandler(
-        IMaterialRepository repository, TimeProvider? clock = null) =>
-        new(repository, clock ?? new FixedTimeProvider(Now));
+        IMaterialRepository repository,
+        TimeProvider? clock = null,
+        IOfferingStaffChecker? staffChecker = null)
+    {
+        if (staffChecker is null)
+        {
+            var mock = new Mock<IOfferingStaffChecker>();
+            mock.Setup(c => c.IsStaffOnOfferingAsync(TeacherId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            staffChecker = mock.Object;
+        }
+
+        return new(repository, staffChecker, clock ?? new FixedTimeProvider(Now));
+    }
 
     [Test]
     public async Task HandleAsync_UpdatesExistingMaterial()
@@ -26,7 +43,7 @@ public sealed class UpdateMaterialDetailsHandlerTests
         var handler = CreateHandler(repository);
 
         var updated = await handler.HandleAsync(
-            new UpdateMaterialDetailsCommand(material.Id, " Novo ", "Novi opis"));
+            new UpdateMaterialDetailsCommand(TeacherId, material.Id, " Novo ", "Novi opis"));
 
         var stored = await repository.GetByIdAsync(material.Id);
         Assert.Multiple(() =>
@@ -45,7 +62,7 @@ public sealed class UpdateMaterialDetailsHandlerTests
         await repository.AddAsync(material);
         var handler = CreateHandler(repository);
 
-        await handler.HandleAsync(new UpdateMaterialDetailsCommand(material.Id, "Novo", null));
+        await handler.HandleAsync(new UpdateMaterialDetailsCommand(TeacherId, material.Id, "Novo", null));
 
         var stored = await repository.GetByIdAsync(material.Id);
         Assert.That(stored!.LastModifiedAt, Is.EqualTo(Now));
@@ -57,7 +74,7 @@ public sealed class UpdateMaterialDetailsHandlerTests
         var handler = CreateHandler(new InMemoryMaterialRepository());
 
         var updated = await handler.HandleAsync(
-            new UpdateMaterialDetailsCommand(Guid.NewGuid(), "Novo", null));
+            new UpdateMaterialDetailsCommand(TeacherId, Guid.NewGuid(), "Novo", null));
 
         Assert.That(updated, Is.False);
     }
@@ -73,7 +90,7 @@ public sealed class UpdateMaterialDetailsHandlerTests
 
         Assert.That(
             async () => await handler.HandleAsync(
-                new UpdateMaterialDetailsCommand(material.Id, name, "Novi opis")),
+                new UpdateMaterialDetailsCommand(TeacherId, material.Id, name, "Novi opis")),
             Throws.TypeOf<ArgumentException>());
 
         var stored = await repository.GetByIdAsync(material.Id);
@@ -95,7 +112,7 @@ public sealed class UpdateMaterialDetailsHandlerTests
         await repository.AddAsync(other);
         var handler = CreateHandler(repository);
 
-        await handler.HandleAsync(new UpdateMaterialDetailsCommand(target.Id, "Izmenjen", null));
+        await handler.HandleAsync(new UpdateMaterialDetailsCommand(TeacherId, target.Id, "Izmenjen", null));
 
         var storedOther = await repository.GetByIdAsync(other.Id);
         Assert.Multiple(() =>
@@ -121,12 +138,101 @@ public sealed class UpdateMaterialDetailsHandlerTests
         Assert.Multiple(() =>
         {
             Assert.That(
-                () => new UpdateMaterialDetailsHandler(null!, TimeProvider.System),
+                () => new UpdateMaterialDetailsHandler(null!, new InMemoryOfferingStaffChecker(), TimeProvider.System),
                 Throws.TypeOf<ArgumentNullException>());
             Assert.That(
-                () => new UpdateMaterialDetailsHandler(new InMemoryMaterialRepository(), null!),
+                () => new UpdateMaterialDetailsHandler(new InMemoryMaterialRepository(), null!, TimeProvider.System),
+                Throws.TypeOf<ArgumentNullException>());
+            Assert.That(
+                () => new UpdateMaterialDetailsHandler(
+                    new InMemoryMaterialRepository(), new InMemoryOfferingStaffChecker(), null!),
                 Throws.TypeOf<ArgumentNullException>());
         });
+    }
+
+    // Provera nastavnog osoblja izvođenja (ST-005)
+
+    [Test]
+    public async Task HandleAsync_StaffOfMaterialOffering_CanUpdate()
+    {
+        var repository = new InMemoryMaterialRepository();
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Staro", null);
+        await repository.AddAsync(material);
+        var handler = CreateHandler(
+            repository,
+            staffChecker: new InMemoryOfferingStaffChecker([(TeacherId, material.CourseOfferingId)]));
+
+        var updated = await handler.HandleAsync(
+            new UpdateMaterialDetailsCommand(TeacherId, material.Id, "Novo", null));
+
+        Assert.That(updated, Is.True);
+        Assert.That((await repository.GetByIdAsync(material.Id))!.Name, Is.EqualTo("Novo"));
+    }
+
+    [Test]
+    public async Task HandleAsync_UserNotStaff_IsDeniedAndMaterialIsUnchanged()
+    {
+        var repository = new InMemoryMaterialRepository();
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Staro", "Stari opis");
+        await repository.AddAsync(material);
+        var handler = CreateHandler(repository);
+
+        Assert.That(
+            async () => await handler.HandleAsync(
+                new UpdateMaterialDetailsCommand(OtherUserId, material.Id, "Novo", "Novi opis")),
+            Throws.TypeOf<MaterialAccessDeniedException>());
+
+        var stored = await repository.GetByIdAsync(material.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(stored!.Name, Is.EqualTo("Staro"));
+            Assert.That(stored.Description, Is.EqualTo("Stari opis"));
+            Assert.That(stored.LastModifiedAt, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task HandleAsync_StaffOfAnotherOffering_IsDenied()
+    {
+        var repository = new InMemoryMaterialRepository();
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Staro", null);
+        await repository.AddAsync(material);
+        var handler = CreateHandler(
+            repository,
+            staffChecker: new InMemoryOfferingStaffChecker([(TeacherId, Guid.NewGuid())]));
+
+        Assert.That(
+            async () => await handler.HandleAsync(
+                new UpdateMaterialDetailsCommand(TeacherId, material.Id, "Novo", null)),
+            Throws.TypeOf<MaterialAccessDeniedException>());
+        Assert.That((await repository.GetByIdAsync(material.Id))!.Name, Is.EqualTo("Staro"));
+    }
+
+    [Test]
+    public async Task HandleAsync_EmptyUserId_IsDenied()
+    {
+        var repository = new InMemoryMaterialRepository();
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Staro", null);
+        await repository.AddAsync(material);
+
+        Assert.That(
+            async () => await CreateHandler(repository).HandleAsync(
+                new UpdateMaterialDetailsCommand(Guid.Empty, material.Id, "Novo", null)),
+            Throws.TypeOf<MaterialAccessDeniedException>());
+    }
+
+    [Test]
+    public async Task HandleAsync_UserNotStaffWithInvalidName_IsDeniedNotValidationError()
+    {
+        // Korisnik bez prava dobija odbijanje pristupa, a ne poruku o podacima.
+        var repository = new InMemoryMaterialRepository();
+        var material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Staro", null);
+        await repository.AddAsync(material);
+
+        Assert.That(
+            async () => await CreateHandler(repository).HandleAsync(
+                new UpdateMaterialDetailsCommand(OtherUserId, material.Id, "", null)),
+            Throws.TypeOf<MaterialAccessDeniedException>());
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
