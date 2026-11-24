@@ -1,0 +1,15 @@
+namespace Application.Home;
+
+
+public sealed record HomeOfferingDto(
+    Guid OfferingId,
+    string CourseName,
+    string AcademicYear,
+    string? Role,
+    int? OpenActivities,
+        IReadOnlyList<HomeLinkDto> Links)
+{
+    public string? RoleLabel => RoleLabels.For(Role);
+
+    public IReadOnlyList<OpenTaskLinkDto> OpenTasks { get; init; } = Array.Empty<OpenTaskLinkDto>();
+}
