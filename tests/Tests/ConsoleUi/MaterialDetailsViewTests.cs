@@ -57,9 +57,9 @@ public sealed class MaterialDetailsViewTests
         var material = await AddPublishedMaterialAsync("Uvod u predmet");
         await _links.AddAsync(new MaterialExternalLink(Guid.NewGuid(), material.Id, "https://example.org/video"));
         await _attachments.AddAsync(new MaterialAttachment(
-            Guid.NewGuid(), material.Id, "vezbe-1.zip", "application/zip", 20, Guid.NewGuid().ToString("N")));
+            Guid.NewGuid(), material.Id, "vezbe-1.zip", "application/zip", 3 * 1024 * 1024 / 2, Guid.NewGuid().ToString("N")));
         await _attachments.AddAsync(new MaterialAttachment(
-            Guid.NewGuid(), material.Id, "skripta.pdf", "application/pdf", 10, Guid.NewGuid().ToString("N")));
+            Guid.NewGuid(), material.Id, "skripta.pdf", "application/pdf", 2048, Guid.NewGuid().ToString("N")));
 
         var (details, output) = await ShowAsync(Student, material.Id);
 
@@ -71,9 +71,41 @@ public sealed class MaterialDetailsViewTests
             "Spoljne veze (1):",
             "  - https://example.org/video",
             "Prilozi (2):",
-            "  - skripta.pdf",
-            "  - vezbe-1.zip",
+            "  - skripta.pdf (application/pdf, 2 KB)",
+            "  - vezbe-1.zip (application/zip, 1.5 MB)",
             "")));
+    }
+
+    // US-11, stavka 2: prikaz izvornog naziva, tipa i veličine priloga.
+
+    [TestCase(0L, "0 B")]
+    [TestCase(7L, "7 B")]
+    [TestCase(20L * 1024 * 1024, "20 MB")]
+    public async Task ShowAsync_AttachmentShowsOriginalNameTypeAndSize(long size, string expectedSize)
+    {
+        var material = await AddPublishedMaterialAsync("Uvod");
+        await _attachments.AddAsync(new MaterialAttachment(
+            Guid.NewGuid(), material.Id, "Predavanje 1.PPTX",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            size, Guid.NewGuid().ToString("N")));
+
+        var (_, output) = await ShowAsync(Student, material.Id);
+
+        Assert.That(output, Does.Contain(
+            $"  - Predavanje 1.PPTX (application/vnd.openxmlformats-officedocument.presentationml.presentation, {expectedSize})"));
+    }
+
+    [Test]
+    public async Task ShowAsync_AttachmentDoesNotShowStorageKey()
+    {
+        var material = await AddPublishedMaterialAsync("Uvod");
+        var storageKey = Guid.NewGuid().ToString("N");
+        await _attachments.AddAsync(new MaterialAttachment(
+            Guid.NewGuid(), material.Id, "skripta.pdf", "application/pdf", 10, storageKey));
+
+        var (_, output) = await ShowAsync(Student, material.Id);
+
+        Assert.That(output, Does.Not.Contain(storageKey));
     }
 
     [Test]
