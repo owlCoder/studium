@@ -37,12 +37,16 @@ public static class St009Scenario
         await createForm.RunAsync(demoTeacherId, demoOfferingId);
         Console.WriteLine();
 
+        // Sintetički nastavnik je angažovan na izvođenju demonstracionog materijala.
         var editForm = new EditMaterialDetailsForm(
             materials,
-            new UpdateMaterialDetailsHandler(materials, TimeProvider.System),
+            new UpdateMaterialDetailsHandler(
+                materials,
+                new InMemoryOfferingStaffChecker([(demoTeacherId, demoMaterial.CourseOfferingId)]),
+                TimeProvider.System),
             Console.In,
             Console.Out);
-        await editForm.RunAsync(demoMaterial.Id);
+        await editForm.RunAsync(demoTeacherId, demoMaterial.Id);
 
         // ST-009, US-04: izbor i slanje datoteka u materijal, sa prikazom liste priloga.
         // Sintetički nastavnik je angažovan na izvođenju demonstracionog materijala samo za ovu
