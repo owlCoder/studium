@@ -23,4 +23,12 @@ public interface IMaterialRepository
     Task UpdateAsync(
         Material material,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Vraća sve materijale jednog izvođenja predmeta, u svim stanjima objave (ST-009, US-10).
+    /// Filtriranje po stanju i proveru prava radi slučaj upotrebe. Redosled nije zagarantovan.
+    /// </summary>
+    Task<IReadOnlyList<Material>> ListByOfferingAsync(
+        Guid courseOfferingId,
+        CancellationToken cancellationToken = default);
 }
