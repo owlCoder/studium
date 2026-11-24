@@ -36,9 +36,18 @@ public sealed class DownloadMaterialAttachmentHandlerTests
         _attachments = new InMemoryMaterialAttachmentRepository();
         _storage = new InMemoryAttachmentFileStorage();
 
+        // Tačka 2: student vidi samo objavljen materijal, pa je osnovni materijal objavljen.
         _material = new Material(Guid.NewGuid(), Guid.NewGuid(), "Predavanje 1", null);
+        _material.Publish();
         await _materials.AddAsync(_material);
         _attachment = await AddAttachmentAsync(_material.Id);
+    }
+
+    private async Task<(Material Draft, MaterialAttachment Attachment)> AddDraftWithAttachmentAsync()
+    {
+        var draft = new Material(Guid.NewGuid(), _material.CourseOfferingId, "Nacrt vežbi", null);
+        await _materials.AddAsync(draft);
+        return (draft, await AddAttachmentAsync(draft.Id));
     }
 
     private async Task<MaterialAttachment> AddAttachmentAsync(Guid materialId, bool withContent = true)
@@ -191,6 +200,88 @@ public sealed class DownloadMaterialAttachmentHandlerTests
         memberships.Verify(
             m => m.IsActiveStudentAsync(StudentId, _material.CourseOfferingId, It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    // --- Tačka 2: nacrt i povučen materijal nedostupni studentu i preko direktne adrese ---
+
+    [Test]
+    public async Task HandleAsync_StudentRequestsDraftByDirectAddress_GetsMaterialNotFound()
+    {
+        var (draft, attachment) = await AddDraftWithAttachmentAsync();
+
+        var result = await CreateHandler().HandleAsync(Command(StudentId, attachment.Id, draft.Id));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Outcome, Is.EqualTo(DownloadMaterialAttachmentOutcome.MaterialNotFound));
+            Assert.That(result.Attachment, Is.Null);
+            Assert.That(result.Content, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task HandleAsync_StudentDraft_LooksSameAsUnknownMaterial()
+    {
+        // Student ne sme da razlikuje „nacrt postoji” od „materijal ne postoji”.
+        var (draft, attachment) = await AddDraftWithAttachmentAsync();
+        var handler = CreateHandler();
+
+        var draftResult = await handler.HandleAsync(Command(StudentId, attachment.Id, draft.Id));
+        var unknownResult = await handler.HandleAsync(Command(StudentId, attachment.Id, Guid.NewGuid()));
+
+        Assert.That(draftResult.Outcome, Is.EqualTo(unknownResult.Outcome));
+    }
+
+    [Test]
+    public async Task HandleAsync_StudentDraft_DoesNotLookUpAttachmentOrOpenFile()
+    {
+        var (draft, attachment) = await AddDraftWithAttachmentAsync();
+        var attachments = new Mock<IMaterialAttachmentRepository>(MockBehavior.Strict);
+        var storage = new Mock<IAttachmentFileStorage>(MockBehavior.Strict);
+
+        var result = await CreateHandler(attachments: attachments.Object, storage: storage.Object)
+            .HandleAsync(Command(StudentId, attachment.Id, draft.Id));
+
+        Assert.That(result.Outcome, Is.EqualTo(DownloadMaterialAttachmentOutcome.MaterialNotFound));
+    }
+
+    [Test]
+    public async Task HandleAsync_StaffDownloadsFromDraft()
+    {
+        // Nastavnik priprema nacrt i mora moći da proveri svoje priloge pre objave.
+        var (draft, attachment) = await AddDraftWithAttachmentAsync();
+
+        var result = await CreateHandler().HandleAsync(Command(TeacherId, attachment.Id, draft.Id));
+
+        Assert.That(result.Outcome, Is.EqualTo(DownloadMaterialAttachmentOutcome.Found));
+        result.Content!.Dispose();
+    }
+
+    [Test]
+    public async Task HandleAsync_NonMemberRequestingDraft_IsStillDenied()
+    {
+        var (draft, attachment) = await AddDraftWithAttachmentAsync();
+
+        Assert.ThrowsAsync<MaterialAccessDeniedException>(
+            async () => await CreateHandler().HandleAsync(Command(OtherOfferingStudentId, attachment.Id, draft.Id)));
+    }
+
+    [Test]
+    public async Task HandleAsync_DraftBecomesAvailableToStudentAfterPublish()
+    {
+        var (draft, attachment) = await AddDraftWithAttachmentAsync();
+        var handler = CreateHandler();
+
+        var before = await handler.HandleAsync(Command(StudentId, attachment.Id, draft.Id));
+        draft.Publish();
+        var after = await handler.HandleAsync(Command(StudentId, attachment.Id, draft.Id));
+        after.Content?.Dispose();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(before.Outcome, Is.EqualTo(DownloadMaterialAttachmentOutcome.MaterialNotFound));
+            Assert.That(after.Outcome, Is.EqualTo(DownloadMaterialAttachmentOutcome.Found));
+        });
     }
 
     // --- Nepostojeći zapisi ---
