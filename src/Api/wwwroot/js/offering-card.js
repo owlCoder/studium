@@ -1,0 +1,154 @@
+// US-7.7: komponenta kartice izvođenja za studenta.
+//
+// Kartica prikazuje naziv predmeta i akademsku godinu jednog izvođenja iz odgovora
+// GET /pocetna (polje "enrolled"). Podaci se upisuju isključivo kroz textContent,
+// nikad kroz innerHTML, pa naziv predmeta ne može da ubaci HTML ili skriptu u stranicu.
+//
+//  Ostali treba da dodaju svoje elemente u tijelo kartice (.offering-card__body):
+//  US-7.8 oznaka uloge, US-7.9 bedž otvorenih aktivnosti i US-7.10 veze ka sadržaju su urađeni.
+import { createOfferingLinks } from "./offering-links.js";
+
+const CARD_CLASS = "offering-card";
+
+/**
+ * Proverava podatke jednog izvođenja i priprema tekst koji kartica prikazuje.
+ * Ne zavisi od DOM-a, pa se testira bez pregledača.
+ *
+ * @param {{ offeringId: string, courseName: string, academicYear: string }} offering
+ * @returns {{ id: string, title: string, yearLabel: string, ariaLabel: string }}
+ */
+export function toOfferingCardModel(offering) {
+    if (offering === null || typeof offering !== "object") {
+        throw new TypeError("Izvođenje mora biti zadato.");
+    }
+
+    const id = requireText(offering.offeringId, "offeringId");
+    const title = requireText(offering.courseName, "courseName");
+    const academicYear = requireText(offering.academicYear, "academicYear");
+
+    return {
+        id,
+        title,
+        yearLabel: `Akademska godina ${academicYear}`,
+        ariaLabel: `${title}, akademska godina ${academicYear}`,
+        roleLabel: optionalText(offering.roleLabel),
+        // US-7.9: broj otvorenih obaveza za bedž; null znači da se bedž ne prikazuje (0 ili nema broja).
+        openActivities: badgeCount(offering.openActivities)
+    };
+}
+/**
+ * US-7.9: tekst bedža za čitače ekrana i tooltip, sa ispravnim oblikom reči.
+ * 1 → "1 otvorena obaveza", 2–4 → "otvorene obaveze", ostalo (i 11–14) → "otvorenih obaveza".
+ *
+ * @param {number} count broj veći od nule
+ * @returns {string}
+ */
+export function openActivitiesLabel(count) {
+    const lastTwo = count % 100;
+    const last = count % 10;
+    if (last === 1 && lastTwo !== 11) {
+        return `${count} otvorena obaveza`;
+    }
+    if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) {
+        return `${count} otvorene obaveze`;
+    }
+    return `${count} otvorenih obaveza`;
+}
+
+/**
+ * Pravi element kartice za jedno izvođenje.
+ *
+ * @param {object} offering jedan element liste "enrolled" iz GET /pocetna
+ * @param {Document} doc dokument u kom se pravi element (u testovima zamenski)
+ * @returns {HTMLElement} element <li> spreman za listu kartica
+ */
+export function createOfferingCard(offering, doc = globalThis.document) {
+    const model = toOfferingCardModel(offering);
+    const titleId = `offering-${model.id}-title`;
+
+    const item = doc.createElement("li");
+    item.className = `${CARD_CLASS}-item`;
+
+    const card = doc.createElement("article");
+    card.className = CARD_CLASS;
+    card.setAttribute("data-offering-id", model.id);
+    card.setAttribute("aria-labelledby", titleId);
+
+    const body = doc.createElement("div");
+    body.className = `${CARD_CLASS}__body`;
+
+    const title = doc.createElement("h3");
+    title.className = `${CARD_CLASS}__title`;
+    title.id = titleId;
+    title.textContent = model.title;
+
+    const year = doc.createElement("p");
+    year.className = `${CARD_CLASS}__year`;
+    year.textContent = model.yearLabel;
+
+    body.append(title, year);
+    if (model.roleLabel !== null)
+    {
+        const role = doc.createElement("p");
+        role.className = `${CARD_CLASS}__role`;
+        role.textContent = model.roleLabel;
+        body.append(role);
+        card.setAttribute("data-role", model.roleLabel);
+    }
+
+        // US-7.10: veze ka stranici izvođenja i ka svakom otvorenom zadatku.
+    const links = createOfferingLinks(offering, doc);
+    if (links !== null) {
+        body.append(links);
+    }
+
+    // US-7.9: bedž sa brojem otvorenih obaveza; kada je broj 0, bedža nema.
+    if (model.openActivities !== null) {
+        const label = openActivitiesLabel(model.openActivities);
+        const badge = doc.createElement("span");
+        badge.className = `${CARD_CLASS}__badge`;
+        badge.textContent = String(model.openActivities);
+        badge.setAttribute("aria-label", label);
+        badge.setAttribute("title", label);
+        card.setAttribute("data-open-activities", String(model.openActivities));
+        card.append(badge);
+    }
+    card.append(body);
+    item.append(card);
+    return item;
+}
+
+
+/**
+ * Prikazuje kartice u listi. Postojeći sadržaj liste se zamenjuje,
+ * pa ponovno učitavanje ne pravi duplikate.
+ *
+ * @param {HTMLElement} list element <ul> za kartice
+ * @param {object[]} offerings lista "enrolled" iz GET /pocetna
+ * @param {Document} doc
+ * @returns {number} broj prikazanih kartica
+ */
+export function renderOfferingCards(list, offerings, doc = globalThis.document) {
+    if (!Array.isArray(offerings)) {
+        throw new TypeError("Lista izvođenja mora biti niz.");
+    }
+
+    const cards = offerings.map(offering => createOfferingCard(offering, doc));
+    list.replaceChildren(...cards);
+    return cards.length;
+}
+
+function badgeCount(value) {
+    return Number.isInteger(value) && value > 0 ? value : null;
+}
+function optionalText(value)
+{
+    return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function requireText(value, field) {
+    if (typeof value !== "string" || value.trim().length === 0) {
+        throw new TypeError(`Polje "${field}" je obavezno.`);
+    }
+    return value.trim();
+}
