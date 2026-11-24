@@ -1,0 +1,260 @@
+<mxfile host="app.diagrams.net.">
+  <diagram name="Page-1" id="H0AbKmaS0QFM1vNh6VWr">
+    <mxGraphModel dx="3637" dy="3947" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <UserObject label="" mermaidData="{&#xa;  &quot;data&quot;: &quot;flowchart LR\n    A[\&quot;AKTER: Administrator\&quot;]\n    T[\&quot;AKTER: Ostali korisnici (nastavnik, student)\&quot;]\n\n    P1([\&quot;P1: Otvaranje akademske godine\&quot;])\n    P2([\&quot;P2: Kreiranje izvođenja predmeta\&quot;])\n    P3([\&quot;P3: Promena stanja izvođenja\&quot;])\n    P4([\&quot;P4: Pregled izvođenja\&quot;])\n\n    D1[(\&quot;D1: Akademske godine\&quot;)]\n    D2[(\&quot;D2: Izvođenja predmeta\&quot;)]\n    D3[(\&quot;D3: Katalog predmeta (ST-003)\&quot;)]\n\n    A --&gt;|oznaka, datum početka, datum kraja| P1\n    P1 --&gt;|nova godina| D1\n    P1 --&gt;|potvrda ili razlog odbijanja| A\n\n    A --&gt;|id predmeta, id godine| P2\n    D3 --&gt;|predmet postoji i aktivan| P2\n    D1 --&gt;|godina postoji| P2\n    D2 --&gt;|provera duplikata para| P2\n    P2 --&gt;|novo izvođenje, stanje U pripremi| D2\n    P2 --&gt;|potvrda ili razlog odbijanja| A\n\n    A --&gt;|id izvođenja, novo stanje| P3\n    D2 --&gt;|trenutno stanje| P3\n    P3 --&gt;|ažurirano stanje| D2\n    P3 --&gt;|potvrda ili razlog odbijanja| A\n\n    T --&gt;|zahtev za pregled| P4\n    D2 --&gt;|podaci o izvođenju| P4\n    D1 --&gt;|podaci o godini| P4\n    P4 --&gt;|prikaz izvođenja| T&quot;,&#xa;  &quot;config&quot;: null,&#xa;  &quot;version&quot;: &quot;12&quot;&#xa;}" id="MYF6EIuw7JVDFJg4Z_Je-1">
+          <mxCell connectable="0" parent="1" style="group;transparentBounds=1;editIcon=1;lockedGroup=0;groupPadding=10;" vertex="1">
+            <mxGeometry as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="AKTER: Administrator" mermaidId="n:A" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;" mermaidBaseValue="AKTER: Administrator" id="MYF6EIuw7JVDFJg4Z_Je-2">
+          <mxCell parent="MYF6EIuw7JVDFJg4Z_Je-1" style="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;labelWidth=120;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" vertex="1">
+            <mxGeometry height="67" width="152" x="1853" y="95" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="AKTER: Ostali korisnici (nastavnik, student)" mermaidId="n:T" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;" mermaidBaseValue="AKTER: Ostali korisnici (nastavnik, student)" id="MYF6EIuw7JVDFJg4Z_Je-3">
+          <mxCell parent="MYF6EIuw7JVDFJg4Z_Je-1" style="html=1;whiteSpace=wrap;strokeWidth=2;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;labelWidth=120;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" vertex="1">
+            <mxGeometry height="108" width="152" x="3379" y="58" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="P1: Otvaranje akademske godine" mermaidId="n:P1" mermaidBaseStyle="html=1;rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;" mermaidBaseValue="P1: Otvaranje akademske godine" id="MYF6EIuw7JVDFJg4Z_Je-4">
+          <mxCell parent="MYF6EIuw7JVDFJg4Z_Je-1" style="html=1;rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;labelWidth=120;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" vertex="1">
+            <mxGeometry height="87" width="171" x="2339" y="85" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="P2: Kreiranje izvođenja predmeta" mermaidId="n:P2" mermaidBaseStyle="html=1;rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;" mermaidBaseValue="P2: Kreiranje izvođenja predmeta" id="MYF6EIuw7JVDFJg4Z_Je-5">
+          <mxCell parent="MYF6EIuw7JVDFJg4Z_Je-1" style="html=1;rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;labelWidth=120;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" vertex="1">
+            <mxGeometry height="87" width="171" x="432" y="118" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="P3: Promena stanja izvođenja" mermaidId="n:P3" mermaidBaseStyle="html=1;rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;" mermaidBaseValue="P3: Promena stanja izvođenja" id="MYF6EIuw7JVDFJg4Z_Je-6">
+          <mxCell parent="MYF6EIuw7JVDFJg4Z_Je-1" style="html=1;rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;labelWidth=120;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" vertex="1">
+            <mxGeometry height="67" width="171" x="1371" y="86" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="P4: Pregled izvođenja" mermaidId="n:P4" mermaidBaseStyle="html=1;rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;" mermaidBaseValue="P4: Pregled izvođenja" id="MYF6EIuw7JVDFJg4Z_Je-7">
+          <mxCell parent="MYF6EIuw7JVDFJg4Z_Je-1" style="html=1;rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;labelWidth=120;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" vertex="1">
+            <mxGeometry height="67" width="171" x="3003" y="78" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="D1: Akademske godine" mermaidId="n:D1" mermaidBaseStyle="html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;strokeWidth=2;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;" mermaidBaseValue="D1: Akademske godine" id="MYF6EIuw7JVDFJg4Z_Je-8">
+          <mxCell parent="MYF6EIuw7JVDFJg4Z_Je-1" style="html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;strokeWidth=2;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;labelWidth=120;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" vertex="1">
+            <mxGeometry height="108" width="144" x="2674" y="30" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="D2: Izvođenja predmeta" mermaidId="n:D2" mermaidBaseStyle="html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;strokeWidth=2;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;" mermaidBaseValue="D2: Izvođenja predmeta" id="MYF6EIuw7JVDFJg4Z_Je-9">
+          <mxCell parent="MYF6EIuw7JVDFJg4Z_Je-1" style="html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;strokeWidth=2;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;labelWidth=120;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" vertex="1">
+            <mxGeometry height="108" width="144" x="956" y="81" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="D3: Katalog predmeta (ST-003)" mermaidId="n:D3" mermaidBaseStyle="html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;strokeWidth=2;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;" mermaidBaseValue="D3: Katalog predmeta (ST-003)" id="MYF6EIuw7JVDFJg4Z_Je-10">
+          <mxCell parent="MYF6EIuw7JVDFJg4Z_Je-1" style="html=1;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=10;strokeWidth=2;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#28253D;fontColor=#28253D;fontFamily=Recursive;fontSize=14;shadow=1;shadowColor=#000000;shadowOffsetX=4;shadowOffsetY=4;shadowBlur=0;shadowOpacity=6;labelWidth=120;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" vertex="1">
+            <mxGeometry height="128" width="144" x="30" y="98" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="oznaka, datum početka, datum kraja" mermaidId="e:A-&gt;P1#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.39;entryX=0;entryY=0.37;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="oznaka, datum početka, datum kraja" id="MYF6EIuw7JVDFJg4Z_Je-11">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.39;entryX=0;entryY=0.37;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-4">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="2319" y="121" />
+                <mxPoint x="2319" y="118" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="nova godina" mermaidId="e:P1-&gt;D1#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.5;entryX=0;entryY=0.63;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="nova godina" id="MYF6EIuw7JVDFJg4Z_Je-12">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.5;entryX=0;entryY=0.63;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-8">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="2654" y="129" />
+                <mxPoint x="2654" y="98" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="potvrda ili razlog odbijanja" mermaidId="e:P1-&gt;A#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.63;entryX=1;entryY=0.62;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="potvrda ili razlog odbijanja" id="MYF6EIuw7JVDFJg4Z_Je-13">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.63;entryX=1;entryY=0.62;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-2">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="2025" y="140" />
+                <mxPoint x="2025" y="136" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="id predmeta, id godine" mermaidId="e:A-&gt;P2#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.57;entryX=1;entryY=0.63;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="id predmeta, id godine" id="MYF6EIuw7JVDFJg4Z_Je-14">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.57;entryX=1;entryY=0.63;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-5">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="1813" y="133" />
+                <mxPoint x="1813" y="229" />
+                <mxPoint x="1678" y="229" />
+                <mxPoint x="1457" y="229" />
+                <mxPoint x="1028" y="229" />
+                <mxPoint x="800" y="229" />
+                <mxPoint x="643" y="229" />
+                <mxPoint x="643" y="172" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="predmet postoji i aktivan" mermaidId="e:D3-&gt;P2#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.49;entryX=0;entryY=0.5;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="predmet postoji i aktivan" id="MYF6EIuw7JVDFJg4Z_Je-15">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.49;entryX=0;entryY=0.5;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-5">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points" />
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="godina postoji" mermaidId="e:D1-&gt;P2#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.36;entryX=1;entryY=0.24;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="godina postoji" id="MYF6EIuw7JVDFJg4Z_Je-16">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.36;entryX=1;entryY=0.24;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-5">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="2592" y="69" />
+                <mxPoint x="2425" y="69" />
+                <mxPoint x="2172" y="69" />
+                <mxPoint x="1929" y="69" />
+                <mxPoint x="1457" y="69" />
+                <mxPoint x="1236" y="69" />
+                <mxPoint x="1028" y="69" />
+                <mxPoint x="800" y="69" />
+                <mxPoint x="623" y="69" />
+                <mxPoint x="623" y="139" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="provera duplikata para" mermaidId="e:D2-&gt;P2#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.36;entryX=1;entryY=0.37;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="provera duplikata para" id="MYF6EIuw7JVDFJg4Z_Je-17">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.36;entryX=1;entryY=0.37;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-5">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="643" y="120" />
+                <mxPoint x="643" y="150" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="novo izvođenje, stanje U pripremi" mermaidId="e:P2-&gt;D2#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.5;entryX=0;entryY=0.63;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="novo izvođenje, stanje U pripremi" id="MYF6EIuw7JVDFJg4Z_Je-18">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.5;entryX=0;entryY=0.63;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-9">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="663" y="161" />
+                <mxPoint x="663" y="149" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="potvrda ili razlog odbijanja" mermaidId="e:P2-&gt;A#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.75;entryX=0;entryY=0.71;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="potvrda ili razlog odbijanja" id="MYF6EIuw7JVDFJg4Z_Je-19">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.75;entryX=0;entryY=0.71;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-2">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="623" y="184" />
+                <mxPoint x="623" y="271" />
+                <mxPoint x="800" y="271" />
+                <mxPoint x="1028" y="271" />
+                <mxPoint x="1457" y="271" />
+                <mxPoint x="1678" y="271" />
+                <mxPoint x="1833" y="271" />
+                <mxPoint x="1833" y="143" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="id izvođenja, novo stanje" mermaidId="e:A-&gt;P3#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.29;entryX=1;entryY=0.38;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="id izvođenja, novo stanje" id="MYF6EIuw7JVDFJg4Z_Je-20">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.29;entryX=1;entryY=0.38;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-6">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="1793" y="115" />
+                <mxPoint x="1793" y="112" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="trenutno stanje" mermaidId="e:D2-&gt;P3#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.29;entryX=0;entryY=0.38;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="trenutno stanje" id="MYF6EIuw7JVDFJg4Z_Je-21">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.29;entryX=0;entryY=0.38;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-6">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="1351" y="113" />
+                <mxPoint x="1351" y="112" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="ažurirano stanje" mermaidId="e:P3-&gt;D2#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.61;entryX=1;entryY=0.49;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="ažurirano stanje" id="MYF6EIuw7JVDFJg4Z_Je-22">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.61;entryX=1;entryY=0.49;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-9">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="1120" y="127" />
+                <mxPoint x="1120" y="134" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="potvrda ili razlog odbijanja" mermaidId="e:P3-&gt;A#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.61;entryX=0;entryY=0.43;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="potvrda ili razlog odbijanja" id="MYF6EIuw7JVDFJg4Z_Je-23">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.61;entryX=0;entryY=0.43;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-2">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="1793" y="127" />
+                <mxPoint x="1793" y="124" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="zahtev za pregled" mermaidId="e:T-&gt;P4#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.36;entryX=1;entryY=0.38;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="zahtev za pregled" id="MYF6EIuw7JVDFJg4Z_Je-24">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=0;exitY=0.36;entryX=1;entryY=0.38;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-7">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="3194" y="97" />
+                <mxPoint x="3194" y="104" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="podaci o izvođenju" mermaidId="e:D2-&gt;P4#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.7;entryX=0;entryY=0.61;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="podaci o izvođenju" id="MYF6EIuw7JVDFJg4Z_Je-25">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.7;entryX=0;entryY=0.61;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-7">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="1120" y="156" />
+                <mxPoint x="1120" y="197" />
+                <mxPoint x="1236" y="197" />
+                <mxPoint x="1457" y="197" />
+                <mxPoint x="1678" y="197" />
+                <mxPoint x="1929" y="197" />
+                <mxPoint x="2425" y="197" />
+                <mxPoint x="2592" y="197" />
+                <mxPoint x="2746" y="197" />
+                <mxPoint x="2911" y="197" />
+                <mxPoint x="2983" y="197" />
+                <mxPoint x="2983" y="119" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="podaci o godini" mermaidId="e:D1-&gt;P4#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.5;entryX=0;entryY=0.38;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="podaci o godini" id="MYF6EIuw7JVDFJg4Z_Je-26">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.5;entryX=0;entryY=0.38;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-7">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="2983" y="84" />
+                <mxPoint x="2983" y="104" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="prikaz izvođenja" mermaidId="e:P4-&gt;T#0" mermaidBaseStyle="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=16;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.61;entryX=0;entryY=0.63;strokeWidth=2;targetPerimeterSpacing=4;" mermaidBaseValue="prikaz izvođenja" id="MYF6EIuw7JVDFJg4Z_Je-27">
+          <mxCell edge="1" parent="MYF6EIuw7JVDFJg4Z_Je-1" source="MYF6EIuw7JVDFJg4Z_Je-7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;curved=0;startArrow=none;endArrow=block;endSize=8;jumpStyle=arc;jumpSize=12;strokeColor=#000000;html=1;fontSize=14;labelBackgroundColor=#cccccc;fontFamily=Recursive;fontColor=#28253D;exitX=1;exitY=0.61;entryX=0;entryY=0.63;strokeWidth=2;targetPerimeterSpacing=4;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DRecursive;" target="MYF6EIuw7JVDFJg4Z_Je-3">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="3359" y="119" />
+                <mxPoint x="3359" y="126" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <mxCell id="MYF6EIuw7JVDFJg4Z_Je-28" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;div style=&quot;text-align: justify;&quot;&gt;&lt;b style=&quot;background-color: transparent; color: light-dark(#000000, var(--ge-light-color, #ffffff));&quot;&gt;&lt;font style=&quot;font-size: 18px;&quot;&gt;GRANICE PRISTUPA&lt;/font&gt;&lt;/b&gt;&lt;/div&gt;&lt;b&gt;&lt;font size=&quot;3&quot;&gt;&lt;div style=&quot;text-align: justify;&quot;&gt;&lt;b style=&quot;background-color: transparent; color: light-dark(#000000, var(--ge-light-color, #ffffff));&quot;&gt;P1, P2, P3: samo Administrator.&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;text-align: justify;&quot;&gt;&lt;b style=&quot;background-color: transparent; color: light-dark(#000000, var(--ge-light-color, #ffffff));&quot;&gt;P4: čitanje; korisnik vidi samo izvođenja na kojima je član (ST-005, ST-006).&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;text-align: justify;&quot;&gt;&lt;b style=&quot;background-color: transparent; color: light-dark(#000000, var(--ge-light-color, #ffffff));&quot;&gt;D3 (katalog predmeta): samo čitanje, vlasnik je ST-003.&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;text-align: justify;&quot;&gt;&lt;b style=&quot;background-color: transparent; color: light-dark(#000000, var(--ge-light-color, #ffffff));&quot;&gt;Odbijena operacija ne menja podatke u skladištima.&lt;/b&gt;&lt;/div&gt;&lt;/font&gt;&lt;/b&gt;" vertex="1">
+          <mxGeometry height="128" width="700" x="50" y="360" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
