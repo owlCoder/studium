@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Api.Authentication;
 using Application.Materials;
+using Domain.Materials;
 using Infrastructure.Materials;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -270,6 +271,63 @@ public sealed class MaterialEndpointsApiTests
     public async Task Remove_UnknownMaterial_Returns404()
     {
         var response = await RemoveAsync(TeacherId, Guid.NewGuid(), Guid.NewGuid());
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    // Uklanjanje veze: DELETE /materials/{materialId}/links/{linkId} (US-07)
+
+    // HTTP endpoint za dodavanje veze još ne postoji, pa se veza upisuje direktno u repozitorijum API-ja.
+    private async Task<(Guid MaterialId, Guid LinkId)> AddLinkAsTeacherAsync()
+    {
+        var materialId = await CreateMaterialAsTeacherAsync();
+        var links = _factory.Services.GetRequiredService<IMaterialExternalLinkRepository>();
+        var link = new MaterialExternalLink(Guid.NewGuid(), materialId, "https://example.org/video");
+        await links.AddAsync(link);
+        return (materialId, link.Id);
+    }
+
+    private Task<HttpResponseMessage> RemoveLinkAsync(Guid? userId, Guid materialId, Guid linkId) =>
+        _client.SendAsync(Request(HttpMethod.Delete, $"/materials/{materialId}/links/{linkId}", userId));
+
+    [Test]
+    public async Task RemoveLink_WithoutUser_Returns401()
+    {
+        var (materialId, linkId) = await AddLinkAsTeacherAsync();
+
+        var response = await RemoveLinkAsync(null, materialId, linkId);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task RemoveLink_UserNotStaff_Returns403AndLinkStays()
+    {
+        var (materialId, linkId) = await AddLinkAsTeacherAsync();
+
+        var response = await RemoveLinkAsync(OtherUserId, materialId, linkId);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        var links = _factory.Services.GetRequiredService<IMaterialExternalLinkRepository>();
+        Assert.That(await links.GetByIdAsync(linkId), Is.Not.Null);
+    }
+
+    [Test]
+    public async Task RemoveLink_Staff_Returns204ThenSecondRemoveReturns404()
+    {
+        var (materialId, linkId) = await AddLinkAsTeacherAsync();
+
+        var first = await RemoveLinkAsync(TeacherId, materialId, linkId);
+        var second = await RemoveLinkAsync(TeacherId, materialId, linkId);
+
+        Assert.That(first.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        Assert.That(second.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task RemoveLink_UnknownMaterial_Returns404()
+    {
+        var response = await RemoveLinkAsync(TeacherId, Guid.NewGuid(), Guid.NewGuid());
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
