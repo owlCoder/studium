@@ -45,11 +45,14 @@ public sealed record DownloadMaterialAttachmentResult(
 /// Pravo ima korisnik koji je nastavno osoblje tog izvođenja (ST-005) ili aktivan student
 /// tog izvođenja (ST-006). Provera se radi pri svakom pozivu, bez pamćenja ranijeg ishoda,
 /// pa prekinuto članstvo odmah zatvara pristup.
-/// Redosled: materijal mora postojati → pravo nad izvođenjem materijala → prilog mora
-/// postojati i pripadati tom materijalu → otvara se sadržaj. Prilog se traži tek posle
-/// provere prava, pa korisnik bez prava ne može da sazna koji prilozi postoje.
-/// NAPOMENA: zabrana pristupa studentu za nacrt i povučen materijal je tačka 2 iste priče
-/// i nije deo ovog koraka.
+/// Tačka 2: student preuzima samo iz objavljenog materijala. Za nacrt i povučen materijal
+/// student dobija isti ishod kao za nepostojeći materijal (<see cref="DownloadMaterialAttachmentOutcome.MaterialNotFound"/>),
+/// pa ni direktnom adresom ne saznaje da takav materijal postoji. Osoblje izvođenja
+/// pristupa u svakom stanju.
+/// Redosled: materijal mora postojati → pravo nad izvođenjem materijala → za studenta
+/// materijal mora biti objavljen → prilog mora postojati i pripadati tom materijalu →
+/// otvara se sadržaj. Prilog se traži tek posle provere prava, pa korisnik bez prava
+/// ne može da sazna koji prilozi postoje.
 /// </summary>
 public sealed class DownloadMaterialAttachmentHandler
 {
@@ -92,11 +95,16 @@ public sealed class DownloadMaterialAttachmentHandler
         if (material is null)
             return new(DownloadMaterialAttachmentOutcome.MaterialNotFound);
 
-        if (!await HasAccessToMaterialAsync(command.RequestingUserId, material, cancellationToken))
+        var access = await GetAccessAsync(command.RequestingUserId, material, cancellationToken);
+        if (access == MaterialAccess.None)
         {
             throw new MaterialAccessDeniedException(
                 "Prilog mogu preuzeti samo nastavno osoblje i upisani studenti izvođenja materijala.");
         }
+
+        // Tačka 2: nacrt i povučen materijal su za studenta kao da ne postoje.
+        if (access == MaterialAccess.Student && !material.PublicationState.IsVisibleToStudents())
+            return new(DownloadMaterialAttachmentOutcome.MaterialNotFound);
 
         var attachment = await _attachments.GetByIdAsync(command.AttachmentId, cancellationToken);
         if (attachment is null || attachment.MaterialId != material.Id)
@@ -109,17 +117,29 @@ public sealed class DownloadMaterialAttachmentHandler
         return new(DownloadMaterialAttachmentOutcome.Found, attachment, content);
     }
 
-    private async Task<bool> HasAccessToMaterialAsync(
+    private async Task<MaterialAccess> GetAccessAsync(
         Guid userId,
         Material material,
         CancellationToken cancellationToken)
     {
         if (userId == Guid.Empty)
-            return false;
+            return MaterialAccess.None;
 
         if (await _staffChecker.IsStaffOnOfferingAsync(userId, material.CourseOfferingId, cancellationToken))
-            return true;
+            return MaterialAccess.Staff;
 
-        return await _memberships.IsActiveStudentAsync(userId, material.CourseOfferingId, cancellationToken);
+        return await _memberships.IsActiveStudentAsync(userId, material.CourseOfferingId, cancellationToken)
+            ? MaterialAccess.Student
+            : MaterialAccess.None;
+    }
+
+    /// <summary>
+    /// Osnov po kom korisnik pristupa materijalu; osoblje ima prednost nad članstvom.
+    /// </summary>
+    private enum MaterialAccess
+    {
+        None,
+        Staff,
+        Student
     }
 }

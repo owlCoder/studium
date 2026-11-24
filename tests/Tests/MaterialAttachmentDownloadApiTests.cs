@@ -24,12 +24,15 @@ public sealed class MaterialAttachmentDownloadApiTests
     private static readonly Guid OfferingId = Guid.NewGuid();
     private static readonly Guid StudentId = Guid.NewGuid();
     private static readonly Guid OtherStudentId = Guid.NewGuid();
+    private static readonly Guid TeacherId = Guid.NewGuid();
     private static readonly byte[] FileBytes = Encoding.UTF8.GetBytes("sadrzaj skripte");
 
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
     private Material _material = null!;
     private MaterialAttachment _attachment = null!;
+    private Material _draft = null!;
+    private MaterialAttachment _draftAttachment = null!;
 
     [SetUp]
     public async Task SetUp()
@@ -39,11 +42,19 @@ public sealed class MaterialAttachmentDownloadApiTests
         var storage = new DownloadMaterialAttachmentHandlerTests.InMemoryAttachmentFileStorage();
 
         _material = new Material(Guid.NewGuid(), OfferingId, "Predavanje 1", null);
+        _material.Publish();
         await materials.AddAsync(_material);
         var key = await storage.SaveAsync(new MemoryStream(FileBytes));
         _attachment = new MaterialAttachment(
             Guid.NewGuid(), _material.Id, "skripta.pdf", "application/pdf", FileBytes.Length, key);
         await attachments.AddAsync(_attachment);
+
+        _draft = new Material(Guid.NewGuid(), OfferingId, "Nacrt vežbi", null);
+        await materials.AddAsync(_draft);
+        var draftKey = await storage.SaveAsync(new MemoryStream(FileBytes));
+        _draftAttachment = new MaterialAttachment(
+            Guid.NewGuid(), _draft.Id, "nacrt.pdf", "application/pdf", FileBytes.Length, draftKey);
+        await attachments.AddAsync(_draftAttachment);
 
         var memberships = new InMemoryMembershipReader(
         [
@@ -58,6 +69,8 @@ public sealed class MaterialAttachmentDownloadApiTests
                 services.AddSingleton<IMaterialAttachmentRepository>(attachments);
                 services.AddSingleton<IAttachmentFileStorage>(storage);
                 services.AddSingleton<IMembershipReader>(memberships);
+                services.AddSingleton<IOfferingStaffChecker>(
+                    new InMemoryOfferingStaffChecker([(TeacherId, OfferingId)]));
             }));
         _client = _factory.CreateClient();
     }
@@ -132,5 +145,36 @@ public sealed class MaterialAttachmentDownloadApiTests
         var response = await _client.GetAsync(Url(materialId: Guid.NewGuid()));
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    // --- Tačka 2: nacrt nedostupan studentu i preko direktne adrese ---
+
+    [Test]
+    public async Task Get_EnrolledStudent_DraftByDirectAddress_ReturnsNotFoundWithoutContent()
+    {
+        LoginAs(StudentId);
+
+        var response = await _client.GetAsync(Url(_draftAttachment.Id, _draft.Id));
+        var body = await response.Content.ReadAsByteArrayAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(body, Is.Not.EqualTo(FileBytes));
+        });
+    }
+
+    [Test]
+    public async Task Get_Teacher_DraftAttachment_ReceivesFile()
+    {
+        LoginAs(TeacherId);
+
+        var response = await _client.GetAsync(Url(_draftAttachment.Id, _draft.Id));
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(await response.Content.ReadAsByteArrayAsync(), Is.EqualTo(FileBytes));
+        });
     }
 }
