@@ -13,6 +13,8 @@ namespace Tests.ConsoleUi;
 public sealed class EditMaterialDetailsFormTests
 {
     private static readonly DateTimeOffset Now = new(2026, 11, 10, 10, 0, 0, TimeSpan.Zero);
+    private static readonly Guid TeacherId = Guid.NewGuid();
+    private static readonly Guid OtherUserId = Guid.NewGuid();
 
     private InMemoryMaterialRepository _repository = null!;
     private Material _material = null!;
@@ -25,17 +27,36 @@ public sealed class EditMaterialDetailsFormTests
         await _repository.AddAsync(_material);
     }
 
-    private async Task<(bool Saved, string Output)> RunFormAsync(string userInput, Guid? materialId = null)
+    private async Task<(bool Saved, string Output)> RunFormAsync(
+        string userInput, Guid? materialId = null, Guid? userId = null)
     {
         var output = new StringWriter();
         var form = new EditMaterialDetailsForm(
             _repository,
-            new UpdateMaterialDetailsHandler(_repository, new FixedTimeProvider(Now)),
+            new UpdateMaterialDetailsHandler(
+                _repository,
+                new InMemoryOfferingStaffChecker([(TeacherId, _material.CourseOfferingId)]),
+                new FixedTimeProvider(Now)),
             new StringReader(userInput),
             output);
 
-        var saved = await form.RunAsync(materialId ?? _material.Id);
+        var saved = await form.RunAsync(userId ?? TeacherId, materialId ?? _material.Id);
         return (saved, output.ToString());
+    }
+
+    [Test]
+    public async Task RunAsync_UserNotStaff_ChangeIsNotSaved()
+    {
+        var (saved, output) = await RunFormAsync("Novi naziv\n\n", userId: OtherUserId);
+
+        var stored = await _repository.GetByIdAsync(_material.Id);
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved, Is.False);
+            Assert.That(output, Does.Contain("Izmena nije sačuvana: Samo nastavno osoblje izvođenja može menjati materijal."));
+            Assert.That(stored!.Name, Is.EqualTo("Predavanje 1"));
+            Assert.That(stored.LastModifiedAt, Is.Null);
+        });
     }
 
     [Test]
