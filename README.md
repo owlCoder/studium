@@ -31,7 +31,7 @@ Priloženi **demo katalog predmeta** prikazuje tok `API/ConsoleUi → Applicatio
 
 ### Registar podržanih funkcija (ST-007, US-7.6)
 
-Sistem vodi listu podržanih vrsta aktivnosti (obaveštenje, materijal, zadatak) i funkcionalnih oblasti, kako početni pregled ne bi prikazivao veze ka funkcijama koje ne rade. Lista je u `src/Infrastructure/Dashboard/SupportedFeatures.cs`, a pravila u `src/Domain/Dashboard/FeatureRegistry.cs`. Nepodržana vrsta aktivnosti se ne broji u otvorenim aktivnostima (US-7.3) i nema vezu na početnoj strani (US-7.4, US-7.10). `GET /features` vraća podržane vrste i oblasti, a `GET /features/activity-types/{vrsta}` proverava da li je vrsta podržana; isti spisak ispisuje i konzolna aplikacija (`dotnet run --project src/ConsoleUi`). Testovi: `tests/Tests/Domain/Dashboard`, `tests/Tests/Application/Dashboard`, `tests/Tests/Infrastructure/Dashboard`.
+Sistem vodi listu podržanih vrsta aktivnosti (obaveštenje, materijal, zadatak) i funkcionalnih oblasti, kako početni pregled ne bi prikazivao veze ka funkcijama koje ne rade. Lista je u `src/Infrastructure/Dashboard/SupportedFeatures.cs`, a pravila u `src/Domain/Dashboard/FeatureRegistry.cs`. Nepodržana vrsta aktivnosti se ne broji u otvorenim aktivnostima (US-7.3) i nema vezu na početnoj strani (US-7.4, US-7.10). `GET /features` vraća podržane vrste i oblasti, a `GET /features/activity-types/{vrsta}` proverava da li je vrsta podržana; isti spisak ispisuje i konzolna aplikacija (`dotnet run --project src/ConsoleUi -- st-007`). Testovi: `tests/Tests/Domain/Dashboard`, `tests/Tests/Application/Dashboard`, `tests/Tests/Infrastructure/Dashboard`.
 
 ### Testovi prihvatanja početnog pregleda (ST-007, US-7.12)
 
