@@ -1,13 +1,14 @@
 using Application.Materials;
 using ConsoleUi.Materials;
 using Domain.Materials;
+using Infrastructure.Access;
 using Infrastructure.Materials;
 
 namespace ConsoleUi.Scenarios;
 
 /// <summary>
 /// Demonstracija ST-009 (nastavni materijali) nad sintetičkim podacima u memoriji:
-/// kreiranje i izmena materijala, otpremanje priloga i spoljne veze.
+/// kreiranje i izmena materijala, otpremanje priloga, spoljne veze i lista materijala za studenta.
 /// Pokretanje: <c>dotnet run --project src/ConsoleUi -- st-009</c>.
 /// Stvarna provera osoblja (ST-005) i prijava (ST-002) još nisu integrisane.
 /// </summary>
@@ -97,5 +98,23 @@ public static class St009Scenario
         new ExternalLinkListView(Console.Out).Show(
             demoMaterial.Id,
             await externalLinks.ListByMaterialAsync(demoMaterial.Id));
+
+        // ST-009, US-10: lista materijala predmeta za studenta (naziv i kratak opis).
+        // Sintetički student je upisan na izvođenje demonstracionog materijala samo za ovu
+        // demonstraciju; stvarna članstva (ST-006) još nisu povezana. Prikazuje se samo
+        // objavljen materijal, pa se nacrt iz forme za kreiranje ne vidi.
+        Console.WriteLine();
+        demoMaterial.Publish();
+        await materials.UpdateAsync(demoMaterial);
+        var demoStudentId = Guid.NewGuid();
+        var studentMaterialList = new StudentMaterialListView(
+            new ListPublishedMaterialsForStudentHandler(
+                materials,
+                new InMemoryMembershipReader(
+                [
+                    new OfferingMembership(demoStudentId, demoMaterial.CourseOfferingId, MembershipKind.Student, true)
+                ])),
+            Console.Out);
+        await studentMaterialList.ShowAsync(demoStudentId, demoMaterial.CourseOfferingId);
     }
 }
