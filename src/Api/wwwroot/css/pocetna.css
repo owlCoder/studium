@@ -1,0 +1,328 @@
+/* US-7.7: početna strana i kartice izvođenja. */
+
+:root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --text: #1c2330;
+    --muted: #586070;
+    --border: #d9dde4;
+    --accent: #1f5f8b;
+    --radius: 10px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    padding: 1rem 1.5rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+    .page-header h1 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: var(--accent);
+    }
+
+.session-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+    .session-form input,
+    .session-form button {
+        min-height: 2.5rem;
+        padding: 0 0.75rem;
+        font: inherit;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+    }
+
+    .session-form button {
+        color: #ffffff;
+        background: var(--accent);
+        border-color: var(--accent);
+        cursor: pointer;
+    }
+
+.page {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.home-status {
+    margin: 0 0 1rem;
+    color: var(--muted);
+}
+
+.home {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.home-section__title {
+    margin: 0 0 1rem;
+    font-size: 1.15rem;
+}
+
+/* Mreža se sama prilagođava širini: kartica nikad nije uža od 16rem,
+   osim kada je ekran uži od toga, pa tada zauzima cijelu širinu. */
+.home-section__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.offering-card-item {
+    display: flex;
+    min-width: 0;
+}
+
+.offering-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.offering-card__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.offering-card__title {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.offering-card__year {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+/* US-7.9: bedž sa brojem otvorenih obaveza u gornjem desnom uglu kartice. */
+.offering-card__badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    padding: 0 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* Naslov ne sme da ide ispod bedža. */
+.offering-card[data-open-activities] .offering-card__title {
+    padding-right: 2.5rem;
+}
+
+
+/* US-7.8: oznaka uloge na kartici izvođenja u „Predajem”.*/
+.offering-card__role {
+    margin: 0.25rem 0 0;
+    padding: 0.125rem 0.625rem;
+    color: var(--accent);
+    background: #e6eff6;
+    border: 1px solid #b9d0e2;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.home-status[data-state] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.home-status[hidden] {
+    display: none;
+}
+
+.home-status[data-state="loading"]::before {
+    content: "";
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: home-status-spin 0.8s linear infinite;
+}
+
+.home-status[data-state="empty"] {
+    color: var(--text);
+}
+
+.home-status[data-state="error"] {
+    color: #8a1c1c;
+    background: #fdf1f1;
+    border-color: #e6b8b8;
+}
+
+.home-status__text {
+    flex: 1 1 12rem;
+}
+
+.home-status__retry {
+    min-height: 2.5rem;
+    padding: 0 0.75rem;
+    font: inherit;
+    color: #ffffff;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.home-updated {
+    margin: 0 0 1rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+@keyframes home-status-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-status[data-state="loading"]::before {
+        animation: none;
+    }
+}
+
+/* Uzak ekran (telefon): jedna kolona, manji razmaci, formular preko cijele širine. */
+@media (max-width: 30rem) {
+    .page-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .session-form,
+    .session-form input {
+        width: 100%;
+    }
+
+        .session-form input {
+            flex: 1 1 auto;
+        }
+
+    .page {
+        padding: 1rem;
+    }
+
+    .home {
+        gap: 1.5rem;
+    }
+
+    .home-section__list {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .offering-card {
+        padding: 0.875rem 1rem;
+    }
+}
+
+/* US-7.10: veze ka stranici izvođenja i ka otvorenim zadacima na kartici. */
+.offering-card__links {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+}
+
+.offering-card__link-list,
+.offering-card__task-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.offering-card__tasks-title {
+    margin: 0.75rem 0 0.375rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.offering-card__task-list {
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.offering-card__link {
+    display: inline-block;
+    padding: 0.375rem 0.625rem;
+    border-radius: 6px;
+    color: var(--accent);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+    .offering-card__link:hover {
+        background: var(--bg);
+        text-decoration: underline;
+    }
+
+    .offering-card__link:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+/* US-7.10: rezultat otvaranja veze (iznad kartica). */
+.content-result {
+    margin: 0 0 1rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+}
