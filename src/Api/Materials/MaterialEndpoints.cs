@@ -27,6 +27,9 @@ public static class MaterialEndpoints
         // US-07: uklanjanje jednog priloga (zapis, pa datoteka iz skladišta).
         app.MapDelete("/materials/{materialId:guid}/attachments/{attachmentId:guid}", RemoveAttachmentAsync);
 
+        // US-07: uklanjanje jedne spoljne veze.
+        app.MapDelete("/materials/{materialId:guid}/links/{linkId:guid}", RemoveExternalLinkAsync);
+
         return app;
     }
 
@@ -101,6 +104,29 @@ public static class MaterialEndpoints
                 cancellationToken);
 
             return outcome == RemoveMaterialAttachmentOutcome.Removed
+                ? Results.NoContent()
+                : Results.NotFound();
+        });
+    }
+
+    // 204 kada je veza uklonjena; 404 ako materijal ili veza ne postoji ili veza pripada drugom materijalu.
+    private static async Task<IResult> RemoveExternalLinkAsync(
+        Guid materialId,
+        Guid linkId,
+        HttpContext httpContext,
+        RemoveMaterialExternalLinkHandler handler,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(httpContext, out var userId))
+            return Results.Unauthorized();
+
+        return await ExecuteAsync(validationKey: null, async () =>
+        {
+            var outcome = await handler.HandleAsync(
+                new RemoveMaterialExternalLinkCommand(userId, materialId, linkId),
+                cancellationToken);
+
+            return outcome == RemoveMaterialExternalLinkOutcome.Removed
                 ? Results.NoContent()
                 : Results.NotFound();
         });

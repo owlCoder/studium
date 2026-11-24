@@ -135,6 +135,7 @@ builder.Services.AddScoped<RemoveMaterialAttachmentHandler>();
 // HTTP endpoint za dodavanje veze još nije dodat.
 builder.Services.AddSingleton<IMaterialExternalLinkRepository, InMemoryMaterialExternalLinkRepository>();
 builder.Services.AddScoped<AddMaterialExternalLinkHandler>();
+builder.Services.AddScoped<RemoveMaterialExternalLinkHandler>();
 
 var app = builder.Build();
 
