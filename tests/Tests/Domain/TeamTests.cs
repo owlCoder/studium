@@ -110,4 +110,56 @@ public sealed class TeamTests
             Assert.That(creation.Error, Is.Not.Null.And.Not.Empty);
         });
     }
+    [Test]
+    public void StudentTeam_ExposesNoPublicSetters()
+    {
+        var writable = typeof(StudentTeam)
+            .GetProperties()
+            .Where(property => property.SetMethod is { IsPublic: true })
+            .Select(property => property.Name)
+            .ToArray();
+
+        Assert.That(writable, Is.Empty);
+    }
+
+    [Test]
+    public void MemberStudentIds_IsReadOnlyView()
+    {
+        var team = StudentTeam.TryCreate(Offering, Activity, "Tim A", Creator, 2, 5).Team!;
+
+        var members = team.MemberStudentIds;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(members, Is.EqualTo(new[] { Creator }));
+            Assert.That(((ICollection<Guid>)members).IsReadOnly, Is.True);
+            Assert.Throws<NotSupportedException>(() => ((ICollection<Guid>)members).Add(Guid.NewGuid()));
+            Assert.That(team.MemberStudentIds, Is.EqualTo(new[] { Creator }));
+        });
+    }
+
+    [Test]
+    public void PendingInvitationStudentIds_IsReadOnlyView()
+    {
+        var team = StudentTeam.TryCreate(Offering, Activity, "Tim A", Creator, 2, 5).Team!;
+
+        var invitations = team.PendingInvitationStudentIds;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(invitations, Is.Empty);
+            Assert.That(((ICollection<Guid>)invitations).IsReadOnly, Is.True);
+            Assert.Throws<NotSupportedException>(() => ((ICollection<Guid>)invitations).Add(Guid.NewGuid()));
+        });
+    }
+
+    [Test]
+    public void MemberStudentIds_ViewCannotBeMutatedThroughReturnedCollection()
+    {
+        var team = StudentTeam.TryCreate(Offering, Activity, "Tim A", Creator, 2, 5).Team!;
+        var stranger = Guid.NewGuid();
+
+        Assert.Throws<NotSupportedException>(() => ((IList<Guid>)team.MemberStudentIds).Add(stranger));
+        Assert.That(team.MemberStudentIds, Does.Not.Contain(stranger));
+    }
 }
