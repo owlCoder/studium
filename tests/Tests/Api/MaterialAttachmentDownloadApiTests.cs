@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Tests.Application;
 
-namespace Tests;
+namespace Tests.Api;
 
 /// <summary>
 /// ST-009, „Zaštita pristupa materijalu i prilozima”, tačka 1, preko HTTP-a:
@@ -25,6 +25,9 @@ public sealed class MaterialAttachmentDownloadApiTests
     private static readonly Guid StudentId = Guid.NewGuid();
     private static readonly Guid OtherStudentId = Guid.NewGuid();
     private static readonly Guid TeacherId = Guid.NewGuid();
+    private static readonly Guid NeverEnrolledStudentId = Guid.NewGuid();
+    private static readonly Guid EndedStudentId = Guid.NewGuid();
+    private static readonly Guid LeavingStudentId = Guid.NewGuid();
     private static readonly byte[] FileBytes = Encoding.UTF8.GetBytes("sadrzaj skripte");
 
     private WebApplicationFactory<Program> _factory = null!;
@@ -33,6 +36,7 @@ public sealed class MaterialAttachmentDownloadApiTests
     private MaterialAttachment _attachment = null!;
     private Material _draft = null!;
     private MaterialAttachment _draftAttachment = null!;
+    private ChangeableMembershipReader _memberships = null!;
 
     [SetUp]
     public async Task SetUp()
@@ -56,11 +60,15 @@ public sealed class MaterialAttachmentDownloadApiTests
             Guid.NewGuid(), _draft.Id, "nacrt.pdf", "application/pdf", FileBytes.Length, draftKey);
         await attachments.AddAsync(_draftAttachment);
 
-        var memberships = new InMemoryMembershipReader(
+        // NeverEnrolledStudentId namerno nema nijedan zapis o članstvu.
+        _memberships = new ChangeableMembershipReader(
         [
             new OfferingMembership(StudentId, OfferingId, MembershipKind.Student, true),
-            new OfferingMembership(OtherStudentId, Guid.NewGuid(), MembershipKind.Student, true)
+            new OfferingMembership(OtherStudentId, Guid.NewGuid(), MembershipKind.Student, true),
+            new OfferingMembership(EndedStudentId, OfferingId, MembershipKind.Student, false),
+            new OfferingMembership(LeavingStudentId, OfferingId, MembershipKind.Student, true)
         ]);
+        var memberships = _memberships;
 
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureTestServices(services =>
@@ -176,5 +184,131 @@ public sealed class MaterialAttachmentDownloadApiTests
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(await response.Content.ReadAsByteArrayAsync(), Is.EqualTo(FileBytes));
         });
+    }
+
+    // --- Tačka 3: student bez članstva ne može preuzeti prilog direktnom adresom ---
+    // Student zna tačnu adresu priloga objavljenog materijala (npr. dobio ju je od kolege).
+
+    private async Task AssertDeniedWithoutAnyFileTraceAsync(HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadAsByteArrayAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+            Assert.That(body, Is.Not.EqualTo(FileBytes));
+            Assert.That(response.Content.Headers.ContentDisposition, Is.Null,
+                "Odbijen odgovor ne sme da otkrije izvorni naziv datoteke.");
+            Assert.That(Encoding.UTF8.GetString(body), Does.Not.Contain(_attachment.OriginalFileName));
+        });
+    }
+
+    [Test]
+    public async Task Get_StudentNeverEnrolled_DirectAddress_IsForbiddenWithoutFileTrace()
+    {
+        LoginAs(NeverEnrolledStudentId);
+
+        var response = await _client.GetAsync(Url());
+
+        await AssertDeniedWithoutAnyFileTraceAsync(response);
+    }
+
+    [Test]
+    public async Task Get_StudentWithEndedMembership_DirectAddress_IsForbiddenWithoutFileTrace()
+    {
+        LoginAs(EndedStudentId);
+
+        var response = await _client.GetAsync(Url());
+
+        await AssertDeniedWithoutAnyFileTraceAsync(response);
+    }
+
+    [Test]
+    public async Task Get_StudentOfAnotherOffering_DirectAddress_IsForbiddenWithoutFileTrace()
+    {
+        LoginAs(OtherStudentId);
+
+        var response = await _client.GetAsync(Url());
+
+        await AssertDeniedWithoutAnyFileTraceAsync(response);
+    }
+
+    [Test]
+    public async Task Get_StudentLosesMembership_SameAddressStopsWorkingImmediately()
+    {
+        LoginAs(LeavingStudentId);
+
+        var first = await _client.GetAsync(Url());
+        _memberships.End(LeavingStudentId, OfferingId);
+        var second = await _client.GetAsync(Url());
+
+        Assert.That(first.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        await AssertDeniedWithoutAnyFileTraceAsync(second);
+    }
+
+    [Test]
+    public async Task Get_StudentWithoutMembership_UnknownAttachment_GetsSameDenialAsExistingOne()
+    {
+        // Student bez članstva ne sme pogađanjem adresa da sazna koji prilozi postoje.
+        LoginAs(NeverEnrolledStudentId);
+
+        var existing = await _client.GetAsync(Url());
+        var unknown = await _client.GetAsync(Url(Guid.NewGuid()));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(existing.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+            Assert.That(unknown.StatusCode, Is.EqualTo(existing.StatusCode));
+        });
+    }
+
+    [Test]
+    public async Task Get_StudentWithoutMembership_DraftAddress_IsForbidden()
+    {
+        LoginAs(NeverEnrolledStudentId);
+
+        var response = await _client.GetAsync(Url(_draftAttachment.Id, _draft.Id));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    /// <summary>
+    /// Članstva koja test može da promeni između dva zahteva (npr. prekid upisa).
+    /// </summary>
+    private sealed class ChangeableMembershipReader : IMembershipReader
+    {
+        private readonly List<OfferingMembership> _memberships;
+
+        public ChangeableMembershipReader(IEnumerable<OfferingMembership> memberships) =>
+            _memberships = memberships.ToList();
+
+        public void End(Guid userId, Guid offeringId)
+        {
+            lock (_memberships)
+            {
+                var index = _memberships.FindIndex(m => m.UserId == userId && m.OfferingId == offeringId);
+                _memberships[index] = _memberships[index] with { IsActive = false };
+            }
+        }
+
+        public Task<bool> IsActiveStudentAsync(Guid userId, Guid offeringId, CancellationToken cancellationToken = default)
+        {
+            lock (_memberships)
+            {
+                return Task.FromResult(_memberships.Any(m =>
+                    m.UserId == userId && m.OfferingId == offeringId &&
+                    m.Kind == MembershipKind.Student && m.IsActive));
+            }
+        }
+
+        public Task<bool> IsEngagedStaffAsync(Guid userId, Guid offeringId, CancellationToken cancellationToken = default)
+        {
+            lock (_memberships)
+            {
+                return Task.FromResult(_memberships.Any(m =>
+                    m.UserId == userId && m.OfferingId == offeringId &&
+                    m.Kind is MembershipKind.Teacher or MembershipKind.Assistant && m.IsActive));
+            }
+        }
     }
 }
