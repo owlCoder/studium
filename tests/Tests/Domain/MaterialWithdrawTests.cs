@@ -71,4 +71,55 @@ public sealed class MaterialWithdrawTests
         Assert.That(() => material.Withdraw(), Throws.TypeOf<InvalidOperationException>());
         Assert.That(material.PublicationState, Is.EqualTo(MaterialPublicationState.Withdrawn));
     }
+
+    // US-09, tačka 2: povučen materijal se može ponovo objaviti.
+
+    [Test]
+    public void Publish_Withdrawn_ChangesBackToPublished()
+    {
+        var material = Published();
+        material.Withdraw();
+
+        material.Publish();
+
+        Assert.That(material.PublicationState, Is.EqualTo(MaterialPublicationState.Published));
+    }
+
+    [Test]
+    public void Publish_Withdrawn_KeepsNameAndDescription()
+    {
+        var material = Published();
+        material.Withdraw();
+
+        material.Publish();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(material.Name, Is.EqualTo("Predavanje 1"));
+            Assert.That(material.Description, Is.EqualTo("Uvod"));
+        });
+    }
+
+    [Test]
+    public void PublishAndWithdraw_CanRepeatSeveralTimes()
+    {
+        var material = Published();
+
+        for (var i = 0; i < 3; i++)
+        {
+            material.Withdraw();
+            Assert.That(material.PublicationState, Is.EqualTo(MaterialPublicationState.Withdrawn));
+            material.Publish();
+            Assert.That(material.PublicationState, Is.EqualTo(MaterialPublicationState.Published));
+        }
+    }
+
+    [Test]
+    public void Publish_AlreadyPublished_IsStillRejected()
+    {
+        var material = Published();
+
+        Assert.That(() => material.Publish(), Throws.TypeOf<InvalidOperationException>());
+        Assert.That(material.PublicationState, Is.EqualTo(MaterialPublicationState.Published));
+    }
 }

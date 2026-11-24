@@ -4,7 +4,8 @@ namespace Domain.Materials;
 /// Nastavni materijal vezan za konkretno izvođenje predmeta (ST-009).
 /// Obuhvata naziv, opis, izvođenje i stanje objave. Prilozi i spoljne veze
 /// nisu deo ovog modela; objava (US-08) je prelaz nacrt → objavljen,
-/// a povlačenje (US-09) prelaz objavljen → povučen.
+/// povlačenje (US-09) prelaz objavljen → povučen, a povučen materijal
+/// se može ponovo objaviti (US-09).
 /// </summary>
 public sealed class Material
 {
@@ -62,14 +63,15 @@ public sealed class Material
 
     /// <summary>
     /// Objava materijala (ST-009, US-08): prelaz iz nacrta u objavljen.
-    /// Objaviti se može samo nacrt; za svako drugo stanje baca se
+    /// Povučen materijal se može ponovo objaviti (US-09): prelaz povučen → objavljen.
+    /// Već objavljen materijal se ne objavljuje ponovo: baca se
     /// <see cref="InvalidOperationException"/> i stanje se ne menja.
     /// Provera prava i postojanja datoteka priloga je odgovornost slučaja upotrebe.
     /// </summary>
     public void Publish()
     {
-        if (PublicationState != MaterialPublicationState.Draft)
-            throw new InvalidOperationException("Objaviti se može samo materijal u stanju nacrta.");
+        if (PublicationState is not (MaterialPublicationState.Draft or MaterialPublicationState.Withdrawn))
+            throw new InvalidOperationException("Objaviti se može samo nacrt ili povučen materijal.");
 
         PublicationState = MaterialPublicationState.Published;
     }

@@ -27,8 +27,9 @@ public enum WithdrawMaterialOutcome
 /// Redosled: materijal mora postojati → korisnik mora pripadati nastavnom osoblju
 /// izvođenja materijala (ST-005) → materijal mora biti objavljen → stanje postaje povučen.
 /// Stanje materijala se otkriva tek posle provere prava. Materijal se ne briše.
-/// NAPOMENA: ponovna objava povučenog materijala je tačka 2 US-09,
-/// a dugme „Povuci“ sa potvrdom tačka 3.
+/// Povučen materijal ostaje vidljiv nastavniku i može se ponovo objaviti preko
+/// <see cref="PublishMaterialHandler"/> (tačka 2).
+/// NAPOMENA: dugme „Povuci“ sa potvrdom je tačka 3 US-09.
 /// </summary>
 public sealed class WithdrawMaterialHandler
 {

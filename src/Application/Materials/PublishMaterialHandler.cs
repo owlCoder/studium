@@ -18,12 +18,16 @@ public enum PublishMaterialOutcome
     /// <summary>Materijal ne postoji.</summary>
     MaterialNotFound,
 
-    /// <summary>Materijal nije nacrt (već je objavljen ili povučen); stanje se ne menja.</summary>
+    /// <summary>
+    /// Materijal je već objavljen; stanje se ne menja. Naziv je zadržan iz US-08:
+    /// od US-09 se povučen materijal može ponovo objaviti, pa ovaj ishod važi
+    /// samo za već objavljen materijal.
+    /// </summary>
     NotDraft,
 
     /// <summary>
     /// Bar jedan prilog nema sačuvanu datoteku u skladištu (tačka 2);
-    /// materijal ostaje nacrt.
+    /// materijal ostaje u prethodnom stanju (nacrt ili povučen).
     /// </summary>
     MissingAttachmentFiles
 }
@@ -46,10 +50,11 @@ public sealed record PublishMaterialResult(
 /// <summary>
 /// Slučaj upotrebe: nastavnik objavljuje materijal (ST-009, US-08).
 /// Redosled: materijal mora postojati → korisnik mora pripadati nastavnom osoblju
-/// izvođenja materijala (ST-005) → materijal mora biti nacrt → svaki prilog mora
-/// imati sačuvanu datoteku u skladištu (tačka 2) → stanje postaje objavljen.
+/// izvođenja materijala (ST-005) → materijal mora biti nacrt ili povučen (US-09: ponovna
+/// objava) → svaki prilog mora imati sačuvanu datoteku u skladištu (tačka 2) → stanje
+/// postaje objavljen.
 /// Stanje materijala i prilozi se otkrivaju tek posle provere prava.
-/// Ako bilo kom prilogu nedostaje datoteka, objava se odbija i materijal ostaje nacrt,
+/// Ako bilo kom prilogu nedostaje datoteka, objava se odbija i stanje se ne menja,
 /// jer neispravan prenos ne sme ostaviti objavljen materijal sa nedostajućom datotekom
 /// (poslovno pravilo ST-009, ADR-0001).
 /// </summary>
@@ -102,7 +107,8 @@ public sealed class PublishMaterialHandler
                 "Samo nastavno osoblje izvođenja može objaviti materijal.");
         }
 
-        if (material.PublicationState != MaterialPublicationState.Draft)
+        // US-09: povučen materijal se može ponovo objaviti; odbija se samo već objavljen.
+        if (material.PublicationState == MaterialPublicationState.Published)
             return PublishMaterialResult.Of(PublishMaterialOutcome.NotDraft);
 
         var missing = await FindAttachmentsWithoutFileAsync(material.Id, cancellationToken);
