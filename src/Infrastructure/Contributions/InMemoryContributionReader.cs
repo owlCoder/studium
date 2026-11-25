@@ -5,7 +5,7 @@ namespace Infrastructure.Contributions;
 
 // Ako Milica vec pravi memorijski repozitorijum za Create, neka on implementira
 // i IContributionReader, pa ova klasa nije potrebna.
-public class InMemoryContributionReader : IContributionReader
+public class InMemoryContributionReader : IContributionReader, IContributionRepository
 {
     private readonly List<Contribution> _items = new();
 
@@ -21,4 +21,9 @@ public class InMemoryContributionReader : IContributionReader
         _items.Where(c => c.AuthorId == authorId).ToList();
 
     public IReadOnlyList<Contribution> GetAll() => _items.ToList();
+    public void Save(Contribution contribution)
+    {
+        _items.RemoveAll(c => c.Id == contribution.Id);
+        _items.Add(contribution);
+    }
 }

@@ -11,8 +11,11 @@ builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader())
 builder.Services.AddScoped<ListCoursesHandler>();
 builder.Services.AddScoped<SearchCoursesHandler>();
 
-builder.Services.AddSingleton<IContributionReader>(_ => DemoContributions.Create());
+var contributions = DemoContributions.Create();
+builder.Services.AddSingleton<IContributionReader>(contributions);
+builder.Services.AddSingleton<IContributionRepository>(contributions);
 builder.Services.AddSingleton<ContributionQueries>();
+builder.Services.AddSingleton<ContributionReviewHandler>();
 
 var app = builder.Build();
 
