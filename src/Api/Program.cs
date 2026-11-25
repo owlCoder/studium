@@ -9,6 +9,10 @@ using Infrastructure.Dashboard;
 using Application.Engagements;
 using Application.Enrollments;
 using Application.Identity;
+using Application.Access;
+using Application.Assignments;
+using Domain.Staff;
+using Infrastructure.Assignments;
 using Infrastructure.Demo;
 using Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication;
@@ -37,6 +41,36 @@ builder.Services.AddSingleton<IEnrollmentRepository>(
 builder.Services.AddSingleton<IOfferingAccessReader>(_ => DemoData.CreateOfferingAccessReader());
 builder.Services.AddScoped<EnrollmentService>();
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<InMemoryAssignmentDraftWriter>();
+builder.Services.AddSingleton<IAssignmentDraftWriter>(
+    services => services.GetRequiredService<InMemoryAssignmentDraftWriter>());
+builder.Services.AddSingleton<IAssignmentRepository>(
+    services => services.GetRequiredService<InMemoryAssignmentDraftWriter>());
+builder.Services.AddScoped<IAssignmentCreationAccess>(services =>
+{
+    var user = services.GetRequiredService<IHttpContextAccessor>().HttpContext?.User;
+    var offeringAccess = services.GetRequiredService<IOfferingAccessReader>();
+    var usesSession = user?.Identity?.AuthenticationType == SessionAuthenticationHandler.SchemeName;
+    if (usesSession)
+    {
+        // Sesija daje identitet, a uloga nastavnika se proverava za traženo izvođenje.
+        offeringAccess = new SessionAssignmentOfferingAccess(services.GetRequiredService<IStaffOfferingsReader>());
+    }
+
+    UserContext? currentUser = null;
+    if (user?.Identity?.IsAuthenticated == true &&
+        (usesSession || user.IsInRole(nameof(UserRole.Teacher))) &&
+        Guid.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId) &&
+        userId != Guid.Empty)
+    {
+        currentUser = new UserContext(userId, UserRole.Teacher);
+    }
+
+    return new AssignmentCreationAccess(currentUser, offeringAccess);
+});
+builder.Services.AddScoped<CreateAssignmentHandler>();
+
 // US-7.6: registar podržanih funkcija (ST-007)
 builder.Services.AddSingleton<FeatureRegistry>(_ => SupportedFeatures.CreateRegistry());
 builder.Services.AddScoped<FilterSupportedActivitiesHandler>();
@@ -48,7 +82,7 @@ builder.Services.AddScoped<ListStudentOfferingsHandler>();
 builder.Services.AddSingleton<IStaffOfferingsReader>(_ => DemoData.CreateStaffOfferingsReader());
 builder.Services.AddScoped<ListMyOfferingsHandler>();
 
-// US-7.3: pravo pravilo otvorene aktivnosti 
+// US-7.3: pravo pravilo otvorene aktivnosti
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<InMemoryActivityStore>();
 builder.Services.AddSingleton<IActivityReader>(sp => sp.GetRequiredService<InMemoryActivityStore>());
@@ -207,3 +241,13 @@ app.Run();
 
 // US-7.5: omogućava HTTP testove preko WebApplicationFactory<Program>.
 public partial class Program { }
+
+file sealed class SessionAssignmentOfferingAccess(IStaffOfferingsReader staffOfferings) : IOfferingAccessReader
+{
+    public async Task<bool> IsTeacherOfOfferingAsync(Guid teacherId, Guid offeringId)
+    {
+        var offerings = await staffOfferings.ListActiveForUserAsync(teacherId);
+        return offerings.Any(offering => offering.OfferingId == offeringId &&
+            (offering.Role == Responsibility.ResponsibleTeacher || offering.Role == Responsibility.Teacher));
+    }
+}
