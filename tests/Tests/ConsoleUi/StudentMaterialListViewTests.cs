@@ -323,6 +323,26 @@ public sealed class StudentMaterialListViewTests
     }
 
     [Test]
+    public async Task ShowAsync_OnlyWithdrawnMaterial_ShowsEmptyStateWithoutRevealingIt()
+    {
+        var withdrawn = await AddAsync("Povučeno predavanje", "Više nije dostupno");
+        withdrawn.Withdraw();
+        await _materials.UpdateAsync(withdrawn);
+
+        await CreateView().ShowAsync(StudentId, OfferingId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Lines(), Is.EqualTo(new[]
+            {
+                "Materijali predmeta (0):",
+                StudentMaterialListView.EmptyStateMessage
+            }));
+            Assert.That(_output.ToString(), Does.Not.Contain("Povučeno predavanje"));
+        });
+    }
+
+    [Test]
     public async Task ShowAsync_EmptyStateDoesNotChangeMaterials()
     {
         var draft = await AddAsync("Nacrt", null, publish: false);
