@@ -4,6 +4,7 @@ using Api.Authentication;
 using Application.Assignments;
 using Domain.Assignments;
 using Infrastructure.Demo;
+using Infrastructure.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -63,6 +64,25 @@ public sealed class AssignmentsApiTests
             Assert.That(draft.Instructions, Is.EqualTo("Uputstvo za rad"));
             Assert.That(draft.Deadline?.EqualsExact(Deadline), Is.True);
         });
+    }
+
+    [TestCase("33333333-0000-0000-0000-000000000001", true, HttpStatusCode.Created)]
+    [TestCase("33333333-0000-0000-0000-000000000002", true, HttpStatusCode.Created)]
+    [TestCase("33333333-0000-0000-0000-000000000002", false, HttpStatusCode.Forbidden)]
+    [TestCase("33333333-0000-0000-0000-000000000001", false, HttpStatusCode.Forbidden)]
+    public async Task Create_WithSessionChecksActiveTeachingRoleOnOffering(
+        string offeringId, bool isTeacher, HttpStatusCode expectedStatus)
+    {
+        var userId = isTeacher ? DemoData.DemoTeacherId : DemoData.DemoAssistantId;
+        var session = Guid.NewGuid().ToString("N");
+        _factory.Services.GetRequiredService<InMemoryAccountStatusReader>().Activate(userId);
+        _factory.Services.GetRequiredService<InMemorySessionReader>().Register(session, userId);
+        _client.DefaultRequestHeaders.Authorization = new("Bearer", session);
+
+        using var response = await _client.PostAsJsonAsync(
+            AssignmentsUrl(Guid.Parse(offeringId)), new { title = "Domaći zadatak" });
+
+        Assert.That(response.StatusCode, Is.EqualTo(expectedStatus));
     }
 
     [Test]

@@ -20,3 +20,8 @@
 !.env.example
 secrets.json
 appsettings.Development.local.json
+
+**/Properties/launchSettings.json
+
+# Locally uploaded material attachments (ST-009, US-04)
+**/App_Data/
