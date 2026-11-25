@@ -100,6 +100,20 @@ public static class St009Scenario
             demoMaterial.Id,
             await externalLinks.ListByMaterialAsync(demoMaterial.Id));
 
+        // ST-009, US-07: uklanjanje priloga ili spoljne veze uz potvrdu (podrazumevano „ne“).
+        // Uklanjanje priloga briše i njegovu datoteku iz skladišta.
+        Console.WriteLine();
+        var removeStaffChecker = new InMemoryOfferingStaffChecker([(demoTeacherId, demoMaterial.CourseOfferingId)]);
+        var removeSourceForm = new RemoveMaterialSourceForm(
+            materials,
+            attachments,
+            externalLinks,
+            new RemoveMaterialAttachmentHandler(materials, attachments, attachmentStorage, removeStaffChecker),
+            new RemoveMaterialExternalLinkHandler(materials, externalLinks, removeStaffChecker),
+            Console.In,
+            Console.Out);
+        await removeSourceForm.RunAsync(demoTeacherId, demoMaterial.Id);
+
         // ST-009, US-08: lista materijala izvođenja za nastavnika sa oznakom stanja i dugmetom
         // „Objavi” uz nacrt. Objava se odbija ako nekom prilogu nedostaje sačuvana datoteka.
         // Sintetički nastavnik je angažovan na izvođenju demonstracionog materijala.
