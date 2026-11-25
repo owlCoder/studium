@@ -21,10 +21,12 @@ public sealed record StudentMaterialListItem(Guid Id, string Name, string Descri
 /// Pravo ima samo aktivan student izvođenja (ST-006, <see cref="IMembershipReader.IsActiveStudentAsync"/>),
 /// isto pravilo kao kod detalja materijala (US-11).
 /// Redosled: korisnik mora biti aktivan student izvođenja → čitaju se materijali izvođenja →
-/// zadržavaju se samo objavljeni (nacrt i povučen materijal se ne vraćaju).
+/// zadržavaju se samo materijali vidljivi studentima (<see cref="MaterialVisibility.IsVisibleToStudents"/>,
+/// zajedničko pravilo sa zaštitom pristupa i US-11: nacrt i povučen materijal se ne vraćaju).
 /// Materijali se čitaju tek posle provere prava, pa korisnik bez prava ne saznaje šta postoji.
 /// Lista je uređena po nazivu da bi odgovor bio stabilan.
-/// NAPOMENA: stranica sa listom (tačka 2) i prazno stanje na stranici (tačka 3) nisu deo ovog koraka.
+/// Prazna lista znači da student nema dostupnih materijala; stranica je prikazuje kao
+/// prazno stanje (<c>StudentMaterialListView</c>, tačke 2 i 3).
 /// </summary>
 public sealed class ListPublishedMaterialsForStudentHandler
 {
@@ -72,7 +74,7 @@ public sealed class ListPublishedMaterialsForStudentHandler
         return materials
             .Where(m => m is not null
                 && m.CourseOfferingId == query.CourseOfferingId
-                && m.PublicationState == MaterialPublicationState.Published)
+                && m.PublicationState.IsVisibleToStudents())
             .OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(m => m.Id)
             .Select(m => new StudentMaterialListItem(m.Id, m.Name, m.Description))

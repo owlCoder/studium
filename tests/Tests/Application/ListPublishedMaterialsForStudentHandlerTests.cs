@@ -217,6 +217,29 @@ public sealed class ListPublishedMaterialsForStudentHandlerTests
     }
 
     [Test]
+    public async Task HandleAsync_WithdrawnMaterial_IsNotReturned()
+    {
+        var kept = await AddAsync("Predavanje 1", publish: true);
+        var withdrawn = await AddAsync("Predavanje 2", publish: true);
+        withdrawn.Withdraw();
+        await _materials.UpdateAsync(withdrawn);
+
+        var result = await ListAsync(StudentId);
+
+        Assert.That(result.Select(m => m.Id), Is.EqualTo(new[] { kept.Id }));
+    }
+
+    [Test]
+    public async Task HandleAsync_OnlyWithdrawnMaterials_ReturnsEmptyList()
+    {
+        var withdrawn = await AddAsync("Povučeno predavanje", publish: true);
+        withdrawn.Withdraw();
+        await _materials.UpdateAsync(withdrawn);
+
+        Assert.That(await ListAsync(StudentId), Is.Empty);
+    }
+
+    [Test]
     public void HandleAsync_EmptyOffering_IsDenied()
     {
         Assert.That(

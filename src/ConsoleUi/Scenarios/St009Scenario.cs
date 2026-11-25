@@ -124,15 +124,19 @@ public static class St009Scenario
             await materials.UpdateAsync(demoMaterial);
         }
         var demoStudentId = Guid.NewGuid();
+        // Drugo sintetičko izvođenje bez materijala prikazuje prazno stanje (US-10, tačka 3).
+        var demoEmptyOfferingId = Guid.NewGuid();
         var studentMaterialList = new StudentMaterialListView(
             new ListPublishedMaterialsForStudentHandler(
                 materials,
                 new InMemoryMembershipReader(
                 [
-                    new OfferingMembership(demoStudentId, demoMaterial.CourseOfferingId, MembershipKind.Student, true)
+                    new OfferingMembership(demoStudentId, demoMaterial.CourseOfferingId, MembershipKind.Student, true),
+                    new OfferingMembership(demoStudentId, demoEmptyOfferingId, MembershipKind.Student, true)
                 ])),
             Console.Out);
         await studentMaterialList.ShowAsync(demoStudentId, demoMaterial.CourseOfferingId);
+        await studentMaterialList.ShowAsync(demoStudentId, demoEmptyOfferingId);
 
         // ST-009, US-09: nastavnik povlači objavljen materijal uz potvrdu; posle povlačenja
         // student ga više ne vidi u listi. Sintetički nastavnik je angažovan na izvođenju materijala.
