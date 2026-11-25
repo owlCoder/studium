@@ -106,7 +106,9 @@ public sealed class GetMaterialDetailsHandler
                 "Materijal mogu da otvore samo studenti upisani na izvođenje predmeta.");
         }
 
-        if (material.PublicationState != MaterialPublicationState.Published)
+        // Isto pravilo vidljivosti kao u US-10 i US-12 (MaterialVisibility): nacrt i povučen
+        // materijal su za studenta kao da ne postoje.
+        if (!material.PublicationState.IsVisibleToStudents())
             return new(GetMaterialDetailsOutcome.MaterialNotFound);
 
         var links = (await _links.ListByMaterialAsync(material.Id, cancellationToken))
