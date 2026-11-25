@@ -9,5 +9,24 @@ namespace Application.TeachingSessions;
 /// </summary>
 public sealed class CancelSessionHandler
 {
-    
+    private readonly ISessionRepository _sessions;
+
+    public CancelSessionHandler(ISessionRepository sessions)
+    {
+        _sessions = sessions;
+    }
+
+    public async Task<TeachingSession> HandleAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var session = await _sessions.GetByIdAsync(sessionId, cancellationToken)
+            ?? throw new InvalidOperationException("Termin ne postoji.");
+
+        // Domen trenutno odbija otkazivanje održanog termina (otvoreno pitanje 2 za asistenta).
+        session.Cancel();
+
+        await _sessions.UpdateAsync(session, cancellationToken);
+        return session;
+    }
 }
