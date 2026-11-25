@@ -1,25 +1,23 @@
-## ST-031: Testovi prihvatanja
+# Izveštaj sprinta 3: ST-031 i ST-032
 
-Implementirana su tri testa prihvatanja na osnovu primera iz specifikacije.
+Sprint 3 traje od 19. do 26.11.2026.
 
-| Test | Opis |
-|---|---|
-| `VezbeV1_From1000To1130_AreAcceptedAsPlanned` | Proverava da se vežbe V1 u terminu od 10:00 do 11:30 prihvataju sa statusom Planiran i da se mogu pronaći putem pretrage. |
-| `VezbeV1_EndingAt0930_AreRejected` | Proverava da se termin koji se završava u 09:30 odbija i da nakon odbijanja ne dolazi do čuvanja podataka. |
-| `CancelledSession_StaysInHistory_AndRejectsNewAttendance` | Proverava da otkazani termin ostaje u istoriji, nije prikazan među aktivnim obavezama i ne dozvoljava novi unos prisustva. |
+## ST-031: testovi prihvatanja
 
-### Primer iz specifikacije
+Primer iz specifikacije: „Vežbe za V1 traju od 10:00 do 11:30. Završetak u 09:30 se odbija. Otkazivanjem termin ostaje u istoriji, ali se više ne prikazuje kao aktivna obaveza i ne dozvoljava nov unos prisustva.”
 
-„Vežbe za V1 traju od 10:00 do 11:30. Završetak u 09:30 se odbija. Otkazivanjem termin ostaje u istoriji, ali se više ne prikazuje kao aktivna obaveza i ne dozvoljava nov unos prisustva.”
+Testovi su u `tests/Tests/Acceptance/St031AcceptanceTests.cs`.
 
-### Pokretanje testova
+| Test | Šta proverava | Rezultat |
+|---|---|---|
+| `VezbeV1_From1000To1130_AreAcceptedAsPlanned` | Vežbe od 10:00 do 11:30 se prihvataju kao Planiran i pronalaze se pretragom | |
+| `VezbeV1_EndingAt0930_AreRejected` | Završetak u 09:30 se odbija i ništa se ne čuva | |
+| `CancelledSession_StaysInHistory_AndRejectsNewAttendance` | Otkazan termin je u istoriji, nije među aktivnima i ne prima unos prisustva | |
+
+Komanda kojom su testovi pokrenuti:
 
 ```bash
 dotnet test Solution.sln --filter "FullyQualifiedName~St031AcceptanceTests"
 ```
 
-**Rezultat testiranja:**
-
-// Ovde upisati broj uspešno izvršenih testova.
-// Na primer: 3/3 testa uspešna.
-// Ako postoje neuspešni testovi, navesti koji su i razlog neuspeha.
+**Ukupan rezultat:** svi testovi su uspjesno prosli
