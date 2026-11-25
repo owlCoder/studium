@@ -10,6 +10,15 @@ else if (args.Length > 0 && args[0] == "st-009")
     await St009Scenario.RunAsync();
 else if (args.Length > 0 && args[0] == "st-007")
     PrintSupportedFeatures();
+else if (args.Length > 0 && args[0] == "st-011")
+{
+    using var client = new HttpClient
+    {
+        BaseAddress = new Uri("http://127.0.0.1:5098"),
+        Timeout = TimeSpan.FromSeconds(10)
+    };
+    await CreateAssignmentScenario.RunAsync(client, Console.In, Console.Out);
+}
 else
     await CatalogDemo.RunAsync();
 
