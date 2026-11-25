@@ -19,7 +19,7 @@ public sealed record StaffMaterialListItem(
 
 /// <summary>
 /// Slučaj upotrebe: nastavnik vidi sve materijale svog izvođenja sa stanjem objave
-/// (ST-009, US-08, tačka 3), da bi mogao da objavi nacrt.
+/// (ST-009, US-08, tačka 3), da bi mogao da objavi nacrt ili ponovo objavi povučen materijal (US-09).
 /// Pravo ima samo nastavno osoblje izvođenja (ST-005, <see cref="IOfferingStaffChecker"/>).
 /// Redosled: korisnik mora pripadati nastavnom osoblju izvođenja → čitaju se materijali izvođenja.
 /// Materijali se čitaju tek posle provere prava, pa korisnik bez prava ne saznaje ni da nacrti postoje.

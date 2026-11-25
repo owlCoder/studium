@@ -51,11 +51,13 @@ public sealed class StaffMaterialListFormTests
         return (published, output.ToString());
     }
 
-    private async Task<Material> AddAsync(string name, bool publish = false)
+    private async Task<Material> AddAsync(string name, bool publish = false, bool withdraw = false)
     {
         var material = new Material(Guid.NewGuid(), OfferingId, name, null);
-        if (publish)
+        if (publish || withdraw)
             material.Publish();
+        if (withdraw)
+            material.Withdraw();
         await _materials.AddAsync(material);
         return material;
     }
@@ -99,6 +101,24 @@ public sealed class StaffMaterialListFormTests
         Assert.That(StaffMaterialListForm.StateLabel(state), Is.EqualTo(expected));
     }
 
+    [TestCase(MaterialPublicationState.Draft, true)]
+    [TestCase(MaterialPublicationState.Published, false)]
+    [TestCase(MaterialPublicationState.Withdrawn, true)]
+    public void CanBePublished_OnlyDraftAndWithdrawn(MaterialPublicationState state, bool expected)
+    {
+        Assert.That(StaffMaterialListForm.CanBePublished(state), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public async Task RunAsync_WithdrawnMaterial_ShowsLabelAndPublishButton()
+    {
+        await AddAsync("Stara skripta", withdraw: true);
+
+        var (_, output) = await RunFormAsync("\n");
+
+        Assert.That(output, Does.Contain("  1. Stara skripta — Povučen [Objavi]"));
+    }
+
     // --- Pozitivno: objava preko dugmeta ---
 
     [Test]
@@ -115,6 +135,22 @@ public sealed class StaffMaterialListFormTests
             Assert.That(await StoredStateAsync(material), Is.EqualTo(MaterialPublicationState.Published));
             Assert.That(output, Does.Contain("Materijal „Vežbe 1” je objavljen."));
             Assert.That(output, Does.Contain("  1. Vežbe 1 — Objavljen" + Environment.NewLine));
+        });
+    }
+
+    [Test]
+    public async Task RunAsync_ChoosingWithdrawnMaterial_PublishesItAgain()
+    {
+        var material = await AddAsync("Stara skripta", withdraw: true);
+        await AttachAsync(material, "skripta.pdf");
+
+        var (published, output) = await RunFormAsync("1\n");
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(published, Is.True);
+            Assert.That(await StoredStateAsync(material), Is.EqualTo(MaterialPublicationState.Published));
+            Assert.That(output, Does.Contain("  1. Stara skripta — Objavljen" + Environment.NewLine));
         });
     }
 
@@ -155,6 +191,23 @@ public sealed class StaffMaterialListFormTests
     }
 
     [Test]
+    public async Task RunAsync_WithdrawnMaterialWithoutFile_RejectsAndStaysWithdrawn()
+    {
+        var material = await AddAsync("Stara skripta", withdraw: true);
+        await AttachAsync(material, "skripta.pdf", deleteFile: true);
+
+        var (published, output) = await RunFormAsync("1\n");
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(published, Is.False);
+            Assert.That(await StoredStateAsync(material), Is.EqualTo(MaterialPublicationState.Withdrawn));
+            Assert.That(output, Does.Contain(
+                "Objava odbijena: nedostaju datoteke priloga: skripta.pdf. Materijal ostaje povučen."));
+        });
+    }
+
+    [Test]
     public async Task RunAsync_ChoosingPublishedMaterial_IsRejected()
     {
         await AddAsync("Predavanje 1", publish: true);
@@ -165,7 +218,7 @@ public sealed class StaffMaterialListFormTests
         Assert.Multiple(() =>
         {
             Assert.That(published, Is.False);
-            Assert.That(output, Does.Contain("Objava odbijena: objaviti se može samo materijal u stanju nacrta."));
+            Assert.That(output, Does.Contain("Objava odbijena: materijal je već objavljen."));
         });
     }
 

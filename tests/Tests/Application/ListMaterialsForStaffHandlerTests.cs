@@ -50,6 +50,21 @@ public sealed class ListMaterialsForStaffHandlerTests
     }
 
     [Test]
+    public async Task HandleAsync_Staff_SeesWithdrawnMaterial()
+    {
+        var withdrawn = await AddAsync("Stara skripta", publish: true);
+        withdrawn.Withdraw();
+        await _materials.UpdateAsync(withdrawn);
+
+        var result = await CreateHandler().HandleAsync(new ListMaterialsForStaffQuery(TeacherId, OfferingId));
+
+        Assert.That(result, Is.EqualTo(new[]
+        {
+            new StaffMaterialListItem(withdrawn.Id, "Stara skripta", MaterialPublicationState.Withdrawn)
+        }));
+    }
+
+    [Test]
     public async Task HandleAsync_OrdersByNameIgnoringCase()
     {
         await AddAsync("vežbe");

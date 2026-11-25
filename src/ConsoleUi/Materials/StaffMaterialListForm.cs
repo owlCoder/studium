@@ -6,11 +6,11 @@ namespace ConsoleUi.Materials;
 /// <summary>
 /// Konzolna lista materijala izvođenja za nastavnika (ST-009, US-08, tačka 3):
 /// uz svaki materijal prikazuje oznaku stanja (nacrt, objavljen, povučen),
-/// a uz nacrt i dugme <see cref="PublishButton"/>. Dugme se „pritiska” unosom
-/// rednog broja materijala.
+/// a uz nacrt i povučen materijal (ponovna objava, US-09) dugme <see cref="PublishButton"/>.
+/// Dugme se „pritiska” unosom rednog broja materijala.
 /// Ovo je prezentacija, ne bezbednosna kontrola: pravo na listu proverava
 /// <see cref="ListMaterialsForStaffHandler"/>, a pravo i uslove objave
-/// (stanje nacrta, sačuvane datoteke priloga) <see cref="PublishMaterialHandler"/>.
+/// (stanje, sačuvane datoteke priloga) <see cref="PublishMaterialHandler"/>.
 /// Posle uspešne objave lista se ponovo ispisuje sa novim stanjem.
 /// </summary>
 public sealed class StaffMaterialListForm
@@ -48,7 +48,7 @@ public sealed class StaffMaterialListForm
         CancellationToken cancellationToken = default)
     {
         var materials = await ShowListAsync(requestingUserId, courseOfferingId, cancellationToken);
-        if (materials is null || !materials.Any(m => m.PublicationState == MaterialPublicationState.Draft))
+        if (materials is null || !materials.Any(m => CanBePublished(m.PublicationState)))
             return false;
 
         _output.Write($"Redni broj materijala za {PublishButton} (Enter = bez objave): ");
@@ -86,11 +86,12 @@ public sealed class StaffMaterialListForm
             case PublishMaterialOutcome.MissingAttachmentFiles:
                 _output.WriteLine(
                     "Objava odbijena: nedostaju datoteke priloga: " +
-                    $"{string.Join(", ", result.MissingFileNames)}. Materijal ostaje nacrt.");
+                    $"{string.Join(", ", result.MissingFileNames)}. " +
+                    $"Materijal ostaje {StateLabel(selected.PublicationState).ToLowerInvariant()}.");
                 return false;
 
             case PublishMaterialOutcome.NotDraft:
-                _output.WriteLine("Objava odbijena: objaviti se može samo materijal u stanju nacrta.");
+                _output.WriteLine("Objava odbijena: materijal je već objavljen.");
                 return false;
 
             default:
@@ -109,6 +110,13 @@ public sealed class StaffMaterialListForm
         MaterialPublicationState.Withdrawn => "Povučen",
         _ => "Nepoznato stanje"
     };
+
+    /// <summary>
+    /// Da li se uz materijal prikazuje dugme <see cref="PublishButton"/>:
+    /// nacrt (US-08) i povučen materijal (ponovna objava, US-09).
+    /// </summary>
+    public static bool CanBePublished(MaterialPublicationState state) =>
+        state is MaterialPublicationState.Draft or MaterialPublicationState.Withdrawn;
 
     private async Task<IReadOnlyList<StaffMaterialListItem>?> ShowListAsync(
         Guid requestingUserId,
@@ -132,7 +140,7 @@ public sealed class StaffMaterialListForm
         for (var i = 0; i < materials.Count; i++)
         {
             var material = materials[i];
-            var button = material.PublicationState == MaterialPublicationState.Draft
+            var button = CanBePublished(material.PublicationState)
                 ? $" {PublishButton}"
                 : string.Empty;
 
