@@ -34,8 +34,8 @@ Posle KT1 memorijska zamena porta je imala dva nedostatka:
 
 - Promena grupe tokom semestra (primer V1 → V2 iz ST-029) automatski se odražava na spiskove: pre prelaska student je na spisku V1, a posle prelaska na spisku V2.
 - Postojeći pozivi `InMemoryEligibilityProvider.Add(offering, group, student)` i dalje rade: takvo članstvo važi uvek.
-- **Otvoreno pitanje za asistenta:** kako se tretira članstvo koje počinje ili prestaje tačno u vreme termina, ili tokom samog termina? Do odgovora važi pravilo `[od, do)` u odnosu na početak termina. Ako odgovor bude drugačiji, menja se samo `MembershipPeriod.Includes` i `EligibilityBoundaryTests`.
-- **Otvoreno pitanje za asistenta:** da li termin bez ciljne grupe obuhvata sve upisane studente izvođenja? Ovaj ADR to pretpostavlja.
+- **Odgovor asistenta (24.11.2026):** student prebačen iz jedne grupe u drugu odmah se računa u novoj grupi. To potvrđuje pravilo `[od, do)`: staro članstvo prestaje, a novo počinje u istom trenutku. Provera ostaje u odnosu na početak termina.
+- **Odgovor asistenta (24.11.2026):** termin bez ciljne grupe obuhvata sve upisane studente izvođenja, iz svih grupa.
 
 ## Povezanost sa specifikacijom
 
@@ -52,4 +52,4 @@ Posle KT1 memorijska zamena porta je imala dva nedostatka:
 - **Postojeći port `Application.Access.IMembershipReader` (tim ST-018).** Odbijeno: vraća samo da/ne za aktivno članstvo na izvođenju, bez grupe i bez perioda važenja, pa ne može da odgovori ko je bio u kojoj grupi u vreme termina.
 - **Novi port koji vraća celo članstvo sa periodima, a pravilo računa naš modul.** Ovo bi menjalo ugovor sa drugim timovima pre dogovora, što pravila projekta ne dozvoljavaju.
 - **Pravilo samo u memorijskoj zameni.** Odbijeno: pravilo bi postojalo samo u testovima i ne bi bilo deo domena.
-- **Provera na kraju termina umesto na početku.** Odbijeno do odgovora asistenta, jer postojeći kod već koristi početak termina.
+- **Provera na kraju termina umesto na početku.** Odbijeno, jer postojeći kod već koristi početak termina.
