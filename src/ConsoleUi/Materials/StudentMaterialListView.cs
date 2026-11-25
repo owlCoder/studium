@@ -3,13 +3,16 @@ using Application.Materials;
 namespace ConsoleUi.Materials;
 
 /// <summary>
-/// Konzolna stranica sa listom materijala predmeta za studenta (ST-009, US-10, tačka 2):
-/// za svaki objavljen materijal prikazuje naziv i kratak opis.
+/// Konzolna stranica sa listom materijala predmeta za studenta (ST-009, US-10, tačke 2 i 3):
+/// za svaki objavljen materijal prikazuje naziv i kratak opis, a kada materijala nema,
+/// prikazuje prazno stanje (<see cref="EmptyStateMessage"/>).
 /// Prikaz je samo prezentacija: koje materijale student sme da vidi (objavljeni materijali
 /// izvođenja na koje je upisan) određuje <see cref="ListPublishedMaterialsForStudentHandler"/>.
 /// Kratak opis: opis u jednom redu, skraćen na <see cref="ShortDescriptionMaxLength"/> znakova
 /// sa „…” na kraju; materijal bez opisa prikazuje samo naziv.
-/// NAPOMENA: poruka za prazno stanje (tačka 3) nije deo ovog koraka.
+/// Prazno stanje (tačka 3) je isto bez obzira na to da li izvođenje nema nijedan materijal
+/// ili ima samo nacrte i povučene materijale, pa student ne saznaje da neobjavljeni postoje.
+/// Korisnik bez prava ne dobija prazno stanje, nego poruku da lista nije dostupna.
 /// </summary>
 public sealed class StudentMaterialListView
 {
@@ -18,6 +21,11 @@ public sealed class StudentMaterialListView
     /// specifikacija ne određuje dužinu kratkog opisa).
     /// </summary>
     public const int ShortDescriptionMaxLength = 100;
+
+    /// <summary>
+    /// Poruka praznog stanja (tačka 3), u istom obliku kao „(nema veza)” i „(nema priloga)” u ST-009.
+    /// </summary>
+    public const string EmptyStateMessage = "  (nema objavljenih materijala za ovaj predmet)";
 
     private const string Ellipsis = "…";
 
@@ -56,6 +64,12 @@ public sealed class StudentMaterialListView
         }
 
         _output.WriteLine($"Materijali predmeta ({materials.Count}):");
+
+        if (materials.Count == 0)
+        {
+            _output.WriteLine(EmptyStateMessage);
+            return materials;
+        }
 
         foreach (var material in materials)
         {

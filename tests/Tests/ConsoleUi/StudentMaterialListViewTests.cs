@@ -228,17 +228,108 @@ public sealed class StudentMaterialListViewTests
             Is.EqualTo("Čitanje: ćirilica, šđž"));
     }
 
+    // Tačka 3: prazno stanje
+
     [Test]
-    public async Task ShowAsync_NoPublishedMaterials_PrintsOnlyCountHeader()
+    public async Task ShowAsync_OfferingWithoutMaterials_ShowsEmptyState()
     {
-        await AddAsync("Nacrt", "Nije objavljen", publish: false);
+        var shown = await CreateView().ShowAsync(StudentId, OfferingId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(shown, Is.Empty);
+            Assert.That(Lines(), Is.EqualTo(new[]
+            {
+                "Materijali predmeta (0):",
+                StudentMaterialListView.EmptyStateMessage
+            }));
+        });
+    }
+
+    [Test]
+    public async Task ShowAsync_OnlyDrafts_ShowsSameEmptyStateWithoutRevealingDrafts()
+    {
+        await AddAsync("Tajni nacrt", "Opis nacrta", publish: false);
+        await AddAsync("Drugi nacrt", null, publish: false);
 
         var shown = await CreateView().ShowAsync(StudentId, OfferingId);
 
         Assert.Multiple(() =>
         {
             Assert.That(shown, Is.Empty);
-            Assert.That(Lines(), Is.EqualTo(new[] { "Materijali predmeta (0):" }));
+            Assert.That(Lines(), Is.EqualTo(new[]
+            {
+                "Materijali predmeta (0):",
+                StudentMaterialListView.EmptyStateMessage
+            }));
+            Assert.That(_output.ToString(), Does.Not.Contain("nacrt").IgnoreCase);
         });
+    }
+
+    [Test]
+    public async Task ShowAsync_OnlyMaterialsOfAnotherOffering_ShowsEmptyState()
+    {
+        var foreign = new Material(Guid.NewGuid(), Guid.NewGuid(), "Tuđe predavanje", "Opis");
+        foreign.Publish();
+        await _materials.AddAsync(foreign);
+
+        await CreateView().ShowAsync(StudentId, OfferingId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(_output.ToString(), Does.Contain(StudentMaterialListView.EmptyStateMessage));
+            Assert.That(_output.ToString(), Does.Not.Contain("Tuđe predavanje"));
+        });
+    }
+
+    [Test]
+    public async Task ShowAsync_WithMaterials_DoesNotShowEmptyState()
+    {
+        await AddAsync("Predavanje 1", "Uvod u predmet");
+
+        await CreateView().ShowAsync(StudentId, OfferingId);
+
+        Assert.That(_output.ToString(), Does.Not.Contain(StudentMaterialListView.EmptyStateMessage));
+    }
+
+    [Test]
+    public async Task ShowAsync_OnePublishedAmongDrafts_ShowsItAndNoEmptyState()
+    {
+        await AddAsync("Nacrt", "Nije objavljen", publish: false);
+        await AddAsync("Predavanje 1", "Uvod u predmet");
+
+        await CreateView().ShowAsync(StudentId, OfferingId);
+
+        Assert.That(Lines(), Is.EqualTo(new[]
+        {
+            "Materijali predmeta (1):",
+            "  - Predavanje 1",
+            "    Uvod u predmet"
+        }));
+    }
+
+    [Test]
+    public async Task ShowAsync_UserWithoutRights_GetsDenialInsteadOfEmptyState()
+    {
+        var shown = await CreateView().ShowAsync(OtherStudentId, OfferingId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(shown, Is.Null);
+            Assert.That(_output.ToString(), Does.StartWith("Lista materijala nije dostupna:"));
+            Assert.That(_output.ToString(), Does.Not.Contain(StudentMaterialListView.EmptyStateMessage));
+            Assert.That(_output.ToString(), Does.Not.Contain("Materijali predmeta"));
+        });
+    }
+
+    [Test]
+    public async Task ShowAsync_EmptyStateDoesNotChangeMaterials()
+    {
+        var draft = await AddAsync("Nacrt", null, publish: false);
+
+        await CreateView().ShowAsync(StudentId, OfferingId);
+
+        var stored = await _materials.GetByIdAsync(draft.Id);
+        Assert.That(stored!.PublicationState, Is.EqualTo(MaterialPublicationState.Draft));
     }
 }
