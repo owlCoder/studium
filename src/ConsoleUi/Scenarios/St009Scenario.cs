@@ -8,8 +8,8 @@ namespace ConsoleUi.Scenarios;
 
 /// <summary>
 /// Demonstracija ST-009 (nastavni materijali) nad sintetičkim podacima u memoriji:
-/// kreiranje i izmena materijala, otpremanje priloga, spoljne veze, lista materijala za studenta
-/// i povlačenje materijala sa potvrdom.
+/// kreiranje i izmena materijala, otpremanje priloga, spoljne veze, objava materijala
+/// iz liste za nastavnika, lista materijala za studenta i povlačenje materijala sa potvrdom.
 /// Pokretanje: <c>dotnet run --project src/ConsoleUi -- st-009</c>.
 /// Stvarna provera osoblja (ST-005) i prijava (ST-002) još nisu integrisane.
 /// </summary>
@@ -100,13 +100,29 @@ public static class St009Scenario
             demoMaterial.Id,
             await externalLinks.ListByMaterialAsync(demoMaterial.Id));
 
+        // ST-009, US-08: lista materijala izvođenja za nastavnika sa oznakom stanja i dugmetom
+        // „Objavi” uz nacrt. Objava se odbija ako nekom prilogu nedostaje sačuvana datoteka.
+        // Sintetički nastavnik je angažovan na izvođenju demonstracionog materijala.
+        Console.WriteLine();
+        var demoStaffChecker = new InMemoryOfferingStaffChecker([(demoTeacherId, demoMaterial.CourseOfferingId)]);
+        var staffMaterialList = new StaffMaterialListForm(
+            new ListMaterialsForStaffHandler(materials, demoStaffChecker),
+            new PublishMaterialHandler(materials, attachments, attachmentStorage, demoStaffChecker),
+            Console.In,
+            Console.Out);
+        await staffMaterialList.RunAsync(demoTeacherId, demoMaterial.CourseOfferingId);
+
         // ST-009, US-10: lista materijala predmeta za studenta (naziv i kratak opis).
         // Sintetički student je upisan na izvođenje demonstracionog materijala samo za ovu
         // demonstraciju; stvarna članstva (ST-006) još nisu povezana. Prikazuje se samo
         // objavljen materijal, pa se nacrt iz forme za kreiranje ne vidi.
+        // Ako nastavnik nije objavio materijal u listi iznad, demonstracija ga objavljuje ovde.
         Console.WriteLine();
-        demoMaterial.Publish();
-        await materials.UpdateAsync(demoMaterial);
+        if (demoMaterial.PublicationState == MaterialPublicationState.Draft)
+        {
+            demoMaterial.Publish();
+            await materials.UpdateAsync(demoMaterial);
+        }
         var demoStudentId = Guid.NewGuid();
         var studentMaterialList = new StudentMaterialListView(
             new ListPublishedMaterialsForStudentHandler(
