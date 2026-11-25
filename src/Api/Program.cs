@@ -22,6 +22,9 @@ using Application.Materials;
 using Application.Services;
 using Infrastructure.Materials;
 using Infrastructure.Repositories;
+// ST-006: upis studenta na izvođenje
+using Application.CourseEnrollments;
+using Infrastructure.CourseEnrollments;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,10 +35,13 @@ builder.Services.AddScoped<SearchCoursesHandler>();
 
 // Iz main (ST-006): upisi i pristup izvođenju preko kontrolera.
 builder.Services.AddControllers();
-builder.Services.AddSingleton<IEnrollmentRepository>(
-    _ => new EnrollmentRepository(DemoData.CreateEnrollments()));
+// ST-006: jedna evidencija članstva za upis, pretragu i prekid (bez nezavisnih kopija).
+builder.Services.AddSingleton(_ => new InMemoryCourseEnrollmentRepository(DemoData.CreateEnrollments()));
+builder.Services.AddSingleton<IEnrollmentRepository>(sp => sp.GetRequiredService<InMemoryCourseEnrollmentRepository>());
+builder.Services.AddSingleton<ICourseEnrollmentRepository>(sp => sp.GetRequiredService<InMemoryCourseEnrollmentRepository>());
 builder.Services.AddSingleton<IOfferingAccessReader>(_ => DemoData.CreateOfferingAccessReader());
 builder.Services.AddScoped<EnrollmentService>();
+builder.Services.AddScoped<EnrollStudentHandler>();
 
 // US-7.6: registar podržanih funkcija (ST-007)
 builder.Services.AddSingleton<FeatureRegistry>(_ => SupportedFeatures.CreateRegistry());
@@ -178,6 +184,40 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 // Iz main (ST-006): kontroleri, npr. EnrollmentsController ([Authorize], prijava preko Demo šeme).
 app.MapControllers();
 
+// ST-006: upis studenta na izvođenje. Nastavnik se čita iz autentifikovanog korisnika, nikad iz tela zahteva.
+app.MapPost("/api/enrollments", async (
+    EnrollStudentRequest request,
+    ClaimsPrincipal user,
+    EnrollStudentHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var teacherIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (!Guid.TryParse(teacherIdClaim, out var verifiedTeacherId) || verifiedTeacherId == Guid.Empty)
+    {
+        return Results.Unauthorized();
+    }
+
+    try
+    {
+        var command = new EnrollStudentCommand(verifiedTeacherId, request.CourseExecutionId, request.StudentId);
+        var enrollmentId = await handler.HandleAsync(command, cancellationToken);
+        return Results.Created($"/api/enrollments/{enrollmentId}", new { id = enrollmentId });
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+        return Results.Json(new { error = ex.Message }, statusCode: StatusCodes.Status403Forbidden);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Conflict(new { error = ex.Message });
+    }
+})
+.RequireAuthorization();
+
 // Javno dostupan demonstracioni endpoint, bez autentifikacije:
 // ne predstavlja funkcionalnost ST-003 i ne koristiti ga za stvarne podatke.
 app.MapGet("/demo/courses", async (
@@ -204,6 +244,9 @@ app.MapHomeEndpoints();
 app.MapMaterialEndpoints();
 
 app.Run();
+
+// ST-006: telo zahteva za upis (bez TeacherId; nastavnik dolazi iz prijave).
+public record EnrollStudentRequest(Guid CourseExecutionId, Guid StudentId);
 
 // US-7.5: omogućava HTTP testove preko WebApplicationFactory<Program>.
 public partial class Program { }
