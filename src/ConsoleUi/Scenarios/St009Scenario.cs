@@ -9,7 +9,7 @@ namespace ConsoleUi.Scenarios;
 /// <summary>
 /// Demonstracija ST-009 (nastavni materijali) nad sintetičkim podacima u memoriji:
 /// kreiranje i izmena materijala, otpremanje priloga, spoljne veze, objava materijala
-/// iz liste za nastavnika i lista materijala za studenta.
+/// iz liste za nastavnika, lista materijala za studenta i povlačenje materijala sa potvrdom.
 /// Pokretanje: <c>dotnet run --project src/ConsoleUi -- st-009</c>.
 /// Stvarna provera osoblja (ST-005) i prijava (ST-002) još nisu integrisane.
 /// </summary>
@@ -133,5 +133,21 @@ public static class St009Scenario
                 ])),
             Console.Out);
         await studentMaterialList.ShowAsync(demoStudentId, demoMaterial.CourseOfferingId);
+
+        // ST-009, US-09: nastavnik povlači objavljen materijal uz potvrdu; posle povlačenja
+        // student ga više ne vidi u listi. Sintetički nastavnik je angažovan na izvođenju materijala.
+        Console.WriteLine();
+        var withdrawForm = new WithdrawMaterialForm(
+            materials,
+            new WithdrawMaterialHandler(
+                materials,
+                new InMemoryOfferingStaffChecker([(demoTeacherId, demoMaterial.CourseOfferingId)])),
+            Console.In,
+            Console.Out);
+        if (await withdrawForm.RunAsync(demoTeacherId, demoMaterial.Id))
+        {
+            Console.WriteLine();
+            await studentMaterialList.ShowAsync(demoStudentId, demoMaterial.CourseOfferingId);
+        }
     }
 }
