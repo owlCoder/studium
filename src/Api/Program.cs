@@ -9,12 +9,13 @@ using Infrastructure.Dashboard;
 using Application.Engagements;
 using Application.Enrollments;
 using Application.Identity;
+using Api.Contracts;
+using Application.Activities;
+using Infrastructure.Activities;
 using Infrastructure.Demo;
 using Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication;
-using Application.Activities;
 using Application.Home;
-using Infrastructure.Activities;
 // Iz main (ST-006 i drugi timovi)
 using Api.Authentication;
 using Application.Interfaces;
@@ -22,7 +23,6 @@ using Application.Materials;
 using Application.Services;
 using Infrastructure.Materials;
 using Infrastructure.Repositories;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Composition root: spoljašnji sloj bira implementaciju ugovora.
@@ -136,6 +136,18 @@ builder.Services.AddScoped<RemoveMaterialAttachmentHandler>();
 builder.Services.AddSingleton<IMaterialExternalLinkRepository, InMemoryMaterialExternalLinkRepository>();
 builder.Services.AddScoped<AddMaterialExternalLinkHandler>();
 
+// Memorijski adapter mora biti singleton da bi aktivnosti preživele između zahteva.
+builder.Services.AddSingleton<IActivityRepository>(_ => DemoData.CreateActivityRepository());
+// ST-004: aktivnosti se vezuju za izvođenje predmeta. Ruta, rukovaoci, domen i
+// repozitorijum ostaju isti; menja se samo čitalac konteksta. Demo spisak izvođenja
+// (DemoActivityOfferings) se zamenjuje ST-004 čitaocem kada njihov model uđe u main.
+builder.Services.AddSingleton<IActivityContextReader>(serviceProvider =>
+    new OfferingActivityContextReader(
+        serviceProvider.GetRequiredService<ICourseReader>(),
+        DemoActivityOfferings.Create()));
+builder.Services.AddScoped<CreateActivityHandler>();
+builder.Services.AddScoped<ListActivitiesHandler>();
+
 var app = builder.Build();
 
 // US-7.7: početna strana (wwwroot/index.html) i njeni statički fajlovi.
@@ -195,6 +207,59 @@ app.MapGet("/courses", async (
 {
     var courses = await handler.HandleAsync(query, cancellationToken);
     return Results.Ok(courses);
+});
+
+// Demonstracioni tok aktivnosti: memorijski adapter i bez autentifikacije.
+// Ne predstavlja završenu funkcionalnost ST-021 niti proveru prava nad izvođenjem.
+// Oznaka konteksta je oblika OZNAKA-xxxxx, npr. ERS-11111; razrešava je
+// IActivityContextReader, pa se kasnije može zameniti oznakom izvođenja predmeta.
+app.MapPost("/Course/{contextSlug}/CreateActivity", async (
+    string contextSlug,
+    CreateActivityRequest request,
+    CreateActivityHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var result = await handler.HandleAsync(
+        new CreateActivityCommand(
+            contextSlug,
+            request.Name,
+            request.Description,
+            request.StartDate,
+            request.EndDate),
+        cancellationToken);
+
+    return result.Status switch
+    {
+        CreateActivityStatus.Created => Results.Json(
+            result.Activity,
+            statusCode: StatusCodes.Status201Created),
+        CreateActivityStatus.ContextNotFound => Results.Problem(
+            title: "Predmet ili izvođenje nije pronađeno",
+            detail: result.Error,
+            statusCode: StatusCodes.Status404NotFound),
+        CreateActivityStatus.InvalidRequest => Results.ValidationProblem(
+            new Dictionary<string, string[]>
+            {
+                ["activity"] = new[] { result.Error ?? "Nevažeći podaci aktivnosti." }
+            }),
+        CreateActivityStatus.Conflict => Results.Problem(
+            title: "Aktivnost već postoji",
+            detail: result.Error,
+            statusCode: StatusCodes.Status409Conflict),
+        CreateActivityStatus.Canceled => Results.StatusCode(StatusCodes.Status499ClientClosedRequest),
+        _ => Results.Problem(statusCode: StatusCodes.Status500InternalServerError)
+    };
+});
+
+app.MapGet("/ListActivities", async (
+    ListActivitiesHandler handler,
+    CancellationToken cancellationToken) =>
+{
+    var result = await handler.HandleAsync(cancellationToken);
+
+    return result.IsSuccess
+        ? Results.Ok(result.Activities)
+        : Results.StatusCode(StatusCodes.Status499ClientClosedRequest);
 });
 
 // ST-007: endpointi početnog pregleda (US-7.1, 7.2, 7.4, 7.5, 7.6, 7.10) su u src/Api/Home/HomeEndpoints.cs.

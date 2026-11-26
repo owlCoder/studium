@@ -41,6 +41,29 @@ Automatski testovi prihvatanja (`tests/Tests/Acceptance`) proveravaju ceo počet
 
 Rezultati izvršavanja i merenja: [docs/2/us-7.12-testovi-prihvatanja.md](docs/2/us-7.12-testovi-prihvatanja.md).
 
+### Delimična evidencija aktivnosti predmeta (grana ST-021)
+
+- `POST /Course/{contextSlug}/CreateActivity` dodaje aktivnost kontekstu koji razrešava port `IActivityContextReader` i vraća `201 Created`. Nepostojeći kontekst daje `404`, a nevažeći naziv ili interval daje `400` bez promene stanja. Dupli identifikator aktivnosti vraća `409`.
+- `GET /ListActivities` vraća sve aktivnosti sortirane po datumu početka.
+
+Domen i memorijski adapter ne bacaju izuzetke za neispravne podatke ni za otkazane zahteve: `Activity.TryCreate` vraća `ActivityCreation`, a port `IActivityRepository` vraća `ActivityAddResult` odnosno `ActivityListResult` sa eksplicitnim statusom (`Added`, `DuplicateId`, `InvalidActivity`, `Canceled`). Otkazan zahtev se prema klijentu prijavljuje statusom `499`, a ne izuzetkom.
+
+`contextSlug` je kratka oznaka oblika `OZNAKA-xxxxx`, gde je `OZNAKA` oznaka predmeta, a `xxxxx` poslednjih pet znakova njegovog identifikatora (bez razlike između velikih i malih slova). Isti obrazac važi i za buduće rute pojedinačne aktivnosti (`/Course/{contextSlug}/Activity/{activitySlug}`, gde je `activitySlug` oblika `NAZIV-xxxxx`).
+
+**Kontekst aktivnosti:** sloj `Domain` i `IActivityRepository` ne znaju šta oznaka predstavlja i vide samo neprozirni `ContextId`. Oznaku iz putanje razrešava isključivo `IActivityContextReader`. Registrovana implementacija je `OfferingActivityContextReader`: aktivnost pripada **izvođenju predmeta**, pa `ContextId` nosi identifikator izvođenja (ST-004). Oznaka je oblika `OZNAKA-GODINA-xxxxx` — oznaka predmeta, akademska godina izvođenja (`2026/27` se u putanji piše `2026-27`) i poslednjih pet znakova identifikatora izvođenja; demo ERS izvođenje 2026/27 sa identifikatorom `33333333-0000-0000-0000-000000000001` daje `ERS-2026-27-00001`, a starija godina `ERS-2025-26-00003`. Kataloška oznaka predmeta (`ERS-11111`) više nije važeći kontekst i vraća `404`. Ruta, rukovalac, domen i repozitorijum nisu menjani; ruta `/Course/{contextSlug}/CreateActivity` zadržana je zbog kompatibilnosti iako oznaka opisuje izvođenje. Spisak demo izvođenja je u `Infrastructure.Demo.DemoActivityOfferings` i zamenjuje se ST-004 čitaocem kada njihov model uđe u `main`. Port vraća `ActivityContextLookup` sa statusima `Found`, `NotFound`, `Ambiguous` i `Canceled` — bez izuzetaka.
+
+Oznaka se normalizuje: zadržavaju se slova, cifre, `-`, `_` i `.`, svaki drugi znak (razmak, `/` i sl.) zamenjuje se jednom crticom, a vodeće i završne crtice se uklanjaju. Ako oznaka nakon normalizacije ostane prazna, slug sadrži samo `xxxxx`.
+
+Primer zahteva (koristi demo izvođenje iz `DemoActivityOfferings`; ERS 2026/27 daje `ERS-2026-27-00001` kao oznaku konteksta):
+
+```bash
+curl -X POST http://localhost:5000/Course/ERS-2026-27-00001/CreateActivity \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Timski projekat","description":"Prva faza","startDate":"2026-03-01T08:00:00Z","endDate":"2026-03-15T23:59:00Z"}'
+```
+
+**Ograničenje:** aktivnosti se čuvaju samo u memoriji procesa preko porta `IActivityRepository` (`InMemoryActivityRepository`) i gube se pri ponovnom pokretanju. Nema trajne baze, autentifikacije, autorizacije ni provere prava nad konkretnim izvođenjem predmeta. Ovaj tok ne predstavlja završenu implementaciju ST-021 (formiranje studentskih timova) niti bilo kog drugog ST zahteva.
+
 ## Preduslovi
 
 - .NET **8 SDK** (`dotnet --version`)

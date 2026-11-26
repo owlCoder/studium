@@ -1,3 +1,4 @@
+using Application.Activities;
 using Application.Courses;
 using Application.Engagements;
 using Application.Enrollments;
@@ -6,6 +7,7 @@ using Domain.Courses;
 using Domain.Enrollments;
 using Domain.Offerings;
 using Domain.Staff;
+using Infrastructure.Activities;
 using Infrastructure.Courses;
 using Infrastructure.Engagements;
 using Infrastructure.Enrollments;
@@ -136,5 +138,10 @@ public static class DemoData
                     oibOffering.Id, DemoAssistantId, Responsibility.Assistant),
                 removedFromErs
             });
+    }
+
+    public static IActivityRepository CreateActivityRepository()
+    {
+        return new InMemoryActivityRepository();
     }
 }
