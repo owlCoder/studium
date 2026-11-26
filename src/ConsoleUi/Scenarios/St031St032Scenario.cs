@@ -31,7 +31,8 @@ public static class St031St032Scenario
             .Add(offeringId, groupId, markoId);
         var attendance = new InMemoryAttendanceRepository();
 
-        var createSession = new CreateSessionHandler(offerings);
+        var sessions = new InMemorySessionRepository();
+        var createSession = new CreateSessionHandler(offerings, sessions);
         var recordAttendance = new RecordAttendanceHandler(eligibility, attendance);
         var listEligible = new ListEligibleStudentsHandler(eligibility, attendance);
 
