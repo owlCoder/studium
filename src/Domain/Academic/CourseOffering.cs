@@ -53,4 +53,24 @@ public sealed class CourseOffering
 
         State = newState;
     }
+
+    /// <summary>
+    /// Arhiviranje (ST-004, ST-091): dozvoljeno samo za Završeno izvođenje.
+    /// Ništa se ne briše, samo se postavlja oznaka IsArchived.
+    /// </summary>
+    public void Archive()
+    {
+        if (State != OfferingState.Completed)
+        {
+            throw new InvalidOperationException(
+                "Arhivirati se može samo završeno izvođenje.");
+        }
+
+        if (IsArchived)
+        {
+            throw new InvalidOperationException("Izvođenje je već arhivirano.");
+        }
+
+        IsArchived = true;
+    }
 }
