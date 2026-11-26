@@ -9,7 +9,7 @@ namespace Tests.Integration;
 public sealed class ListActivitiesEndpointTests
 {
     private const string ListActivitiesPath = "/ListActivities";
-    private const string ExistingOfferingSlug = "ERS-00001";
+    private const string ExistingOfferingSlug = "ERS-2026-27-00001";
     private static readonly DateTime Start = new(2026, 3, 1, 8, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime End = new(2026, 3, 15, 23, 59, 0, DateTimeKind.Utc);
 

@@ -12,7 +12,7 @@ namespace Tests.Integration;
 public sealed class CreateActivityEndpointTests
 {
     private static readonly Guid ExistingOfferingId = DemoActivityOfferings.ErsOfferingId;
-    private const string ExistingOfferingSlug = "ERS-00001";
+    private const string ExistingOfferingSlug = "ERS-2026-27-00001";
     private const string CatalogCourseSlug = "ERS-11111";
     private const string MissingContextSlug = "XXX-33333";
     private static readonly DateTime Start = new(2026, 3, 1, 8, 0, 0, DateTimeKind.Utc);

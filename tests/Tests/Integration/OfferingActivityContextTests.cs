@@ -33,7 +33,7 @@ public sealed class OfferingActivityContextTests
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync("/Course/ERS-00001/CreateActivity", new
+        var response = await client.PostAsJsonAsync("/Course/ERS-2026-27-00001/CreateActivity", new
         {
             name = "Projekat (izvođenje)",
             description = "Aktivnost vezana za izvođenje predmeta",
@@ -74,7 +74,7 @@ public sealed class OfferingActivityContextTests
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
-        await client.PostAsJsonAsync("/Course/OIB-00002/CreateActivity", new
+        await client.PostAsJsonAsync("/Course/OIB-2026-27-00002/CreateActivity", new
         {
             name = "Vežbe",
             description = "Uz izvođenje OIB",
