@@ -138,7 +138,13 @@ builder.Services.AddScoped<AddMaterialExternalLinkHandler>();
 
 // Memorijski adapter mora biti singleton da bi aktivnosti preživele između zahteva.
 builder.Services.AddSingleton<IActivityRepository>(_ => DemoData.CreateActivityRepository());
-builder.Services.AddSingleton<IActivityContextReader, InMemoryActivityContextReader>();
+// ST-004: aktivnosti se vezuju za izvođenje predmeta. Ruta, rukovaoci, domen i
+// repozitorijum ostaju isti; menja se samo čitalac konteksta. Demo spisak izvođenja
+// (DemoActivityOfferings) se zamenjuje ST-004 čitaocem kada njihov model uđe u main.
+builder.Services.AddSingleton<IActivityContextReader>(serviceProvider =>
+    new OfferingActivityContextReader(
+        serviceProvider.GetRequiredService<ICourseReader>(),
+        DemoActivityOfferings.Create()));
 builder.Services.AddScoped<CreateActivityHandler>();
 builder.Services.AddScoped<ListActivitiesHandler>();
 

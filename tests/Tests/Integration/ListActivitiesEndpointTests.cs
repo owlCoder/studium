@@ -9,7 +9,7 @@ namespace Tests.Integration;
 public sealed class ListActivitiesEndpointTests
 {
     private const string ListActivitiesPath = "/ListActivities";
-    private const string ExistingCourseSlug = "ERS-11111";
+    private const string ExistingOfferingSlug = "ERS-00001";
     private static readonly DateTime Start = new(2026, 3, 1, 8, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime End = new(2026, 3, 15, 23, 59, 0, DateTimeKind.Utc);
 
@@ -59,7 +59,7 @@ public sealed class ListActivitiesEndpointTests
         using var client = factory.CreateClient();
 
         var created = await client.PostAsJsonAsync(
-            CreateActivityPath(ExistingCourseSlug),
+            CreateActivityPath(ExistingOfferingSlug),
             ValidBody());
         Assert.That(created.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var posted = await created.Content.ReadFromJsonAsync<ActivityResponse>();
@@ -79,10 +79,10 @@ public sealed class ListActivitiesEndpointTests
         using var client = factory.CreateClient();
 
         var later = await client.PostAsJsonAsync(
-            CreateActivityPath(ExistingCourseSlug),
+            CreateActivityPath(ExistingOfferingSlug),
             ValidBody(name: "Kasnija", startDate: Start.AddDays(10), endDate: End.AddDays(10)));
         var earlier = await client.PostAsJsonAsync(
-            CreateActivityPath(ExistingCourseSlug),
+            CreateActivityPath(ExistingOfferingSlug),
             ValidBody(name: "Ranija"));
 
         Assert.Multiple(() =>

@@ -50,14 +50,14 @@ Domen i memorijski adapter ne bacaju izuzetke za neispravne podatke ni za otkaza
 
 `contextSlug` je kratka oznaka oblika `OZNAKA-xxxxx`, gde je `OZNAKA` oznaka predmeta, a `xxxxx` poslednjih pet znakova njegovog identifikatora (bez razlike između velikih i malih slova). Isti obrazac važi i za buduće rute pojedinačne aktivnosti (`/Course/{contextSlug}/Activity/{activitySlug}`, gde je `activitySlug` oblika `NAZIV-xxxxx`).
 
-**Kontekst aktivnosti:** sloj `Domain` i `IActivityRepository` ne znaju šta oznaka predstavlja i vide samo neprozirni `ContextId`. Oznaku iz putanje razrešava isključivo `IActivityContextReader`; trenutna implementacija `InMemoryActivityContextReader` je omotač oko `ICourseReader` i vraća `ActivityContext` za kataloški predmet. Kada ST-004 uvede izvođenja predmeta, dovoljno je dodati novi adapter tog porta (npr. `OfferingActivityContextReader`) i promeniti jednu liniju registracije u `Program.cs`; ruta, rukovalac, domen i repozitorijum ostaju nepromenjeni. Port vraća `ActivityContextLookup` sa statusima `Found`, `NotFound`, `Ambiguous` i `Canceled` — bez izuzetaka.
+**Kontekst aktivnosti:** sloj `Domain` i `IActivityRepository` ne znaju šta oznaka predstavlja i vide samo neprozirni `ContextId`. Oznaku iz putanje razrešava isključivo `IActivityContextReader`. Registrovana implementacija je `OfferingActivityContextReader`: aktivnost pripada **izvođenju predmeta**, pa `ContextId` nosi identifikator izvođenja (ST-004). Oznaka je i dalje oblika `OZNAKA-xxxxx` — prefiks je oznaka predmeta, a `xxxxx` poslednjih pet znakova identifikatora izvođenja; demo ERS izvođenje 2026/27 sa identifikatorom `33333333-0000-0000-0000-000000000001` daje `ERS-00001`, a starija godina `ERS-00003`. Kataloška oznaka predmeta (`ERS-11111`) više nije važeći kontekst i vraća `404`. Ruta, rukovalac, domen i repozitorijum nisu menjani; ruta `/Course/{contextSlug}/CreateActivity` zadržana je zbog kompatibilnosti iako oznaka opisuje izvođenje. Spisak demo izvođenja je u `Infrastructure.Demo.DemoActivityOfferings` i zamenjuje se ST-004 čitaocem kada njihov model uđe u `main`. Port vraća `ActivityContextLookup` sa statusima `Found`, `NotFound`, `Ambiguous` i `Canceled` — bez izuzetaka.
 
 Oznaka se normalizuje: zadržavaju se slova, cifre, `-`, `_` i `.`, svaki drugi znak (razmak, `/` i sl.) zamenjuje se jednom crticom, a vodeće i završne crtice se uklanjaju. Ako oznaka nakon normalizacije ostane prazna, slug sadrži samo `xxxxx`.
 
-Primer zahteva (koristi jedan od demo predmeta iz `DemoData`; `ERS` sa identifikatorom `11111111-1111-1111-1111-111111111111` daje `ERS-11111` kao oznaku konteksta):
+Primer zahteva (koristi demo izvođenje iz `DemoActivityOfferings`; ERS 2026/27 daje `ERS-00001` kao oznaku konteksta):
 
 ```bash
-curl -X POST http://localhost:5000/Course/ERS-11111/CreateActivity \
+curl -X POST http://localhost:5000/Course/ERS-00001/CreateActivity \
   -H "Content-Type: application/json" \
   -d '{"name":"Timski projekat","description":"Prva faza","startDate":"2026-03-01T08:00:00Z","endDate":"2026-03-15T23:59:00Z"}'
 ```
