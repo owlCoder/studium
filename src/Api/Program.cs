@@ -1,4 +1,5 @@
 using Application.Courses;
+using Application.Users;
 using Infrastructure.Demo;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,6 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Composition root: spoljašnji sloj bira implementaciju ugovora.
 builder.Services.AddSingleton<ICourseReader>(_ => DemoData.CreateCourseReader());
 builder.Services.AddScoped<ListCoursesHandler>();
+
+builder.Services.AddScoped<CreateUserHandler>();
 
 var app = builder.Build();
 

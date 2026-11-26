@@ -89,9 +89,8 @@ public sealed class CreateUserHandlerTests
     }
 
     [Test]
-    [Ignore("Čeka se integracija PR #33 i #24. Test trenutno ne može da se izvrši jer InMemoryUserRepository nije atomaran.")]
     public async Task HandleAsync_OnlyOneUserCreated_WhenParallelRequestsHaveSameUsername()
-    {/*
+    {
         // Arrange
         // Ovde koristimo PRAVI InMemoryUserRepository jer Moq ne može da testira thread-safety
         var repo = new InMemoryUserRepository();
@@ -123,6 +122,5 @@ public sealed class CreateUserHandlerTests
         // Očekujemo da je TAČNO JEDAN task uspeo.
         // Ako repozitorijum nije atomaran, više njih će uspeti i test će pasti.
         Assert.That(results.Count(success => success), Is.EqualTo(1));
-        */
     }
 }
