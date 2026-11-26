@@ -15,10 +15,8 @@ public sealed class InMemoryUserRepository : IUserRepository
 
     public InMemoryUserRepository(IEnumerable<User>? initialUsers = null)
     {
-        if (initialUsers == null)
-        {
-            return;
-        }
+        if (initialUsers == null) { return; }
+
         foreach (var user in initialUsers)
         {
             AddCore(user);
@@ -86,7 +84,7 @@ public sealed class InMemoryUserRepository : IUserRepository
         return Task.CompletedTask;
     }
 
-    // Poziva se samo unutar lock-a (ili iz konstruktora).
+    
     private void AddCore(User user)
     {
         if (_usersById.ContainsKey(user.Id))

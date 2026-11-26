@@ -1,5 +1,5 @@
-
 namespace Domain.Users;
+
 public enum UserRole
 {
     Administrator,
@@ -8,7 +8,7 @@ public enum UserRole
     Student
 }
 
-public sealed class User
+public sealed partial class User
 {
     public Guid Id { get; }
     public string FirstName { get; }
@@ -42,4 +42,3 @@ public sealed class User
         Role = role;
     }
 }
-

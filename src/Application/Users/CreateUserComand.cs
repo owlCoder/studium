@@ -1,5 +1,6 @@
-namespace Application.Users;
 using Domain.Users;
+
+namespace Application.Users;
 
 public sealed record CreateUserCommand(
     string FirstName,
