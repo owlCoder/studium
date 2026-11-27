@@ -8,7 +8,7 @@ namespace Domain.Attendance;
 /// <remarks>
 /// Asistent je potvrdio: student prebačen iz jedne grupe u drugu odmah se računa
 /// u novoj grupi. Zato staro članstvo prestaje, a novo počinje u istom trenutku,
-/// bez preklapanja. Vidi docs/adr/0001-st-032-podobnost-studenata.md.
+/// bez preklapanja. Vidi docs/adr/0005-st-032-podobnost-studenata.md.
 /// </remarks>
 public sealed class MembershipPeriod
 {

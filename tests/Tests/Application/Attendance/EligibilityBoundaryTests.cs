@@ -10,7 +10,7 @@ namespace Tests.Application.Attendance;
 /// Granice perioda članstva u odnosu na početak termina.
 /// Članstvo koje počinje tačno u vreme termina se računa, a članstvo koje
 /// prestaje tačno u vreme termina se ne računa. Asistent je potvrdio da se
-/// student prebačen u drugu grupu odmah računa u novoj grupi (ADR-0001).
+/// student prebačen u drugu grupu odmah računa u novoj grupi (ADR-0005).
 /// </summary>
 [TestFixture]
 public sealed class EligibilityBoundaryTests
