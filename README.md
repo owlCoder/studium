@@ -70,57 +70,64 @@ Poslednje dve komande pokreću alternativne ulaze; nisu potrebne istovremeno. AP
 
 Materijali predmeta i detaljna projektna specifikacija predstavljaju izvor poslovnih zahteva; primeri u repozitorijumu služe isključivo za početnu organizaciju koda.
 
-## ST-004: stanje i plan
+## ST-004: akademske godine i izvođenja predmeta (tim 5)
 
-### Urađeno (KT1)
-- Application: `ListAcademicYearsHandler` (pregled i pretraga po oznaci), `UpdateAcademicYearCommand` i `UpdateAcademicYearHandler` (izmena); `IAcademicYearRepository` proširen metodama `ListAsync` i `TryUpdateAsync`
-- Infrastructure: `ListAsync` i atomarni `TryUpdateAsync` u `InMemoryAcademicYearRepository`
-- ConsoleUi: demo scenario `AcademicYearsDemo` (kreiranje, lista, pretraga, izmena i odbijeni unosi)
-- Testovi: 10 NUnit testova u `AcademicYearsHandlersTests` (lista, pretraga, izmena, odbijeni slučajevi, paralelne izmene)
-- Dijagrami: `docs/5/st004-akademske-godine-arhitektura.png`, `docs/5/st004-akademske-godine-dfd.png` (izvori u `.drawio`)
+Delimična in-memory implementacija. Nije kompletan ST-004 (videti *Ograničenja*).
+
+### Pokretanje
+
+```bash
+dotnet restore PROJEKAT-ERS.sln
+dotnet build PROJEKAT-ERS.sln --configuration Release
+dotnet test PROJEKAT-ERS.sln --configuration Release
+
+dotnet run --project src/ConsoleUi                  # katalog + spisak demo scenarija
+dotnet run --project src/ConsoleUi -- --demo-st004  # godina, izvođenje i prelazi stanja
+dotnet run --project src/ConsoleUi -- --demo-godine # akademske godine
+dotnet run --project src/ConsoleUi -- --sve         # oba scenarija
+```
+
+U Visual Studio-u: desni klik na `ConsoleUi` → *Properties* → *Debug* → *Command line arguments* (npr. `--demo-st004`); testovi preko *Test → Run All Tests*.
+
+### Urađeno
+
+**KT1**
+- Domain: `AcademicYear`, `CourseOffering`, `OfferingState`
+- Application: kreiranje, pregled, pretraga i izmena akademskih godina; kreiranje izvođenja
+- Infrastructure: `InMemoryAcademicYearRepository`, `InMemoryCourseOfferingRepository` (atomarno dodavanje uz `lock`)
+- Dijagrami arhitekture i toka podataka u `docs/5/`
+
+**KT2**
+- `ChangeOfferingStateHandler`: promena stanja izvođenja (U pripremi → Aktivno → Završeno)
+- `ListCourseOfferingsHandler`: pregled izvođenja po akademskoj godini, uz filter po stanju
+- `ICourseOfferingRepository` proširen metodama `ListByAcademicYearAsync` i `TryUpdateAsync`
+- ConsoleUi: demo scenariji se biraju argumentom; neočekivana greška vraća izlazni kod 1
+- Testovi: `OfferingStateTests` (prelazi, odbijeni prelazi, pregled) i `St004DemoSmokeTests` (ceo demo)
 
 ### Poslovna pravila
-- Oznaka je obavezna, bez razmaka na krajevima i jedinstvena bez razlike u veličini slova
-- Početak godine prethodi završetku
-- Izmena zadržava isti Id
-- Odbijena operacija ne menja postojeće podatke
 
-**Pokretanje demoa:** `dotnet run --project src/ConsoleUi`
+- Oznaka akademske godine je obavezna, bez razmaka na krajevima i jedinstvena bez obzira na velika i mala slova.
+- Početak godine prethodi završetku; izmena zadržava isti Id.
+- Izvođenje je jedinstveno za par (predmet, akademska godina); deaktiviran predmet ne može dobiti novo izvođenje.
+- Stanja izvođenja idu samo unapred: U pripremi → Aktivno → Završeno. Preskakanje i vraćanje unazad su zabranjeni.
+- Odbijena operacija ne menja prethodno važeće stanje.
 
-### Ograničenja (delimična implementacija)
-- Ovo nije kompletan ST-004: nema provere uloge Administrator, Api/ConsoleUi ulaza ni trajne baze.
-- Svojstvo IsArchived postoji, ali logika arhiviranja (ST-091) nije implementirana.
-- `lock` važi samo unutar jednog procesa; trajna baza mora garantovati jedinstvenost unique ograničenjem
-  nad parom (CourseId, AcademicYearId) i nad oznakom godine.
+### Integracija sa drugim delovima
 
-### Preostalo do KT2
-- Provera uloge Administratora pri svakoj operaciji
-- Trajno skladište umesto memorijskog
-- Veza sa izvođenjima (izvođenje je par predmet + godina)
+| Deo | Smer | Interfejs | Status |
+| --- | --- | --- | --- |
+| ST-003 katalog predmeta | ST-004 koristi | `ICourseReader` (postojanje i `IsActive` predmeta) | povezano |
+| ST-002 prijava i uloge | ST-004 koristi | interfejs tima ST-002 za trenutnog korisnika i ulogu | u toku |
+| ST-006 upis studenata | ST-006 koristi ST-004 | `CourseOffering.Id` i stanje izvođenja | u toku |
+| ST-005 nastavnici | ST-005 koristi ST-004 | `CourseOffering.Id` | u toku |
 
-### Zavisnosti
-- ST-001/002: korisnici i uloge
-- ST-003: Course, ICourseReader
-- ST-005, ST-006: koriste CourseOffering.Id
+### Ograničenja
 
+- Nema provere uloge Administrator dok se ne poveže interfejs ST-002.
+- Podaci se čuvaju samo u memoriji; `lock` važi unutar jednog procesa. Trajna baza mora imati unique ograničenje nad oznakom godine i nad parom (CourseId, AcademicYearId).
+- Svojstvo `IsArchived` postoji, ali arhiviranje (ST-091) nije implementirano.
 
-## ST-004: akademske godine (grana `feature/st-004-akademske-godine-tim-5`)
+### Dijagrami
 
-Delimična in-memory/demonstraciona implementacija.
-
-**Urađeno (KT1)**
-- Application: `ListAcademicYearsHandler` (pregled i pretraga po oznaci), `UpdateAcademicYearCommand` i `UpdateAcademicYearHandler` (izmena); `IAcademicYearRepository` proširen metodama `ListAsync` i `TryUpdateAsync`
-- Infrastructure: `ListAsync` i atomarni `TryUpdateAsync` u `InMemoryAcademicYearRepository`
-- ConsoleUi: demo scenario `AcademicYearsDemo` (kreiranje, lista, pretraga, izmena i odbijeni unosi)
-- Testovi: 10 NUnit testova u `AcademicYearsHandlersTests`
-- Dijagrami: `docs/5/st004-akademske-godine-arhitektura.png`, `docs/5/st004-akademske-godine-dfd.png` (izvori u `.drawio`)
-
-**Poslovna pravila**
-- Oznaka je obavezna, bez razmaka na krajevima i jedinstvena bez razlike u veličini slova
-- Početak godine prethodi završetku
-- Izmena zadržava isti Id
-- Odbijena operacija ne menja postojeće podatke
-
-**Pokretanje demoa:** `dotnet run --project src/ConsoleUi`
-
-**Preostalo:** provera uloge Administratora, trajno skladište, veza sa izvođenjima.
+- [Arhitektura](docs/5/st-004-akademske-godine-arhitektura.png) ([izvor](docs/5/st-004-akademske-godine-arhitektura.drawio))
+- [Tok podataka (DFD)](docs/5/st-004-akademske-godine-dfd.png) ([izvor](docs/5/st-004-akademske-godine-dfd.drawio))
