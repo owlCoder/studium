@@ -21,3 +21,25 @@ dotnet test Solution.sln --filter "FullyQualifiedName~St031AcceptanceTests"
 ```
 
 **Ukupan rezultat:** svi testovi su uspjesno prosli
+
+
+## ST-032: testovi prihvatanja
+
+Primer iz specifikacije: „Za održan termin ima dvadeset podobnih studenata. Prisustvo je uneto za osamnaest. Za preostala dva studenta stanje je ‚Neevidentirano‘, a ne ‚Odsutan‘. Ponovljen unos za Anu menja isti zapis.”
+
+Testovi su u `tests/Tests/Acceptance/St032AcceptanceTests.cs`.
+
+| Test | Šta proverava | Rezultat |
+|---|---|---|
+| `TwentyEligible_EighteenRecorded_TwoAreNeevidentirano` | Od 20 podobnih uneto je 18, a dva su Neevidentirano | |
+| `TwoUnrecordedStudents_AreNotOdsutan` | Dva studenta bez unosa nisu Odsutan | |
+| `OnlyEighteenRecordsExist_UnrecordedStudentsHaveNoRecord` | Za studente bez unosa zapis ne postoji | |
+| `RepeatedEntryForAna_ChangesSameRecord` | Ponovljen unos za Anu menja isti zapis | |
+
+Komanda kojom su testovi pokrenuti:
+
+```bash
+dotnet test Solution.sln --filter "FullyQualifiedName~St032AcceptanceTests"
+```
+
+**Ukupan rezultat:** Svi testovi su uspesno prosli
