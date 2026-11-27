@@ -4,17 +4,23 @@ namespace Application.TeachingSessions;
 
 /// <summary>
 /// Evidentira planirani termin nastave (ST-031). Cilj može biti celo izvođenje
-/// ili grupa koja pripada tom izvođenju.
+/// ili grupa koja pripada tom izvođenju. Termin se čuva tek kada prođu sve provere.
 /// </summary>
 public sealed class CreateSessionHandler
 {
     private readonly ICourseOfferingReader _offerings;
+    private readonly ISessionRepository _sessions;
 
-    public CreateSessionHandler(ICourseOfferingReader offerings)
+    public CreateSessionHandler(ICourseOfferingReader offerings, ISessionRepository sessions)
     {
         _offerings = offerings;
+        _sessions = sessions;
     }
 
+    /// <summary>
+    /// Kreira i čuva termin. Vraćeni termin nosi identifikator (<see cref="TeachingSession.Id"/>)
+    /// pod kojim se kasnije pronalazi.
+    /// </summary>
     public async Task<TeachingSession> HandleAsync(
         CreateSessionCommand command,
         CancellationToken cancellationToken = default)
@@ -27,7 +33,8 @@ public sealed class CreateSessionHandler
                 command.OfferingId, groupId, cancellationToken))
             throw new InvalidOperationException("Grupa ne pripada tom izvođenju.");
 
-        return new TeachingSession(
+        // Konstruktor odbija završetak koji nije posle početka; tada se ništa ne čuva.
+        var session = new TeachingSession(
             Guid.NewGuid(),
             command.Kind,
             command.OfferingId,
@@ -35,5 +42,8 @@ public sealed class CreateSessionHandler
             command.StartsAt,
             command.EndsAt,
             command.Location);
+
+        await _sessions.AddAsync(session, cancellationToken);
+        return session;
     }
 }

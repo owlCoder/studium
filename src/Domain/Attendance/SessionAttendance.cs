@@ -3,11 +3,14 @@ namespace Domain.Attendance;
 /// <summary>
 /// Evidencija prisustva za jedan termin. Za par (student, termin) postoji tačno
 /// jedan zapis; ponovljeni unos menja isti zapis, a student bez unosa je Neevidentiran.
+/// Unosi su zaštićeni od istovremenih izmena, pa dva unosa u isto vreme
+/// ne mogu napraviti dva zapisa za istog studenta.
 /// </summary>
 public sealed class SessionAttendance
 {
     private readonly Guid _sessionId;
     private readonly Dictionary<Guid, AttendanceRecord> _records = new();
+    private readonly object _gate = new();
 
     public SessionAttendance(Guid sessionId)
     {
@@ -19,7 +22,14 @@ public sealed class SessionAttendance
 
     public Guid SessionId => _sessionId;
 
-    public IReadOnlyList<AttendanceRecord> Records => _records.Values.ToArray();
+    public IReadOnlyList<AttendanceRecord> Records
+    {
+        get
+        {
+            lock (_gate)
+                return _records.Values.ToArray();
+        }
+    }
 
     public AttendanceRecord Record(
         Guid studentId,
@@ -27,20 +37,28 @@ public sealed class SessionAttendance
         Guid actorId,
         string? note = null)
     {
-        if (_records.TryGetValue(studentId, out var existing))
+        lock (_gate)
         {
-            existing.Record(state, actorId, note);
-            return existing;
-        }
+            if (_records.TryGetValue(studentId, out var existing))
+            {
+                existing.Record(state, actorId, note);
+                return existing;
+            }
 
-        var record = new AttendanceRecord(
-            Guid.NewGuid(), _sessionId, studentId, state, actorId, note);
-        _records[studentId] = record;
-        return record;
+            var record = new AttendanceRecord(
+                Guid.NewGuid(), _sessionId, studentId, state, actorId, note);
+            _records[studentId] = record;
+            return record;
+        }
     }
 
-    public AttendanceState StateOf(Guid studentId) =>
-        _records.TryGetValue(studentId, out var record)
-            ? record.State
-            : AttendanceState.Neevidentirano;
+    public AttendanceState StateOf(Guid studentId)
+    {
+        lock (_gate)
+        {
+            return _records.TryGetValue(studentId, out var record)
+                ? record.State
+                : AttendanceState.Neevidentirano;
+        }
+    }
 }

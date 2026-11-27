@@ -13,7 +13,8 @@ public sealed class CreateSessionHandlerTests
     private static readonly DateTime StartsAt = new(2026, 11, 7, 10, 0, 0);
     private static readonly DateTime EndsAt = new(2026, 11, 7, 11, 30, 0);
 
-    private static CreateSessionHandler Handler(ICourseOfferingReader offerings) => new(offerings);
+    private static CreateSessionHandler Handler(ICourseOfferingReader offerings) =>
+        new(offerings, new InMemorySessionRepository());
 
     [Test]
     public async Task Handle_WholeOfferingTarget_CreatesPlannedSession()

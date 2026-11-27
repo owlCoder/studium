@@ -41,8 +41,8 @@ public sealed class RecordAttendanceHandler
         if (!eligible.Contains(studentId))
             throw new InvalidOperationException("Student nije podoban za ovaj termin.");
 
-        var attendance = await _attendance.GetAsync(session.Id, cancellationToken)
-            ?? new SessionAttendance(session.Id);
+        // Jedna zajednička evidencija po terminu, i kada dva unosa stignu istovremeno.
+        var attendance = await _attendance.GetOrCreateAsync(session.Id, cancellationToken);
 
         attendance.Record(studentId, state, actorId, note);
 

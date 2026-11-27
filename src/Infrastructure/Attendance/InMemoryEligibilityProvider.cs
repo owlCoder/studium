@@ -1,17 +1,33 @@
 using Application.Attendance;
+using Domain.Attendance;
 
 namespace Infrastructure.Attendance;
 
 /// <summary>
-/// Memorijska zamena porta članstva (ST-006); vremenski uslov se ignoriše.
+/// Memorijska zamena porta članstva (ST-006, ST-019) dok drugi timovi ne
+/// obezbede pravu implementaciju. Podobnost računa po pravilu iz domena
+/// (<see cref="EligibilityRule"/>), uz period važenja članstva.
 /// </summary>
 public sealed class InMemoryEligibilityProvider : IEligibilityProvider
 {
-    private readonly List<(Guid OfferingId, Guid? GroupId, Guid StudentId)> _entries = new();
+    private readonly List<GroupMembership> _memberships = new();
 
-    public InMemoryEligibilityProvider Add(Guid offeringId, Guid? groupId, Guid studentId)
+    /// <summary>
+    /// Dodaje članstvo koje važi uvek. Zadržano radi postojećih testova i demo scenarija.
+    /// </summary>
+    public InMemoryEligibilityProvider Add(Guid offeringId, Guid? groupId, Guid studentId) =>
+        Add(offeringId, groupId, studentId, MembershipPeriod.Always);
+
+    /// <summary>
+    /// Dodaje članstvo koje važi samo u zadatom periodu.
+    /// </summary>
+    public InMemoryEligibilityProvider Add(
+        Guid offeringId,
+        Guid? groupId,
+        Guid studentId,
+        MembershipPeriod period)
     {
-        _entries.Add((offeringId, groupId, studentId));
+        _memberships.Add(new GroupMembership(studentId, offeringId, groupId, period));
         return this;
     }
 
@@ -22,10 +38,7 @@ public sealed class InMemoryEligibilityProvider : IEligibilityProvider
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var ids = _entries
-            .Where(e => e.OfferingId == offeringId && e.GroupId == groupId)
-            .Select(e => e.StudentId)
-            .ToArray();
-        return Task.FromResult<IReadOnlyList<Guid>>(ids);
+        var ids = EligibilityRule.EligibleStudents(_memberships, offeringId, groupId, at);
+        return Task.FromResult(ids);
     }
 }
