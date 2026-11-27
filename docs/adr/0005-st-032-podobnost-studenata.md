@@ -1,4 +1,4 @@
-# ADR-0001: Podobnost studenata za evidenciju prisustva
+# ADR-0005: Podobnost studenata za evidenciju prisustva
 
 - **Status:** Predložen
 - **Datum:** 2026-11-23
